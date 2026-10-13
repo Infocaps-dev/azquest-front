@@ -1,0 +1,721 @@
+@use '@carbon/react/scss/colors';
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/theme' as *;
+@use '@carbon/react/scss/type' as *;
+
+$accent: #0186EF;
+$side-width: 22rem;
+
+// Header
+.chat-header__nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-03;
+}
+
+.chat-header__status {
+  display: flex;
+  align-items: center;
+  gap: $spacing-05;
+  padding-inline: $spacing-05;
+}
+
+.chat-header__user {
+  @include type-style('body-compact-01');
+  color: $text-secondary;
+}
+
+// Layout
+.chat-layout {
+  display: grid;
+  grid-template-columns: $side-width minmax(0, 1fr) $side-width;
+  height: 100vh;
+  padding-top: 3rem; // altura do Header do Carbon
+  background: $background;
+}
+
+.chat-eyebrow {
+  @include type-style('label-02');
+  margin-bottom: $spacing-05;
+  color: $accent;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+// Sidebar esquerda
+.chat-sidebar {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  border-right: 1px solid $border-subtle-01;
+}
+
+.chat-sidebar__top {
+  padding: $spacing-07 $spacing-06 $spacing-05;
+  border-bottom: 1px solid $border-subtle-01;
+}
+
+.chat-sidebar__new {
+  @include type-style('body-01');
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-03 $spacing-05;
+  border: 0;
+  background: none;
+  color: $accent;
+  cursor: pointer;
+
+  &:hover {
+    background: $layer-hover-01;
+  }
+}
+
+.chat-sidebar__empty {
+  @include type-style('helper-text-01');
+  flex: 1;
+  padding: $spacing-07;
+  color: $text-secondary;
+}
+
+.chat-sidebar__footer {
+  display: flex;
+  gap: $spacing-05;
+  padding: $spacing-05 $spacing-06;
+  border-top: 1px solid $border-subtle-01;
+  background: $layer-01;
+
+  strong,
+  span {
+    display: block;
+  }
+
+  strong {
+    @include type-style('heading-compact-01');
+  }
+
+  span {
+    @include type-style('label-01');
+    color: $text-secondary;
+  }
+}
+
+// Área central
+.chat-main {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.chat-main__connection {
+  @include type-style('label-01');
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-03;
+  padding: $spacing-04;
+  border-bottom: 1px solid $border-subtle-01;
+  color: $text-secondary;
+}
+
+.chat-main__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: $support-success;
+}
+
+.chat-main__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: $spacing-10 $spacing-09 $spacing-07;
+}
+
+.chat-hero {
+  max-width: 46rem;
+}
+
+.chat-hero__title {
+  @include type-style('fluid-display-02', true);
+  color: $text-primary;
+}
+
+.chat-hero__rule {
+  width: $spacing-09;
+  margin: $spacing-07 0;
+  border: 0;
+  border-top: 3px solid $accent;
+}
+
+.chat-hero__lead {
+  @include type-style('body-02');
+  color: $text-secondary;
+}
+
+.chat-suggestions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  margin-top: $spacing-07;
+}
+
+.chat-suggestions__tile {
+  display: flex;
+  min-height: 10rem;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.chat-suggestions__index {
+  @include type-style('label-01');
+  color: $accent;
+  font-weight: 600;
+}
+
+.chat-composer {
+  padding: 0 $spacing-09 $spacing-05;
+}
+
+.chat-composer__row {
+  display: flex;
+  align-items: stretch;
+
+  .cds--form-item {
+    flex: 1;
+  }
+
+  .cds--text-area {
+    height: 100%;
+    resize: none;
+  }
+}
+
+.chat-composer__send {
+  min-width: 7.5rem;
+}
+
+.chat-composer__hint {
+  @include type-style('label-01');
+  margin-top: $spacing-03;
+  color: $text-secondary;
+}
+
+// Painel direito
+.chat-context {
+  min-height: 0;
+  overflow-y: auto;
+  border-left: 1px solid $border-subtle-01;
+  background: $layer-01;
+}
+
+.chat-context__user {
+  display: flex;
+  gap: $spacing-04;
+  padding: $spacing-05 $spacing-06;
+  border-bottom: 1px solid $border-subtle-01;
+
+  strong,
+  span {
+    display: block;
+  }
+
+  strong {
+    @include type-style('heading-compact-01');
+  }
+
+  span {
+    @include type-style('label-01');
+    color: $text-secondary;
+  }
+}
+
+.chat-context__body {
+  padding: $spacing-08 $spacing-06;
+}
+
+.chat-context__list {
+  margin-top: $spacing-07;
+  border-top: 1px solid $border-subtle-01;
+}
+
+.chat-context__item {
+  padding: $spacing-05 0;
+  border-bottom: 1px solid $border-subtle-01;
+
+  dt {
+    @include type-style('label-01');
+    margin-bottom: $spacing-02;
+    color: $text-secondary;
+  }
+
+  dd {
+    @include type-style('body-compact-01');
+    color: $text-primary;
+  }
+}
+
+.chat-context__info {
+  display: flex;
+  gap: $spacing-02;
+  margin-top: $spacing-04;
+  padding: $spacing-02 $spacing-03;
+  background: colors.$blue-10;
+  color: colors.$gray-100;
+  font-size: 0.55rem !important;
+  line-height: 1.3 !important;
+
+  p {
+    font-size: 0.55rem !important;
+    line-height: 1.3 !important;
+    margin: 0;
+  }
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+    width: 8px;
+    height: 8px;
+    min-width: 8px;
+  }
+}
+
+.chat-context__logout {
+  @include type-style('body-01');
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-03;
+  margin-top: $spacing-07;
+  padding: $spacing-03 $spacing-05;
+  border: 0;
+  background: none;
+  color: $accent;
+  cursor: pointer;
+
+  &:hover {
+    background: $layer-hover-01;
+  }
+}
+
+
+// Calendário
+.ctx-calendar {
+  margin-bottom: $spacing-05;
+  border: 1px solid $border-subtle-01;
+  background: $background;
+  padding: $spacing-04;
+}
+
+.ctx-calendar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-04;
+}
+
+.ctx-calendar__nav {
+  display: flex;
+  gap: $spacing-01;
+
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: $spacing-01;
+    border: 0;
+    background: none;
+    color: $text-secondary;
+    cursor: pointer;
+    border-radius: 2px;
+
+    &:hover {
+      background: $layer-hover-01;
+      color: $text-primary;
+    }
+  }
+}
+
+.ctx-calendar__month {
+  @include type-style('heading-compact-01');
+  text-transform: capitalize;
+}
+
+.ctx-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  text-align: center;
+}
+
+.ctx-calendar__weekday {
+  @include type-style('label-01');
+  color: $text-secondary;
+  padding: $spacing-02 0;
+  font-weight: 600;
+}
+
+.ctx-calendar__day {
+  @include type-style('label-01');
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-02 0;
+  border-radius: 50%;
+  cursor: pointer;
+
+  &:hover:not(&--empty) {
+    background: $layer-hover-01;
+  }
+
+  &--today {
+    background: $accent;
+    color: #fff;
+    border-radius: 50%;
+    font-weight: 700;
+  }
+
+  &--selected {
+    background: $layer-02;
+    border-radius: 50%;
+    font-weight: 600;
+  }
+
+  &--empty {
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+.ctx-calendar__dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: $accent;
+  margin-top: 1px;
+
+  .ctx-calendar__day--today & {
+    background: #fff;
+  }
+}
+
+.ctx-calendar__today-label {
+  @include type-style('label-01');
+  margin-top: $spacing-04;
+  color: $accent;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+// Atividades
+.ctx-activities {
+  margin-bottom: $spacing-08;
+}
+
+
+// Formulário novo evento
+.ctx-event-form {
+  margin-bottom: $spacing-05;
+  padding: $spacing-04;
+  border: 1px solid $border-subtle-01;
+  background: $layer-01;
+
+  &__title {
+    @include type-style('label-01');
+    font-weight: 600;
+    color: $accent;
+    margin-bottom: $spacing-03;
+  }
+
+  &__input {
+    @include type-style('body-compact-01');
+    display: block;
+    width: 100%;
+    margin-bottom: $spacing-03;
+    padding: $spacing-02 $spacing-03;
+    border: 1px solid $border-subtle-01;
+    background: $background;
+    color: $text-primary;
+    outline: none;
+    box-sizing: border-box;
+
+    &:focus {
+      border-color: $accent;
+    }
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-03;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: $spacing-03;
+    margin-top: $spacing-03;
+  }
+
+  &__cancel {
+    @include type-style('body-compact-01');
+    padding: $spacing-02 $spacing-04;
+    border: 1px solid $border-subtle-01;
+    background: none;
+    color: $text-secondary;
+    cursor: pointer;
+
+    &:hover { background: $layer-hover-01; }
+  }
+
+  &__submit {
+    @include type-style('body-compact-01');
+    padding: $spacing-02 $spacing-04;
+    border: 0;
+    background: $accent;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+
+    &:hover { opacity: 0.9; }
+  }
+}
+
+
+.ctx-activities__empty {
+  @include type-style('helper-text-01');
+  color: $text-secondary;
+  padding: $spacing-03 0;
+}
+
+.ctx-activities__item {
+  display: flex;
+  gap: $spacing-03;
+  align-items: center;
+  padding: $spacing-03 0;
+  border-bottom: 1px solid $border-subtle-01;
+  transition: opacity 0.2s;
+
+  &--declined {
+    opacity: 0.4;
+
+    .ctx-activities__bar {
+      background: $support-error;
+    }
+  }
+
+  &--maybe {
+    .ctx-activities__bar {
+      background: $support-warning;
+    }
+  }
+}
+
+.ctx-activities__time {
+  @include type-style('label-01');
+  display: flex;
+  flex-direction: column;
+  color: $text-secondary;
+  min-width: 2.5rem;
+  text-align: right;
+  align-self: center;
+}
+
+.ctx-activities__bar {
+  width: 3px;
+  align-self: stretch;
+  min-height: 2rem;
+  border-radius: 2px;
+  background: $accent;
+  flex-shrink: 0;
+}
+
+.ctx-activities__info {
+  @include type-style('label-01');
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+
+  strong {
+    @include type-style('body-compact-01');
+  }
+
+  span {
+    color: $text-secondary;
+    word-break: break-all;
+  }
+}
+
+.ctx-activities__rsvp {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.ctx-activities__rsvp-btn {
+  // Compacta o botão Carbon ghost/primary
+  &.cds--btn--sm {
+    min-width: 1.5rem !important;
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+    padding: 0 !important;
+  }
+
+  // Ghost azul (estado padrão)
+  &.cds--btn--ghost {
+    color: $accent !important;
+
+    &:hover {
+      background: rgba(#0186EF, 0.1) !important;
+      color: $accent !important;
+    }
+
+    svg { fill: $accent !important; }
+  }
+
+  // Botão remover — ícone lixeira vermelho
+  &--remove.cds--btn--ghost {
+    color: $support-error !important;
+
+    &:hover {
+      background: rgba(#da1e28, 0.1) !important;
+    }
+
+    svg { fill: $support-error !important; }
+  }
+
+  // Primary azul (estado ativo)
+  &.cds--btn--primary {
+    background: $accent !important;
+    border-color: $accent !important;
+
+    &:hover {
+      background: #0166cf !important;
+    }
+  }
+}
+
+// Cotações
+.ctx-quotes {
+  margin-bottom: $spacing-08;
+  border: 1px solid $border-subtle-01;
+  background: $background;
+}
+
+.ctx-quotes__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-03 $spacing-04 0;
+}
+
+.ctx-quotes__title {
+  @include type-style('heading-compact-01');
+}
+
+.ctx-quotes__refresh {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-01;
+  border: 0;
+  background: none;
+  color: $text-secondary;
+  cursor: pointer;
+  border-radius: 2px;
+
+  &:hover {
+    background: $layer-hover-01;
+    color: $accent;
+  }
+}
+
+.ctx-quotes__error {
+  @include type-style('helper-text-01');
+  padding: $spacing-03 $spacing-04;
+  color: $support-error;
+}
+
+.ctx-quotes__tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid $border-subtle-01;
+  margin-top: $spacing-02;
+}
+
+.ctx-quotes__tab {
+  @include type-style('label-01');
+  padding: $spacing-02 $spacing-04;
+  cursor: pointer;
+  color: $text-secondary;
+
+  &--active {
+    color: $text-primary;
+    border-bottom: 2px solid $accent;
+    font-weight: 600;
+  }
+}
+
+.ctx-quotes__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.7rem;
+
+  th {
+    text-align: left;
+    padding: $spacing-02 $spacing-02;
+    color: $text-secondary;
+    border-bottom: 1px solid $border-subtle-01;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: $spacing-02 $spacing-02;
+    border-bottom: 1px solid $border-subtle-01;
+    white-space: nowrap;
+  }
+}
+
+.ctx-quotes__dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: $spacing-02;
+  vertical-align: middle;
+}
+
+.ctx-quotes__ticker {
+  color: $accent;
+  font-weight: 600;
+}
+
+.ctx-quotes__positive {
+  color: #24a148;
+  font-weight: 600;
+}
+
+.ctx-quotes__negative {
+  color: $support-error;
+  font-weight: 600;
+}
+
+
+// Telas menores: esconde as laterais
+@media (max-width: 66rem) {
+  .chat-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chat-sidebar,
+  .chat-context {
+    display: none;
+  }
+
+  .chat-suggestions {
+    grid-template-columns: 1fr;
+  }
+}

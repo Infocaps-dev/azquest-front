@@ -1,0 +1,332 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/theme' as *;
+@use '@carbon/react/scss/type' as *;
+
+// Aba Monitoramento. Segue o mesmo vocabulário visual do Carbon usado no resto
+// da plataforma: sem cor inventada, só tokens do tema.
+
+.mon-pagina {
+  overflow-y: auto;
+  padding: $spacing-06 $spacing-07 $spacing-09;
+  background: $background;
+}
+
+.mon-pagina--vazia {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.mon-pagina__aviso,
+.mon-pagina__progresso {
+  margin-bottom: $spacing-05;
+}
+
+.mon-pagina__progresso {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.mon-secao__titulo {
+  @include type-style('heading-compact-01');
+  margin-bottom: $spacing-05;
+}
+
+.mon-vazio {
+  @include type-style('body-compact-01');
+  padding: $spacing-05;
+  color: $text-secondary;
+}
+
+// ── Cabeçalho ───────────────────────────────────────────────────────────
+.mon-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-05;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: $spacing-05;
+  margin-bottom: $spacing-06;
+  border-bottom: 1px solid $border-subtle-01;
+}
+
+.mon-cabecalho__titulo {
+  @include type-style('productive-heading-03');
+}
+
+.mon-cabecalho__meta {
+  @include type-style('label-01');
+  margin-top: $spacing-02;
+  color: $text-secondary;
+}
+
+.mon-cabecalho__estado {
+  display: flex;
+  gap: $spacing-04;
+  align-items: center;
+}
+
+.mon-cabecalho__conexao {
+  @include type-style('label-01');
+  display: inline-flex;
+  gap: $spacing-03;
+  align-items: center;
+  color: $text-secondary;
+
+  &::before {
+    width: 0.5rem;
+    height: 0.5rem;
+    content: '';
+    background: $text-disabled;
+    border-radius: 50%;
+  }
+}
+
+.mon-cabecalho__conexao--ativa::before {
+  background: $support-success;
+}
+
+// ── Linha do processo ───────────────────────────────────────────────────
+.mon-processo {
+  padding: $spacing-05 0 $spacing-06;
+  overflow-x: auto;
+}
+
+.mon-processo__passo--selecionado {
+  outline: 2px solid $focus;
+  outline-offset: 2px;
+}
+
+// ── Cartões de KPI ──────────────────────────────────────────────────────
+.mon-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: $spacing-05;
+  margin-bottom: $spacing-07;
+}
+
+.mon-kpi {
+  padding: $spacing-05;
+  background: $layer-01;
+  // A faixa lateral repete a cor do nível, para o olho achar o cartão crítico
+  // sem ler. A cor do texto nunca é o único portador da informação: o rótulo
+  // do nível aparece escrito.
+  border-left: 3px solid $border-subtle-01;
+}
+
+.mon-kpi--atencao { border-left-color: $support-info; }
+.mon-kpi--relevante { border-left-color: $support-warning; }
+.mon-kpi--critico,
+.mon-kpi--bloqueio { border-left-color: $support-error; }
+
+.mon-kpi__titulo {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.mon-kpi__valor {
+  @include type-style('productive-heading-04');
+  margin: $spacing-03 0 $spacing-02;
+}
+
+.mon-kpi__detalhe {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+// ── Colunas ─────────────────────────────────────────────────────────────
+.mon-pagina__colunas {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+  gap: $spacing-07;
+  align-items: start;
+}
+
+@media (max-width: 66rem) {
+  .mon-pagina__colunas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+// ── Quadro comparativo ──────────────────────────────────────────────────
+.mon-quadro {
+  margin-bottom: $spacing-07;
+}
+
+.mon-quadro__metrica {
+  display: block;
+  font-weight: 600;
+}
+
+.mon-quadro__justificativa,
+.mon-quadro__ressalva {
+  @include type-style('label-01');
+  display: block;
+  margin-top: $spacing-02;
+  color: $text-secondary;
+}
+
+.mon-quadro__ressalva {
+  font-style: italic;
+}
+
+// ── Fonte clicável ──────────────────────────────────────────────────────
+.mon-fonte {
+  @include type-style('label-01');
+  display: block;
+  padding: 0;
+  color: $link-primary;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+
+  &:hover { text-decoration: underline; }
+  &:focus-visible { outline: 2px solid $focus; outline-offset: 2px; }
+}
+
+// ── Feed ────────────────────────────────────────────────────────────────
+.mon-feed {
+  padding: $spacing-05;
+  margin-bottom: $spacing-06;
+  background: $layer-01;
+}
+
+.mon-feed__lista {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-05;
+}
+
+.mon-feed__item {
+  display: flex;
+  gap: $spacing-04;
+  align-items: flex-start;
+}
+
+.mon-feed__icone { flex-shrink: 0; margin-top: 0.125rem; }
+.mon-feed__item--concluido .mon-feed__icone { fill: $support-success; }
+.mon-feed__item--em_execucao .mon-feed__icone { fill: $support-info; }
+.mon-feed__item--aguardando_aprovacao .mon-feed__icone,
+.mon-feed__item--bloqueado .mon-feed__icone,
+.mon-feed__item--falhou .mon-feed__icone { fill: $support-warning; }
+
+.mon-feed__cabecalho {
+  display: flex;
+  gap: $spacing-03;
+  align-items: center;
+  margin-bottom: $spacing-02;
+}
+
+.mon-feed__agente,
+.mon-feed__hora {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.mon-feed__hora { margin-left: auto; }
+
+.mon-feed__mensagem {
+  @include type-style('body-compact-01');
+}
+
+.mon-feed__fontes {
+  margin-top: $spacing-03;
+}
+
+// ── Painel de aprovação ─────────────────────────────────────────────────
+.mon-aprovacao {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-05;
+  padding: $spacing-06;
+  background: $layer-01;
+  border-left: 3px solid $support-warning;
+}
+
+.mon-aprovacao__cabecalho {
+  display: flex;
+  gap: $spacing-04;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mon-aprovacao__recomendacao,
+.mon-aprovacao__texto {
+  @include type-style('body-01');
+}
+
+.mon-aprovacao__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-04;
+}
+
+// ── Histórico ───────────────────────────────────────────────────────────
+.mon-historico {
+  padding: $spacing-05;
+  background: $layer-01;
+}
+
+.mon-historico__lista {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+}
+
+.mon-historico__item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03;
+  align-items: center;
+}
+
+.mon-historico__periodo {
+  @include type-style('heading-compact-01');
+  min-width: 3.5rem;
+}
+
+.mon-historico__metrica,
+.mon-historico__decisao {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+// ── Visualizador de fonte ───────────────────────────────────────────────
+.mon-fonte-modal__dados {
+  display: grid;
+  grid-template-columns: 10rem 1fr;
+  gap: $spacing-03 $spacing-05;
+  margin-bottom: $spacing-05;
+
+  dt {
+    @include type-style('label-01');
+    color: $text-secondary;
+  }
+
+  dd {
+    @include type-style('body-compact-01');
+  }
+}
+
+.mon-fonte-modal__trecho {
+  @include type-style('body-compact-01');
+  padding: $spacing-05;
+  margin-bottom: $spacing-05;
+  background: $layer-02;
+  border-left: 3px solid $border-interactive;
+}
+
+.mon-fonte-modal__nota {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.mon-pagina__rodape {
+  @include type-style('label-01');
+  padding-top: $spacing-05;
+  margin-top: $spacing-07;
+  color: $text-secondary;
+  border-top: 1px solid $border-subtle-01;
+}

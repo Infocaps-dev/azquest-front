@@ -1,0 +1,240 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/theme' as *;
+@use '@carbon/react/scss/type' as *;
+
+// Identidade AZ Quest: azul do logotipo e navy do "QUEST"
+$az-blue: #0186ef;
+$az-navy: #071925;
+$az-navy-2: #0c2234;
+$az-ice: #e8f3fd;
+
+.login {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: $az-navy;
+}
+
+.login__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 3rem;
+  padding: 0 $spacing-05;
+  background: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.login__brand {
+  display: flex;
+  align-items: center;
+  gap: $spacing-04;
+}
+
+.login__logo {
+  height: 2.5rem;
+  display: block;
+}
+
+.login__divider {
+  width: 1px;
+  height: 1.25rem;
+  background: #c6c6c6;
+}
+
+.login__product {
+  @include type-style('heading-compact-02');
+  color: $az-navy;
+}
+
+.login__info {
+  color: #525252;
+}
+
+.login__main {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 54fr) minmax(0, 46fr);
+}
+
+.login__hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: $spacing-10 $spacing-10 $spacing-10 6.5rem;
+  background: $az-navy;
+}
+
+.login__eyebrow {
+  @include type-style('label-02');
+  margin-bottom: $spacing-05;
+  color: $az-blue;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.login__title {
+  max-width: 13ch;
+  margin-bottom: $spacing-07;
+  color: #ffffff;
+  font-size: clamp(2.5rem, 4.6vw, 4.75rem);
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+}
+
+.login__lead {
+  @include type-style('body-02');
+  max-width: 38rem;
+  margin-bottom: $spacing-08;
+  color: #c6d4e1;
+}
+
+.login__cta.cds--btn {
+  align-self: flex-start;
+  min-width: 13rem;
+  background: $az-blue;
+
+  &:hover {
+    background: #0172cc;
+  }
+}
+
+.login__micro {
+  @include type-style('helper-text-01');
+  margin-top: $spacing-04;
+  color: #8ea3b6;
+}
+
+// Lado direito: grade com cartões flutuantes, como no Aurora
+.login__visual {
+  position: relative;
+  overflow: hidden;
+  background-color: $az-navy-2;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 4rem 4rem;
+}
+
+.login__card {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: min(21rem, 38%);
+  min-height: 9rem;
+  padding: $spacing-06;
+  background: #ffffff;
+  box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.35);
+
+  &--a { top: 15%; left: 12%; }
+  &--b { top: 40%; left: 52%; background: $az-ice; }
+  &--c { top: 66%; left: 14%; }
+}
+
+.login__card-n {
+  color: $az-blue;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.login__card-text {
+  color: $az-navy;
+  font-size: 1.375rem;
+  line-height: 1.2;
+}
+
+.login__accent {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1.25rem;
+  height: 42%;
+  background: $az-blue;
+}
+
+// Modal de login
+.login-modal {
+  .cds--modal-container {
+    max-width: 44rem;
+  }
+}
+
+.login-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-06;
+  padding-right: $spacing-05;
+}
+
+.login-modal__intro {
+  @include type-style('body-01');
+  color: #393939;
+}
+
+.login-modal__notice {
+  max-width: 100%;
+}
+
+.login-modal__actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-07;
+
+  .cds--btn {
+    min-width: 9.5rem;
+    background: $az-blue;
+  }
+}
+
+.login-modal__note {
+  @include type-style('body-compact-01');
+  color: #6f6f6f;
+}
+
+.login-modal__logos {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $spacing-05;
+  margin-top: $spacing-07;
+  padding-top: $spacing-06;
+  border-top: 1px solid #e0e0e0;
+}
+
+.login-modal__logo-az {
+  height: 3.4rem;
+}
+
+.login-modal__logo-cti {
+  height: 1.1rem;
+}
+
+.login-modal__logo-divider {
+  width: 2px;
+  height: 2.5rem;
+  background: #8d8d8d;
+}
+
+.login-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+@media (max-width: 66rem) {
+  .login__main {
+    grid-template-columns: 1fr;
+  }
+
+  .login__visual {
+    display: none;
+  }
+
+  .login__hero {
+    padding: $spacing-09 $spacing-07;
+  }
+}

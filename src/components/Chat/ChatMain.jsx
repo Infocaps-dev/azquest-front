@@ -9,10 +9,6 @@ const suggestions = [
 function ChatMain() {
   return (
     <main className="chat-main">
-      <div className="chat-main__connection">
-        <span className="chat-main__dot" /> Conectado como vmiguel@ctiglobal.com
-      </div>
-
       <div className="chat-main__body">
         <section className="chat-hero">
           <p className="chat-eyebrow">Assistente de análise</p>
@@ -46,15 +42,15 @@ function ChatMain() {
             labelText="Mensagem"
             hideLabel
             rows={2}
-            placeholder="Ex.: Quais atividades tiveram os maiores desvios no último fechamento?"
+            placeholder="Ex.: Qual a folga do covenant de alavancagem da Ecorodovias no 2T26?"
           />
           <Button kind="primary" renderIcon={Send} className="chat-composer__send">
             Enviar
           </Button>
         </div>
         <p className="chat-composer__hint">
-          Enter envia · Shift + Enter quebra a linha. Valide as respostas antes de decisões de
-          fechamento.
+          Enter envia, Shift + Enter quebra a linha. Valide as respostas antes de decisões de
+          crédito.
         </p>
       </div>
     </main>

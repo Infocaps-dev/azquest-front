@@ -109,24 +109,6 @@ $side-width: 22rem;
   flex-direction: column;
 }
 
-.chat-main__connection {
-  @include type-style('label-01');
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: $spacing-03;
-  padding: $spacing-04;
-  border-bottom: 1px solid $border-subtle-01;
-  color: $text-secondary;
-}
-
-.chat-main__dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: $support-success;
-}
-
 .chat-main__body {
   flex: 1;
   overflow-y: auto;
@@ -210,29 +192,8 @@ $side-width: 22rem;
   background: $layer-01;
 }
 
-.chat-context__user {
-  display: flex;
-  gap: $spacing-04;
-  padding: $spacing-05 $spacing-06;
-  border-bottom: 1px solid $border-subtle-01;
-
-  strong,
-  span {
-    display: block;
-  }
-
-  strong {
-    @include type-style('heading-compact-01');
-  }
-
-  span {
-    @include type-style('label-01');
-    color: $text-secondary;
-  }
-}
-
 .chat-context__body {
-  padding: $spacing-08 $spacing-06;
+  padding: $spacing-05 $spacing-06 $spacing-08;
 }
 
 .chat-context__list {
@@ -703,6 +664,129 @@ $side-width: 22rem;
   font-weight: 600;
 }
 
+
+// Painel de covenants e gatilhos (Ecorodovias)
+button.ctx-quotes__tab {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font-family: inherit;
+
+  &.ctx-quotes__tab--active {
+    border-bottom-color: $accent;
+  }
+}
+
+.ctx-cov__subtitle {
+  @include type-style('helper-text-01');
+  padding: $spacing-02 $spacing-04 0;
+  color: $text-secondary;
+}
+
+.ctx-cov__body {
+  padding: $spacing-03 $spacing-04 $spacing-04;
+}
+
+.ctx-cov__group {
+  @include type-style('label-01');
+  margin: $spacing-02 0 $spacing-02;
+  color: $text-secondary;
+  font-weight: 600;
+}
+
+.ctx-cov__list {
+  list-style: none;
+  margin: 0 0 $spacing-03;
+  padding: 0;
+}
+
+.ctx-cov__item {
+  padding: $spacing-03 0;
+  border-bottom: 1px solid $border-subtle-01;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.ctx-cov__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-03;
+}
+
+.ctx-cov__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ctx-cov__status {
+  flex-shrink: 0;
+  padding: 0 $spacing-03;
+  border-radius: 1rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+
+  &--ok { background: #defbe6; color: #0e6027; }
+  &--atencao { background: #fcf4d6; color: #8e6a00; }
+  &--critico { background: #fff1f1; color: #a2191f; }
+  &--neutro { background: #f2f4f8; color: #4d5358; }
+}
+
+.ctx-cov__values {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-03;
+  margin-top: $spacing-02;
+  font-size: 0.7rem;
+  color: $text-secondary;
+
+  strong {
+    font-size: 1rem;
+    color: $text-primary;
+  }
+}
+
+.ctx-cov__bar {
+  height: 4px;
+  margin-top: $spacing-02;
+  background: #e0e0e0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ctx-cov__fill {
+  display: block;
+  height: 100%;
+
+  &--ok { background: #24a148; }
+  &--atencao { background: #f1c21b; }
+  &--critico { background: #da1e28; }
+  &--neutro { background: #8d8d8d; }
+}
+
+.ctx-cov__source {
+  margin-top: $spacing-02;
+  font-size: 0.625rem;
+  line-height: 1.4;
+  color: $text-secondary;
+}
+
+.ctx-cov__assets td {
+  white-space: normal;
+  vertical-align: top;
+}
+
+.ctx-cov__asset-name {
+  display: block;
+}
+
+.ctx-cov__asset-terms {
+  display: block;
+  color: $text-secondary;
+}
 
 // Telas menores: esconde as laterais
 @media (max-width: 66rem) {

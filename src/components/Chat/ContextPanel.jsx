@@ -1,30 +1,17 @@
 import { useEffect, useState } from 'react'
-import { Button, InlineLoading } from '@carbon/react'
-import { Add, ChevronLeft, ChevronRight, Close, Help, Information, Logout, Renew, TrashCan, UserAvatar } from '@carbon/icons-react'
-import { useQuotes } from '../../hooks/useQuotes'
+import { Button } from '@carbon/react'
+import { Add, ChevronLeft, ChevronRight, Close, Help, Information, Logout, TrashCan } from '@carbon/icons-react'
+import CovenantsPanel from './CovenantsPanel'
+import { useAuth } from '../../auth/AuthContext.jsx'
 
 // Eventos por dia: chave = "YYYY-MM-DD"
 const EVENTS = {
-  '2026-10-01': [{ time: '10:00', duration: '1h', title: 'Kick-off Q4', subtitle: 'Google Meet' }],
-  '2026-10-03': [{ time: '14:00', duration: '2h', title: 'Revisão de Portfólio', subtitle: 'Sala de reuniões A' }],
-  '2026-10-08': [
-    { time: '09:00', duration: '1h', title: 'Análise de crédito', subtitle: 'Microsoft Teams' },
-    { time: '14:00', duration: '1h30', title: 'Revisão de portfólio', subtitle: 'Sala de reuniões A' },
-  ],
-  '2026-10-09': [{ time: '10:00', duration: '1h', title: 'Apresentação de resultados', subtitle: 'Google Meet' }],
-  '2026-10-13': [{ time: '11:00', duration: '30min', title: 'Análise ECOR3', subtitle: 'Bloomberg Terminal' }],
-  '2026-10-15': [
-    { time: '09:30', duration: '1h', title: 'Comitê de Risco', subtitle: 'Sala 4B' },
-    { time: '16:00', duration: '1h', title: 'Fechamento Mensal', subtitle: 'Power BI · DRE' },
-  ],
-  '2026-10-20': [{ time: '10:00', duration: '2h', title: 'Apresentação ITR Q3', subtitle: 'Auditório Principal' }],
-  '2026-10-22': [{ time: '15:00', duration: '1h', title: 'Revisão VALE3', subtitle: 'Microsoft Teams' }],
-  '2026-10-27': [{ time: '08:30', duration: '1h30', title: 'Planejamento Novembro', subtitle: 'Sala de reuniões B' }],
-  '2026-10-29': [{ time: '13:00', duration: '1h', title: 'Relatório de Mercado', subtitle: 'Refinitiv Eikon' }],
-  '2026-11-05': [{ time: '09:00', duration: '1h', title: 'Abertura de Novembro', subtitle: 'Google Meet' }],
-  '2026-11-10': [{ time: '14:00', duration: '2h', title: 'Análise PETR4', subtitle: 'Bloomberg Terminal' }],
-  '2026-11-18': [{ time: '10:00', duration: '1h30', title: 'Comitê de Compliance', subtitle: 'Sala 2A' }],
-  '2026-11-25': [{ time: '15:30', duration: '1h', title: 'Revisão de Carteiras', subtitle: 'Microsoft Teams' }],
+  '2026-10-08': [{ time: '10:00', duration: '30min', title: 'Checkpoint semanal da PoC', subtitle: 'Microsoft Teams' }],
+  '2026-10-13': [{ time: '11:00', duration: '1h', title: 'Revisão do baseline Ecorodovias', subtitle: 'Sala de revisão' }],
+  '2026-10-15': [{ time: '09:30', duration: '1h', title: 'Comitê de Crédito', subtitle: 'Sala 4B' }],
+  '2026-10-20': [{ time: '10:00', duration: '1h30', title: 'Validação do Kit de Fontes', subtitle: 'Microsoft Teams' }],
+  '2026-10-22': [{ time: '15:00', duration: '1h', title: 'Entrevista setor Rodovias', subtitle: 'Analista de referência' }],
+  '2026-10-29': [{ time: '14:00', duration: '1h', title: 'Demo do Sprint 1', subtitle: 'Base histórica com evidência' }],
 }
 
 const WEEKDAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
@@ -41,7 +28,7 @@ function getCalendarDays(year, month) {
 }
 
 // Versão do schema — incrementar força reset do localStorage
-const SCHEMA_VERSION = '2'
+const SCHEMA_VERSION = '3'
 
 function loadFromStorage(key, fallback) {
   try {
@@ -60,12 +47,11 @@ function loadFromStorage(key, fallback) {
 }
 
 function ContextPanel() {
+  const { logout } = useAuth()
   const realToday = new Date()
   const [cursor, setCursor] = useState({ year: realToday.getFullYear(), month: realToday.getMonth() })
   const [selectedDay, setSelectedDay] = useState(realToday.getDate())
-  const [activeTab, setActiveTab] = useState('cotacoes')
-  const { quotes, additional, loading: quotesLoading, error: quotesError, refetch } = useQuotes()
-  const [events, setEvents] = useState(() => loadFromStorage('azquest_events', EVENTS))
+    const [events, setEvents] = useState(() => loadFromStorage('azquest_events', EVENTS))
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ time: '', duration: '', title: '', subtitle: '' })
   const [rsvp, setRsvp] = useState(() => loadFromStorage('azquest_rsvp', {}))
@@ -138,14 +124,6 @@ function ContextPanel() {
 
   return (
     <aside className="chat-context">
-      <div className="chat-context__user">
-        <UserAvatar size={20} />
-        <div>
-          <strong>vmiguel</strong>
-          <span>admin</span>
-        </div>
-      </div>
-
       <div className="chat-context__body">
 
         {/* Calendário */}
@@ -167,7 +145,7 @@ function ContextPanel() {
             ))}
             {calDays.map((d, i) => {
               const key = d ? `${year}-${pad(month + 1)}-${pad(d)}` : null
-              const hasEvent = key && !!EVENTS[key]
+              const hasEvent = key && !!(events[key] && events[key].length)
               const isToday = isCurrentMonth && d === realToday.getDate()
               const isSelected = d === selectedDay
               return (
@@ -198,7 +176,7 @@ function ContextPanel() {
         {/* Formulário novo evento */}
         {showForm && (
           <form className="ctx-event-form" onSubmit={handleAddEvent}>
-            <p className="ctx-event-form__title">Novo evento — {selectedDay} de {monthLabel}</p>
+            <p className="ctx-event-form__title">Novo evento: {selectedDay} de {monthLabel}</p>
             <input
               className="ctx-event-form__input"
               placeholder="Título *"
@@ -288,91 +266,15 @@ function ContextPanel() {
           )}
         </div>
 
-        {/* Grade de cotações */}
-        <div className="ctx-quotes">
-          <div className="ctx-quotes__header">
-            <h3 className="ctx-quotes__title">Grade de Cotações</h3>
-            <button className="ctx-quotes__refresh" onClick={refetch} title="Atualizar cotações">
-              <Renew size={14} />
-            </button>
-          </div>
-          <div className="ctx-quotes__tabs">
-            <span
-              className={`ctx-quotes__tab${activeTab === 'cotacoes' ? ' ctx-quotes__tab--active' : ''}`}
-              onClick={() => setActiveTab('cotacoes')}
-            >Cotações</span>
-            <span
-              className={`ctx-quotes__tab${activeTab === 'adicional' ? ' ctx-quotes__tab--active' : ''}`}
-              onClick={() => setActiveTab('adicional')}
-            >Adicional</span>
-          </div>
-
-          {quotesLoading ? (
-            <div style={{ padding: '1rem' }}>
-              <InlineLoading description="Carregando cotações..." />
-            </div>
-          ) : quotesError ? (
-            <p className="ctx-quotes__error">Erro ao carregar: {quotesError}</p>
-          ) : activeTab === 'cotacoes' ? (
-            <table className="ctx-quotes__table">
-              <thead>
-                <tr>
-                  <th>Ativo</th>
-                  <th>Último</th>
-                  <th>Hora</th>
-                  <th>Variação</th>
-                  <th>Fechamento</th>
-                </tr>
-              </thead>
-              <tbody>
-                {quotes.map((q) => (
-                  <tr key={q.ticker}>
-                    <td>
-                      <span className="ctx-quotes__dot" style={{ background: q.color }} />
-                      <span className="ctx-quotes__ticker">{q.ticker}</span>
-                    </td>
-                    <td>{q.last}</td>
-                    <td>{q.time}</td>
-                    <td className={q.positive ? 'ctx-quotes__positive' : 'ctx-quotes__negative'}>{q.change}</td>
-                    <td>{q.close}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <table className="ctx-quotes__table">
-              <thead>
-                <tr>
-                  <th>Ativo</th>
-                  <th>P/L</th>
-                  <th>P/VP</th>
-                  <th>ROE</th>
-                  <th>Div.Yield</th>
-                  <th>Mkt Cap</th>
-                </tr>
-              </thead>
-              <tbody>
-                {additional.map((q) => (
-                  <tr key={q.ticker}>
-                    <td><span className="ctx-quotes__ticker">{q.ticker}</span></td>
-                    <td>{q.pl}</td>
-                    <td>{q.pvp}</td>
-                    <td>{q.roe}</td>
-                    <td>{q.divYield}</td>
-                    <td>{q.mktCap}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        {/* Covenants e gatilhos da Ecorodovias (substitui a grade de cotações) */}
+        <CovenantsPanel />
 
         <div className="chat-context__info">
           <Information size={12} />
-          <p>Valores calculados pelo agente. Valide antes de decisões críticas.</p>
+          <p>Valores extraídos das fontes indicadas. Valide antes de decisões de crédito.</p>
         </div>
 
-        <button type="button" className="chat-context__logout">
+        <button type="button" className="chat-context__logout" onClick={logout}>
           Encerrar sessão <Logout size={16} />
         </button>
       </div>

@@ -5,32 +5,43 @@ import {
   HeaderMenuItem,
   HeaderName,
   HeaderNavigation,
-  Tag,
 } from '@carbon/react'
-import { Checkmark, Home, Logout } from '@carbon/icons-react'
+import { ChartLineData, Home, Logout } from '@carbon/icons-react'
 import logo from '../../assets/azquest-logo.png'
+import { useAuth } from '../../auth/AuthContext.jsx'
 
-function AppHeader() {
+function AppHeader({ aba = 'inicio', onTrocarAba }) {
+  const { user, logout } = useAuth()
   return (
     <Header aria-label="AZ Quest" className="chat-header">
       <HeaderName href="#" prefix="">
         <img src={logo} alt="AZ Quest" style={{ height: '2.5rem', display: 'block' }} />
       </HeaderName>
       <HeaderNavigation aria-label="Navegação">
-        <HeaderMenuItem href="#">
+        <HeaderMenuItem
+          href="#"
+          isCurrentPage={aba === 'inicio'}
+          onClick={e => { e.preventDefault(); onTrocarAba?.('inicio') }}
+        >
           <span className="chat-header__nav-item">
             <Home size={16} /> Início
+          </span>
+        </HeaderMenuItem>
+        <HeaderMenuItem
+          href="#"
+          isCurrentPage={aba === 'monitoramento'}
+          onClick={e => { e.preventDefault(); onTrocarAba?.('monitoramento') }}
+        >
+          <span className="chat-header__nav-item">
+            <ChartLineData size={16} /> Monitoramento
           </span>
         </HeaderMenuItem>
       </HeaderNavigation>
       <HeaderGlobalBar>
         <div className="chat-header__status">
-          <Tag type="blue" size="sm" renderIcon={Checkmark}>
-            Atualizado
-          </Tag>
-          <span className="chat-header__user">vmiguel@ctiglobal.com</span>
+          <span className="chat-header__user">{user?.name}</span>
         </div>
-        <HeaderGlobalAction aria-label="Sair" tooltipAlignment="end">
+        <HeaderGlobalAction aria-label="Sair" tooltipAlignment="end" onClick={logout}>
           <Logout size={20} />
         </HeaderGlobalAction>
       </HeaderGlobalBar>

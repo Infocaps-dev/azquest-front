@@ -191,4 +191,44 @@ export const CICLO_SIMULADO = {
     { periodo: '1T26', alavancagem: 3.9, nivel: 'informativo', decisao: 'aprovado' },
     { periodo: '2T26', alavancagem: 4.1, nivel: 'relevante', decisao: 'pendente' },
   ],
+
+  // Histórico de aprovação da demonstração. Um aprovado e um editado, para a
+  // tela mostrar os dois casos que ela precisa saber mostrar: a decisão simples
+  // e a que trocou o texto do modelo pelo do analista.
+  decisoes: [
+    {
+      id: 2,
+      alerta_id: 2,
+      periodo: '1T26',
+      nivel: 'informativo',
+      decisao: 'aprovado',
+      usuario: 'analista@azquest.com.br',
+      criado_em: '2026-05-14T16:40:00',
+      recomendacao: 'manter a posição e acompanhar a alavancagem',
+      justificativa: '',
+      texto:
+        'A alavancagem consolidada encerrou março em 3,90x (ITR-1T26-ECORODOVIAS.pdf, p. 24), ' +
+        'dentro da faixa prevista na tese. Nenhum item alcançou nível relevante.',
+      texto_original: '',
+      editado: false,
+    },
+    {
+      id: 1,
+      alerta_id: 1,
+      periodo: '4T25',
+      nivel: 'atencao',
+      decisao: 'editado',
+      usuario: 'analista@azquest.com.br',
+      criado_em: '2026-03-02T11:12:00',
+      recomendacao: 'acompanhar o indicador antecedente do covenant',
+      justificativa: 'A folga do covenant é do indicador trimestral, não do anual; ajustei a frase.',
+      texto:
+        'A folga do covenant da holding é de 0,65x pelo indicador antecedente trimestral ' +
+        '(ERDVA6 - Relatório do Agente Fiduciário - 2025.pdf, p. 4).',
+      texto_original:
+        'A folga do covenant da holding é de 1,17x ' +
+        '(ERDVA6 - Relatório do Agente Fiduciário - 2025.pdf, p. 4).',
+      editado: true,
+    },
+  ],
 }

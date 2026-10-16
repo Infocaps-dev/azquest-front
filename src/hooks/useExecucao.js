@@ -15,7 +15,13 @@ import { TOTAL_ETAPAS, etapasSimuladas } from '../services/monitorMock'
 const INTERVALO_SIMULADO_MS = 2500
 const ETAPA_DE_APROVACAO = 5 // índice de B6
 
-export function useExecucao(execucaoId, { aprovado = false } = {}) {
+// `decisao` e a decisao do analista -- 'aprovado', 'editado' ou 'rejeitado'.
+// Ela entra como dependencia do efeito para a tela recarregar o ciclo depois
+// que a API fecha as etapas. Antes entrava so um booleano `aprovado`, e a
+// rejeicao, que tambem muda o fluxo (B8 fica bloqueado), nao disparava
+// recarga: o analista rejeitava e a tela seguia pedindo a decisao.
+export function useExecucao(execucaoId, { decisao = null } = {}) {
+  const aprovado = Boolean(decisao) && decisao !== 'rejeitado'
   const [execucao, setExecucao] = useState(null)
   const [erro, setErro] = useState('')
   // Em modo simulado a 'conexao' ja nasce ativa: nao ha o que conectar, e
@@ -92,7 +98,7 @@ export function useExecucao(execucaoId, { aprovado = false } = {}) {
     }
 
     return () => fonte?.close()
-  }, [execucaoId, aprovado])
+  }, [execucaoId, decisao, aprovado])
 
   const etapas = execucao?.etapas || []
   const concluidas = etapas.filter(e => e.status === 'concluido').length

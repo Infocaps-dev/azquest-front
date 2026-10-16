@@ -81,6 +81,107 @@ export async function registrarRevisao({ alertaId, usuario, decisao, justificati
   })
 }
 
+// Comparação de um ciclo, achada pelo período.
+//
+// A tela achava a comparação pelo `comparacao_id` do alerta. Ciclo que termina
+// em B5 não gera alerta, então abriria sem quadro comparativo nenhum -- e é
+// justamente o quadro que explica por que o ciclo foi classificado assim.
+export async function comparacaoDoPeriodo(emissor, periodo) {
+  if (MODO_SIMULADO) return CICLO_SIMULADO.comparacao
+
+  const lista = await pedir(
+    `/api/comparacoes${emissor ? `?emissor=${encodeURIComponent(emissor)}` : ''}`,
+  )
+  // A lista vem do mais recente para o mais antigo: a primeira do período é a
+  // comparação em vigor, caso o ciclo tenha sido recalculado.
+  const resumo = (lista || []).find(c => c.periodo === periodo)
+  return resumo ? obterComparacao(resumo.id) : null
+}
+
+// Histórico de ciclos do emissor, para situar o ciclo atual contra os
+// anteriores.
+//
+// Vem das comparações, não dos alertas. Nem todo ciclo gera alerta: o que
+// termina em B5, sem impacto material, não gera -- e foi o que aconteceu com o
+// 1T26. Montar o histórico a partir dos alertas deixava de fora justamente os
+// ciclos tranquilos, que são a linha de base da comparação.
+//
+// A decisão do analista, quando existe, vem do alerta correspondente.
+export async function historicoDeCiclos(emissor) {
+  if (MODO_SIMULADO) return CICLO_SIMULADO.historico
+
+  const [comparacoes, alertas] = await Promise.all([
+    pedir(`/api/comparacoes${emissor ? `?emissor=${encodeURIComponent(emissor)}` : ''}`),
+    listarAlertas().catch(() => []),
+  ])
+
+  const decisaoPorPeriodo = new Map(
+    (alertas || []).map(a => [a.periodo, a.status_revisao]),
+  )
+
+  // Uma linha por ciclo, não por comparação. Um mesmo período pode ter sido
+  // recalculado -- o 2T26 foi, para ganhar o trimestre anterior como
+  // referência -- e a lista vem do mais recente para o mais antigo, então a
+  // primeira de cada período é a que vale. Sem isto o ciclo aparecia repetido.
+  const porPeriodo = new Map()
+  for (const c of comparacoes || []) {
+    if (porPeriodo.has(c.periodo)) continue
+    porPeriodo.set(c.periodo, {
+      periodo: c.periodo,
+      nivel: c.nivel_maximo,
+      alavancagem: c.metricas?.dl_ebitda_consolidado ?? null,
+      destino: c.roteamento?.destino || null,
+      decisao: decisaoPorPeriodo.get(c.periodo) || null,
+    })
+  }
+
+  return [...porPeriodo.values()].sort(
+    (a, b) => String(a.periodo).localeCompare(String(b.periodo)),
+  )
+}
+
+// Histórico de aprovação: o que foi decidido, por quem, e sobre que texto.
+//
+// Uma chamada só. Montar isto no front custaria uma requisição por alerta, e o
+// texto decidido mora no alerta, não na revisão -- a API junta os dois.
+export async function historicoDeAprovacoes(emissor, periodo) {
+  if (MODO_SIMULADO) return CICLO_SIMULADO.decisoes || []
+  const parametros = new URLSearchParams()
+  if (emissor) parametros.set('emissor', emissor)
+  if (periodo) parametros.set('periodo', periodo)
+  const consulta = parametros.toString()
+  return pedir(`/api/revisoes${consulta ? `?${consulta}` : ''}`)
+}
+
+// Roda o ciclo B1 a B8 do periodo.
+//
+// A API recusa com 409 quando ja ha etapa em andamento. A tela tambem desativa
+// o botao nesse caso, mas as duas defesas precisam existir: duas abas abertas
+// sao dois botoes, e so o servidor ve as duas.
+export async function executarCiclo(emissor, periodo) {
+  if (MODO_SIMULADO) return { simulado: true }
+  return pedir('/api/ciclos/executar', {
+    method: 'POST',
+    body: JSON.stringify({ emissor, periodo }),
+  })
+}
+
+// Marca o andamento de uma etapa. E a unica escrita de fluxo que a tela faz:
+// serve para o analista encaminhar o ciclo quando o roteamento desvia, sem
+// depender de o agente estar rodando naquele instante.
+export async function marcarEtapa({ execucaoId, etapa, status, mensagem, fontes }) {
+  if (MODO_SIMULADO) {
+    return { id: execucaoId, etapa, status, simulado: true }
+  }
+  return pedir(
+    `/api/execucoes/${encodeURIComponent(execucaoId)}/etapas/${encodeURIComponent(etapa)}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ status, mensagem: mensagem || null, fontes: fontes || null }),
+    },
+  )
+}
+
 export function urlStream(execucaoId) {
   return `${BASE}/api/execucoes/${encodeURIComponent(execucaoId)}/stream`
 }

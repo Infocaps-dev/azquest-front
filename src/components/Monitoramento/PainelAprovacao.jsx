@@ -1,22 +1,32 @@
 import { useState } from 'react'
 import {
   Button,
+  ComposedModal,
   InlineNotification,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   Tag,
   TextArea,
 } from '@carbon/react'
 import { Checkmark, Close, Edit } from '@carbon/icons-react'
-import { nivelDe } from './niveis'
+import { nivelDe, nomeDaEtapa } from './niveis'
 import { registrarRevisao } from '../../services/monitorApi'
 
-// Painel de aprovação, item 6 da seção 11. Aparece quando o fluxo chega em B6.
+// Aprovação do analista, item 6 da seção 11. Aparece quando o fluxo chega em
+// B6, agora como modal.
+//
+// Era um painel no fim da página, abaixo do quadro comparativo. Numa tela que
+// rola, a decisão que trava o ciclo ficava fora do campo de visão: o analista
+// via o processo parado e nada pedindo ação. O modal traz a decisão para a
+// frente, e pode ser fechado para consultar o quadro antes de decidir.
 //
 // A decisão é do analista: a IA sinaliza, nunca decide. Rejeitar exige
 // justificativa e editar exige o texto revisado, as duas regras validadas aqui
 // e de novo na API, que recusa com 422. A validação na tela existe para o
 // analista não perder o que escreveu numa ida ao servidor.
 
-function PainelAprovacao({ alerta, usuario, onDecidido }) {
+function PainelAprovacao({ alerta, usuario, aberto, onFechar, onDecidido }) {
   const [texto, setTexto] = useState(alerta?.texto || '')
   const [justificativa, setJustificativa] = useState('')
   const [editando, setEditando] = useState(false)
@@ -50,28 +60,41 @@ function PainelAprovacao({ alerta, usuario, onDecidido }) {
 
   if (decidido) {
     return (
-      <section className="mon-aprovacao" aria-label="Decisão registrada">
-        <InlineNotification
-          kind={decidido === 'rejeitado' ? 'info' : 'success'}
-          lowContrast
-          hideCloseButton
-          title={`Alerta ${decidido}`}
-          subtitle={
-            decidido === 'rejeitado'
-              ? 'O ciclo não segue para a Gestão. A justificativa foi registrada.'
-              : 'O ciclo segue para B8 e a Gestão recebe o alerta.'
-          }
-        />
-      </section>
+      <ComposedModal open={aberto} onClose={onFechar} size="sm" className="mon-aprovacao-modal">
+        <ModalHeader label="Revisão humana" title={`Alerta ${decidido}`}
+          closeModal={onFechar} iconDescription="Fechar" />
+        <ModalBody>
+          <InlineNotification
+            kind={decidido === 'rejeitado' ? 'info' : 'success'}
+            lowContrast
+            hideCloseButton
+            title={`Alerta ${decidido}`}
+            subtitle={
+              decidido === 'rejeitado'
+                ? 'O ciclo não segue para a Gestão. A justificativa foi registrada.'
+                : `O ciclo segue para ${nomeDaEtapa('B8')} e a Gestão recebe a análise.`
+            }
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button kind="primary" onClick={onFechar}>Fechar</Button>
+        </ModalFooter>
+      </ComposedModal>
     )
   }
 
   return (
-    <section className="mon-aprovacao" aria-label="Aprovação do analista">
-      <div className="mon-aprovacao__cabecalho">
-        <h3 className="mon-secao__titulo">Análise de impacto, aguardando sua decisão</h3>
-        <Tag type={nivel.tag} size="md">{nivel.rotulo}</Tag>
-      </div>
+    <ComposedModal open={aberto} onClose={onFechar} size="lg" className="mon-aprovacao-modal">
+      <ModalHeader
+        label="Revisão humana"
+        title="Análise de impacto, aguardando sua decisão"
+        closeModal={onFechar}
+        iconDescription="Fechar"
+      />
+      <ModalBody hasScrollingContent>
+        <div className="mon-aprovacao__cabecalho">
+          <Tag type={nivel.tag} size="md">{nivel.rotulo}</Tag>
+        </div>
 
       {alerta.recomendacao && (
         <p className="mon-aprovacao__recomendacao">
@@ -106,10 +129,11 @@ function PainelAprovacao({ alerta, usuario, onDecidido }) {
         onChange={e => setJustificativa(e.target.value)}
       />
 
-      <div className="mon-aprovacao__acoes">
-        <Button kind="primary" renderIcon={Checkmark} disabled={enviando}
-          onClick={() => decidir(editando ? 'editado' : 'aprovado')}>
-          {editando ? 'Salvar e aprovar' : 'Aprovar'}
+      </ModalBody>
+      <ModalFooter>
+        <Button kind="danger--tertiary" renderIcon={Close} disabled={enviando}
+          onClick={() => decidir('rejeitado')}>
+          Rejeitar
         </Button>
         {!editando && (
           <Button kind="tertiary" renderIcon={Edit} disabled={enviando}
@@ -117,12 +141,12 @@ function PainelAprovacao({ alerta, usuario, onDecidido }) {
             Editar
           </Button>
         )}
-        <Button kind="danger--tertiary" renderIcon={Close} disabled={enviando}
-          onClick={() => decidir('rejeitado')}>
-          Rejeitar
+        <Button kind="primary" renderIcon={Checkmark} disabled={enviando}
+          onClick={() => decidir(editando ? 'editado' : 'aprovado')}>
+          {editando ? 'Salvar e aprovar' : 'Aprovar'}
         </Button>
-      </div>
-    </section>
+      </ModalFooter>
+    </ComposedModal>
   )
 }
 

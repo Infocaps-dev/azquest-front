@@ -7,7 +7,14 @@
 
 .mon-pagina {
   overflow-y: auto;
-  padding: $spacing-06 $spacing-07 $spacing-09;
+  // O Header do Carbon e fixo e ocupa 3rem no topo da janela. Sem esta folga o
+  // comeco da aba fica debaixo dele: o titulo do ciclo, a tag de nivel e o
+  // indicador "Ao vivo" ficavam invisiveis, e a primeira coisa na tela era o
+  // meio da linha do processo. A ChatPage ja descontava essa altura; esta aba
+  // nunca descontou.
+  //
+  // Abaixo da folga o espacamento e o minimo: 0,25rem antes do titulo.
+  padding: calc(3rem + #{$spacing-05}) $spacing-07 $spacing-09;
   background: $background;
 }
 
@@ -19,15 +26,6 @@
 }
 
 .mon-pagina__aviso,
-.mon-pagina__progresso {
-  margin-bottom: $spacing-05;
-}
-
-.mon-pagina__progresso {
-  @include type-style('label-01');
-  color: $text-secondary;
-}
-
 .mon-secao__titulo {
   @include type-style('heading-compact-01');
   margin-bottom: $spacing-05;
@@ -39,58 +37,128 @@
   color: $text-secondary;
 }
 
-// ── Cabeçalho ───────────────────────────────────────────────────────────
-.mon-cabecalho {
+// Acoes da pagina, alinhadas a direita no topo.
+// Linha do processo e acao, lado a lado. O botao nao empurra o conteudo para
+// baixo nem corre o risco de cair sobre as etapas em tela estreita, porque a
+// linha do processo rola dentro do proprio espaco.
+.mon-pagina__topo {
   display: flex;
-  flex-wrap: wrap;
-  gap: $spacing-05;
   align-items: flex-start;
-  justify-content: space-between;
-  padding-bottom: $spacing-05;
-  margin-bottom: $spacing-06;
-  border-bottom: 1px solid $border-subtle-01;
-}
+  gap: $spacing-05;
 
-.mon-cabecalho__titulo {
-  @include type-style('productive-heading-03');
-}
-
-.mon-cabecalho__meta {
-  @include type-style('label-01');
-  margin-top: $spacing-02;
-  color: $text-secondary;
-}
-
-.mon-cabecalho__estado {
-  display: flex;
-  gap: $spacing-04;
-  align-items: center;
-}
-
-.mon-cabecalho__conexao {
-  @include type-style('label-01');
-  display: inline-flex;
-  gap: $spacing-03;
-  align-items: center;
-  color: $text-secondary;
-
-  &::before {
-    width: 0.5rem;
-    height: 0.5rem;
-    content: '';
-    background: $text-disabled;
-    border-radius: 50%;
+  .mon-processo {
+    flex: 1;
+    min-width: 0;
   }
 }
 
-.mon-cabecalho__conexao--ativa::before {
-  background: $support-success;
+.mon-pagina__reiniciar {
+  flex-shrink: 0;
+  margin-top: $spacing-03;
+}
+
+// ── Modais de fluxo e de decisão ────────────────────────────────────────
+.mon-pagina__retomar {
+  display: flex;
+  gap: $spacing-03;
+  margin-bottom: $spacing-05;
+}
+
+.mon-desvio-modal__linha {
+  @include type-style('body-01');
+  margin-bottom: $spacing-05;
+}
+
+.mon-desvio-modal__nota,
+.mon-desvio-modal__erro {
+  @include type-style('label-01');
+  color: $text-secondary;
+  margin-bottom: $spacing-03;
+}
+
+// A decisão rola dentro do modal, não a página atrás dele.
+.mon-aprovacao-modal {
+  .mon-aprovacao__cabecalho {
+    margin-bottom: $spacing-05;
+  }
+
+  .mon-aprovacao__recomendacao,
+  .mon-aprovacao__texto {
+    @include type-style('body-01');
+    margin-bottom: $spacing-05;
+  }
+
+  .cds--text-area__wrapper {
+    margin-bottom: $spacing-05;
+  }
 }
 
 // ── Linha do processo ───────────────────────────────────────────────────
 .mon-processo {
-  padding: $spacing-05 0 $spacing-06;
+  padding: $spacing-02 0 $spacing-03;
+  // O rotulo passou de "B1" para "Capturar eventos" e precisa de duas linhas.
+  // A rolagem horizontal continua: com oito etapas nomeadas a linha nao cabe
+  // em tela estreita, e sem ela o conteudo transbordaria sem saida.
   overflow-x: auto;
+
+  .cds--progress-step {
+    min-width: 9.5rem;
+  }
+
+  // O conector entre os passos sai. Ele e posicionado em absoluto no topo do
+  // passo, e com o rotulo em duas linhas e o status no fluxo ele fica solto la
+  // em cima, um filete de 2px sem ligacao visual com o passo a que pertence.
+  // O estado de cada etapa ja vem do icone e do texto.
+  .cds--progress-line {
+    display: none;
+  }
+
+  .cds--progress-label {
+    max-width: 8rem;
+    white-space: normal;
+    line-height: 1.2;
+    // Altura de duas linhas mesmo quando o nome ocupa uma: sem isso o status
+    // de cada etapa para numa altura diferente, conforme o tamanho do nome, e
+    // a linha fica serrilhada.
+    min-height: 2.4em;
+  }
+
+  // O Carbon posiciona o rotulo secundario em absoluto, a 28px fixos do topo,
+  // porque conta com um rotulo de uma linha so (`white-space: nowrap` com
+  // elipse). Ao deixar o nome da etapa quebrar, a segunda linha caia
+  // exatamente em cima do status: "Classificar e relacionar" por cima de
+  // "Concluido".
+  //
+  // No fluxo normal o status desce sozinho, qualquer que seja a altura do
+  // rotulo. E a mesma saida que o proprio Carbon usa na variante vertical.
+  // Os dois sao irmaos dentro de `.cds--progress-text`, entao o alinhamento
+  // vem de graca e as margens de posicionamento absoluto saem.
+  .cds--progress-optional {
+    position: static;
+    margin-block-start: $spacing-02;
+    margin-inline-start: 0;
+  }
+
+  // Altura reservada para o rotulo de duas linhas mais o status, para a secao
+  // seguinte nao dancar conforme o nome da etapa.
+  min-height: 5.75rem;
+}
+
+// A etapa que o roteamento não percorreu.
+//
+// O Carbon pinta de "concluído" todo passo anterior ao índice corrente, e não
+// há prop que declare o contrário: a etapa fora do caminho receberia o mesmo
+// visto das que aconteceram. Visto em etapa que nunca rodou é o tipo de
+// registro que não se consegue auditar depois -- o mesmo motivo pelo qual, na
+// rejeição, B8 fica bloqueado e não concluído.
+//
+// O ícone do Carbon traz dois caminhos: o visto e o círculo em volta. Some só
+// o visto, e sobra o círculo vazio -- o desenho que o próprio Carbon usa para
+// "ainda não feito", sem mexer em posicionamento.
+.mon-processo__passo--inaplicavel {
+  .cds--progress-step-button > svg path:first-of-type {
+    display: none;
+  }
 }
 
 .mon-processo__passo--selecionado {
@@ -98,12 +166,28 @@
   outline-offset: 2px;
 }
 
+// ── Selo do baseline ────────────────────────────────────────────────────
+.mon-baseline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03 $spacing-05;
+  align-items: center;
+  margin-bottom: $spacing-05;
+}
+
+.mon-baseline__data,
+.mon-baseline__aprovador,
+.mon-baseline__origem {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
 // ── Cartões de KPI ──────────────────────────────────────────────────────
 .mon-kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
   gap: $spacing-05;
-  margin-bottom: $spacing-07;
+  margin-bottom: $spacing-06;
 }
 
 .mon-kpi {
@@ -132,6 +216,12 @@
 
 .mon-kpi__detalhe {
   @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.mon-kpi__rodape {
+  @include type-style('label-01');
+  margin-top: $spacing-02;
   color: $text-secondary;
 }
 
@@ -291,6 +381,71 @@
 .mon-historico__decisao {
   @include type-style('label-01');
   color: $text-secondary;
+}
+
+// ── Histórico de aprovação ──────────────────────────────────────────────
+.mon-decisoes {
+  padding: $spacing-05;
+  margin-top: $spacing-06;
+  background: $layer-01;
+
+  // O acordeão do Carbon desenha a própria borda superior e inferior; dentro
+  // de um cartão que já tem fundo próprio, a de cima duplica a linha do
+  // título.
+  .cds--accordion__item:first-of-type {
+    border-top: none;
+  }
+
+  .cds--accordion__title {
+    margin-inline-start: $spacing-05;
+  }
+}
+
+.mon-decisoes__titulo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03;
+  align-items: center;
+}
+
+.mon-decisoes__periodo {
+  @include type-style('heading-compact-01');
+  min-width: 3rem;
+}
+
+.mon-decisoes__quem,
+.mon-decisoes__meta {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.mon-decisoes__meta {
+  margin-bottom: $spacing-05;
+}
+
+.mon-decisoes__rotulo {
+  @include type-style('label-01');
+  margin-bottom: $spacing-02;
+  color: $text-secondary;
+}
+
+.mon-decisoes__campo,
+.mon-decisoes__texto {
+  @include type-style('body-compact-01');
+  margin-bottom: $spacing-05;
+}
+
+// O texto que o modelo escreveu antes da edição fica recuado e esmaecido: está
+// ali para conferência, não é o que foi assinado.
+.mon-decisoes__texto--original {
+  padding-left: $spacing-05;
+  color: $text-secondary;
+  border-left: 2px solid $border-subtle-01;
+}
+
+.mon-decisoes__ausente {
+  color: $text-secondary;
+  font-style: italic;
 }
 
 // ── Visualizador de fonte ───────────────────────────────────────────────

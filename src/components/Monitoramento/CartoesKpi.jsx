@@ -1,16 +1,20 @@
 import { Tag } from '@carbon/react'
-import { formatar, nivelDe } from './niveis'
+import { formatar, nivelDe, nomeDaEtapa } from './niveis'
 
 // Cartões de KPI, item 4 da seção 11: nível máximo, itens por nível, folga do
 // covenant, distância ao gatilho de rating, alavancagem contra baseline e
 // projeção, e tempo do ciclo contra o prazo.
 
-function Cartao({ titulo, valor, detalhe, tom }) {
+function Cartao({ titulo, valor, detalhe, rodape, tom }) {
+  // O valor e um `div`, nao um `p`: em alguns cartoes ele e uma Tag do Carbon,
+  // que renderiza `div`, e `div` dentro de `p` e HTML invalido. O navegador
+  // fecha o `p` sozinho e o layout sai diferente do escrito.
   return (
     <article className={`mon-kpi${tom ? ` mon-kpi--${tom}` : ''}`}>
       <p className="mon-kpi__titulo">{titulo}</p>
-      <p className="mon-kpi__valor">{valor}</p>
+      <div className="mon-kpi__valor">{valor}</div>
       {detalhe && <p className="mon-kpi__detalhe">{detalhe}</p>}
+      {rodape && <p className="mon-kpi__rodape">{rodape}</p>}
     </article>
   )
 }
@@ -40,7 +44,7 @@ function CartoesKpi({ comparacao, execucao }) {
       <Cartao
         titulo="Nível máximo do ciclo"
         valor={<Tag type={nivel.tag} size="md">{nivel.rotulo}</Tag>}
-        detalhe={`Destino: ${comparacao.roteamento?.destino || '—'}`}
+        detalhe={`Destino: ${nomeDaEtapa(comparacao.roteamento?.destino) || '—'}`}
         tom={comparacao.nivel_maximo}
       />
       <Cartao
@@ -79,6 +83,11 @@ function CartoesKpi({ comparacao, execucao }) {
         titulo="Tempo do ciclo"
         valor={decorrido !== null ? `${decorrido} min` : '—'}
         detalhe={`Prazo: ${execucao?.prazo || 'D+1 útil'}`}
+        // O inicio fica aqui, no pe do cartao: e a referencia do tempo
+        // decorrido logo acima, e e nesse cartao que ela tem sentido.
+        rodape={execucao?.inicio
+          ? `Início ${new Date(execucao.inicio).toLocaleString('pt-BR')}`
+          : null}
       />
     </section>
   )

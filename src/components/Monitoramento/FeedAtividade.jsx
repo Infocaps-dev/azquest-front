@@ -1,6 +1,6 @@
 import { Tag } from '@carbon/react'
 import { CheckmarkFilled, CircleDash, InProgress, Warning } from '@carbon/icons-react'
-import { rotuloFonte } from './niveis'
+import { listaDeFontes, nomeDaEtapa, rotuloFonte, semCodigos } from './niveis'
 
 // Feed de atividade, item 3 da seção 11.
 //
@@ -39,19 +39,24 @@ function FeedAtividade({ etapas, onAbrirFonte }) {
         <ol className="mon-feed__lista">
           {visiveis.map(etapa => {
             const Icone = ICONE[etapa.status] || CircleDash
+            const fontes = listaDeFontes(etapa.fontes)
             return (
               <li key={etapa.etapa} className={`mon-feed__item mon-feed__item--${etapa.status}`}>
                 <Icone size={16} className="mon-feed__icone" />
                 <div className="mon-feed__corpo">
                   <div className="mon-feed__cabecalho">
-                    <Tag type="outline" size="sm">{etapa.etapa}</Tag>
+                    {/* O title vai no span, nao na Tag: a Tag do Carbon nao
+                        repassa o atributo ao DOM e o tooltip se perderia. */}
+                    <span title={nomeDaEtapa(etapa.etapa)}>
+                      <Tag type="outline" size="sm">{nomeDaEtapa(etapa.etapa)}</Tag>
+                    </span>
                     <span className="mon-feed__agente">{etapa.agente}</span>
                     <span className="mon-feed__hora">{hora(etapa.fim || etapa.inicio)}</span>
                   </div>
-                  <p className="mon-feed__mensagem">{etapa.mensagem}</p>
-                  {(etapa.fontes || []).length > 0 && (
+                  <p className="mon-feed__mensagem">{semCodigos(etapa.mensagem)}</p>
+                  {fontes.length > 0 && (
                     <p className="mon-feed__fontes">
-                      {etapa.fontes.map((fonte, i) => (
+                      {fontes.map((fonte, i) => (
                         <button
                           key={i}
                           type="button"

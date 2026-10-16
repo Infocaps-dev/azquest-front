@@ -9,7 +9,7 @@ import {
   TableRow,
   Tag,
 } from '@carbon/react'
-import { formatar, formatarVariacao, nivelDe, rotuloFonte } from './niveis'
+import { formatar, formatarVariacao, listaDeFontes, nivelDe, rotuloFonte } from './niveis'
 
 // Quadro comparativo, item 5 da seção 11, no formato que a seção 6 do handoff
 // define: métrica, baseline, trimestre anterior, projeção, realizado, variação,
@@ -18,29 +18,30 @@ import { formatar, formatarVariacao, nivelDe, rotuloFonte } from './niveis'
 // As linhas vêm ordenadas por severidade, não na ordem em que o comparador as
 // produziu: quem abre a tela precisa ver primeiro o que exige decisão.
 
+// As colunas sao as da secao 4, item 6b, do handoff: baseline, trimestre
+// anterior, projecao, realizado, variacao, regra e nivel.
+//
+// Antes havia uma coluna so, "Comparado a", que mostrava a primeira referencia
+// disponivel por ordem de prioridade -- e como o baseline quase sempre existe,
+// ele ganhava sempre. A comparacao contra o trimestre anterior e contra o
+// mesmo trimestre do ano anterior ficava invisivel, embora estivesse no dado.
 const CABECALHOS = [
   { key: 'descricao', header: 'Métrica' },
   { key: 'realizado', header: 'Realizado' },
-  { key: 'referencia', header: 'Comparado a' },
+  { key: 'baseline', header: 'Baseline' },
+  { key: 'trimestre_anterior', header: 'Trim. anterior' },
+  { key: 'ano_anterior', header: 'Ano anterior' },
+  { key: 'projecao', header: 'Projeção' },
   { key: 'variacao', header: 'Variação' },
   { key: 'nivel', header: 'Nível' },
   { key: 'fonte', header: 'Fonte' },
 ]
 
-function referenciaDe(linha) {
-  if (linha.baseline !== null && linha.baseline !== undefined) {
-    return { valor: linha.baseline, rotulo: 'baseline' }
-  }
-  if (linha.ano_anterior !== null && linha.ano_anterior !== undefined) {
-    return { valor: linha.ano_anterior, rotulo: 'ano anterior' }
-  }
-  if (linha.trimestre_anterior !== null && linha.trimestre_anterior !== undefined) {
-    return { valor: linha.trimestre_anterior, rotulo: 'trim. anterior' }
-  }
-  if (linha.projecao !== null && linha.projecao !== undefined) {
-    return { valor: linha.projecao, rotulo: 'projeção' }
-  }
-  return null
+// Cada referencia na sua coluna. Celula vazia quer dizer que aquela comparacao
+// nao se aplica aquela linha -- um covenant nao tem "ano anterior", por
+// exemplo -- e isso e informacao, nao buraco.
+function celula(valor, unidade) {
+  return valor === null || valor === undefined ? '—' : formatar(valor, unidade)
 }
 
 function QuadroComparativo({ linhas, onAbrirFonte }) {
@@ -73,7 +74,6 @@ function QuadroComparativo({ linhas, onAbrirFonte }) {
                 {rows.map(linhaTabela => {
                   const dado = dados.find(d => d.id === linhaTabela.id)
                   const nivel = nivelDe(dado.nivel)
-                  const referencia = referenciaDe(dado)
                   const { key, ...props } = getRowProps({ row: linhaTabela })
                   return (
                     <TableRow key={key} {...props}>
@@ -87,17 +87,16 @@ function QuadroComparativo({ linhas, onAbrirFonte }) {
                         )}
                       </TableCell>
                       <TableCell>{formatar(dado.realizado, dado.unidade)}</TableCell>
-                      <TableCell>
-                        {referencia
-                          ? `${formatar(referencia.valor, dado.unidade)} (${referencia.rotulo})`
-                          : '—'}
-                      </TableCell>
+                      <TableCell>{celula(dado.baseline, dado.unidade)}</TableCell>
+                      <TableCell>{celula(dado.trimestre_anterior, dado.unidade)}</TableCell>
+                      <TableCell>{celula(dado.ano_anterior, dado.unidade)}</TableCell>
+                      <TableCell>{celula(dado.projecao, dado.unidade)}</TableCell>
                       <TableCell>{formatarVariacao(dado.variacao, dado.unidade)}</TableCell>
                       <TableCell>
                         <Tag type={nivel.tag} size="sm">{nivel.rotulo}</Tag>
                       </TableCell>
                       <TableCell>
-                        {(dado.fontes || []).map((fonte, i) => (
+                        {listaDeFontes(dado.fontes).map((fonte, i) => (
                           <button
                             key={i}
                             type="button"

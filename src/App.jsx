@@ -3,6 +3,7 @@ import { Loading, Theme } from '@carbon/react'
 import { AuthProvider, useAuth } from './auth/AuthContext.jsx'
 import AppHeader from './components/Chat/AppHeader.jsx'
 import ChatPage from './components/Chat/ChatPage.jsx'
+import AnalisePage from './components/AnaliseCredito/AnalisePage.jsx'
 import MonitoramentoPage from './components/Monitoramento/MonitoramentoPage.jsx'
 import LoginPage from './components/Login/LoginPage.jsx'
 
@@ -23,7 +24,9 @@ function Gate() {
   return (
     <>
       <AppHeader aba={aba} onTrocarAba={setAba} />
-      {aba === 'monitoramento' ? <MonitoramentoPage /> : <ChatPage />}
+      {aba === 'monitoramento' ? <MonitoramentoPage onTrocarAba={setAba} />
+        : aba === 'analise' ? <AnalisePage onTrocarAba={setAba} />
+          : <ChatPage />}
     </>
   )
 }

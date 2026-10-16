@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, InlineNotification, Loading, Select, SelectItem, Tag } from '@carbon/react'
 import { ChartLineData, Document, Renew, TaskApproved } from '@carbon/icons-react'
 import {
@@ -35,7 +35,7 @@ function rotuloRelatorio(r) {
   return `${r.empresa} · ${r.periodo} · versão ${r.versao} · ${dataHora(r.atualizado_em)}`
 }
 
-function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice }) {
+function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido }) {
   const [relatorios, setRelatorios] = useState([])
   const [relatorioId, setRelatorioId] = useState('')
   const [resumo, setResumo] = useState(null)
@@ -46,6 +46,10 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice }) {
   const [painel, setPainel] = useState({ aberto: false, filtro: null })
   const [relatorio, setRelatorio] = useState({ aberto: false, ancora: null })
   const [reprocessando, setReprocessando] = useState(false)
+  const [enviando, setEnviando] = useState(false) // publicar, devolver, gerar versão: um clique só
+  // O relatório que está na tela agora: respostas que chegam depois de o analista trocar de relatório são descartadas,
+  // em vez de mostrar o relatório A com as decisões indo para o B.
+  const atual = useRef('')
 
   useEffect(() => {
     let ativo = true
@@ -57,8 +61,8 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice }) {
           // Só na abertura da aba: chegando pelo "Abrir" do aviso, abre aquele relatório; senão, o mais recente.
           const pedido = relatorioAlvo?.id && indice.relatorios.some(r => r.relatorio_id === relatorioAlvo.id)
           setRelatorioId(pedido ? relatorioAlvo.id : indice.relatorios[0].relatorio_id)
-        }
-        else {
+          if (pedido) onAlvoConsumido?.()
+        } else {
           setErroCarga('Nenhum relatório gerado ainda. Peça um relatório ao agente no chat.')
           setCarregando(false)
         }
@@ -70,86 +74,132 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice }) {
         }
       })
     return () => { ativo = false }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- só na abertura da aba
+
+  const carregar = useCallback(async id => {
+    const [novoResumo, novaRevisao] = await Promise.all([obterResumo(id), obterRevisao(id)])
+    if (atual.current !== id) return null // o analista já trocou de relatório
+    setResumo(novoResumo)
+    setRevisao(novaRevisao)
+    return novoResumo
   }, [])
 
-  // Relatório novo disponível (aviso do App): a lista do seletor se atualiza
-  // sem trocar o que está aberto; o "Abrir" do aviso troca para ele.
+  useEffect(() => {
+    if (!relatorioId) return
+    atual.current = relatorioId
+    setCarregando(true)
+    carregar(relatorioId)
+      .catch(e => { if (atual.current === relatorioId) setErroCarga(e.message) })
+      .finally(() => { if (atual.current === relatorioId) setCarregando(false) })
+  }, [relatorioId, carregar])
+
+  // Relatório novo disponível (aviso do App): a lista do seletor se atualiza. Se o relatório aberto ganhou versão nova
+  // (edição pelo chat, por exemplo), a tela recarrega, para ninguém decidir sobre um texto que já mudou.
   useEffect(() => {
     if (!sinalIndice) return
-    listarResumos().then(indice => setRelatorios(indice.relatorios || [])).catch(() => {})
-  }, [sinalIndice])
+    listarResumos().then(indice => {
+      setRelatorios(indice.relatorios || [])
+      const linha = (indice.relatorios || []).find(r => r.relatorio_id === atual.current)
+      if (linha && resumo && linha.versao > resumo.versao) {
+        carregar(atual.current).then(novo => novo && setAviso({ kind: 'info',
+          title: `Chegou a versão ${novo.versao} deste relatório`,
+          subtitle: 'A tela foi atualizada. Itens cujo texto mudou voltaram a pendente.' }))
+      }
+    }).catch(() => {})
+  }, [sinalIndice]) // eslint-disable-line react-hooks/exhaustive-deps -- reage ao sinal, não ao resumo
 
   useEffect(() => {
     if (!relatorioAlvo?.id) return
     setAviso(null)
     setRelatorioId(relatorioAlvo.id)
-  }, [relatorioAlvo])
+    onAlvoConsumido?.()
+  }, [relatorioAlvo]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const carregar = useCallback(async id => {
-    const [novoResumo, novaRevisao] = await Promise.all([obterResumo(id), obterRevisao(id)])
-    setResumo(novoResumo)
-    setRevisao(novaRevisao)
-  }, [])
+  // Erro de versão (409 com versao_atual): o relatório mudou enquanto a tela estava aberta. Recarrega e avisa.
+  const tratarErro = useCallback(async (e, titulo) => {
+    if (e.versaoAtual) {
+      await carregar(atual.current).catch(() => {})
+      setAviso({ kind: 'warning', title: `O relatório mudou para a versão ${e.versaoAtual}`, subtitle: e.message })
+    } else {
+      setAviso({ kind: 'error', title: titulo, subtitle: e.message })
+    }
+  }, [carregar])
 
-  useEffect(() => {
-    if (!relatorioId) return
-    let ativo = true
-    setCarregando(true)
-    carregar(relatorioId)
-      .catch(e => { if (ativo) setErroCarga(e.message) })
-      .finally(() => { if (ativo) setCarregando(false) })
-    return () => { ativo = false }
-  }, [relatorioId, carregar])
-
-  // Versão nova com os ajustes em geração: acompanha até ela chegar (o job do
-  // monitor publica e refaz o resumo em segundos) e então recarrega a tela.
+  // Versão nova com os ajustes em geração: acompanha até o resumo da versão nova chegar (o job publica o relatório e,
+  // num segundo evento, o monitor refaz o resumo). Desiste em 5 minutos, com aviso; o pedido sem resposta pode ser
+  // refeito depois de 15 minutos.
   const gerando = revisao?.ajustes?.pedido
   useEffect(() => {
-    if (!gerando || !relatorioId) return
+    if (!gerando || gerando.atrasado || !relatorioId) return
+    const base = gerando.versao_base
+    const limite = Date.now() + 5 * 60 * 1000
     const relogio = setInterval(async () => {
       try {
-        const nova = await obterRevisao(relatorioId)
-        if (nova.ajustes?.pedido) return
+        if (Date.now() > limite) {
+          clearInterval(relogio)
+          setAviso({ kind: 'warning', title: 'A versão nova está demorando',
+            subtitle: 'Recarregue a tela em alguns minutos. Se nada mudar, o pedido pode ser refeito depois de 15 minutos.' })
+          return
+        }
+        const [nova, novoResumo] = await Promise.all([obterRevisao(relatorioId), obterResumo(relatorioId)])
+        if (nova.ajustes?.pedido || novoResumo.versao <= base) return
         clearInterval(relogio)
-        await carregar(relatorioId)
+        if (atual.current !== relatorioId) return
+        setResumo(novoResumo)
+        setRevisao(nova)
         listarResumos().then(i => setRelatorios(i.relatorios || [])).catch(() => {})
         const erros = Object.values(nova.itens).filter(i => i.aplicacao?.status === 'erro').length
         setAviso(erros
-          ? { kind: 'warning', title: `Versão ${nova.versao} gerada, mas ${erros} ajuste(s) não entraram`,
+          ? { kind: 'warning', title: `Versão ${novoResumo.versao} gerada, mas ${erros} ajuste(s) não entraram`,
             subtitle: 'Veja o motivo em cada item no painel de revisão.' }
-          : { kind: 'success', title: `Versão ${nova.versao} gerada com os ajustes`,
+          : { kind: 'success', title: `Versão ${novoResumo.versao} gerada com os ajustes`,
             subtitle: 'O relatório completo já mostra os textos ajustados.' })
       } catch {
         // falha de rede passageira: tenta de novo no próximo ciclo
       }
     }, 4000)
     return () => clearInterval(relogio)
-  }, [gerando, relatorioId, carregar])
+  }, [gerando, relatorioId])
 
   async function gerarVersao() {
     setAviso(null)
+    setEnviando(true)
     try {
-      setRevisao(await aplicarAjustes(relatorioId))
+      setRevisao(await aplicarAjustes(relatorioId, resumo.versao))
     } catch (e) {
-      setAviso({ kind: 'error', title: 'Não foi possível gerar a versão nova', subtitle: e.message })
+      await tratarErro(e, 'Não foi possível gerar a versão nova')
+    } finally {
+      setEnviando(false)
     }
   }
 
   const abrirRelatorio = useCallback(ancora => setRelatorio({ aberto: true, ancora: ancora || null }), [])
   const abrirRevisao = useCallback(filtro => setPainel({ aberto: true, filtro: filtro || null }), [])
 
+  // Decisões do painel: levam a versão que está na tela. Se ela mudou, a tela recarrega e o erro sobe para o painel.
   async function decidir(itemId, decisao) {
-    setRevisao(await decidirItem(relatorioId, itemId, decisao))
+    try {
+      setRevisao(await decidirItem(relatorioId, itemId, { ...decisao, versao: resumo.versao }))
+    } catch (e) {
+      if (e.versaoAtual) await carregar(atual.current).catch(() => {})
+      throw e
+    }
   }
 
   async function decidirVarios(ids, decisao) {
-    setRevisao(await decidirLote(relatorioId, ids, decisao))
+    try {
+      setRevisao(await decidirLote(relatorioId, ids, { ...decisao, versao: resumo.versao }))
+    } catch (e) {
+      if (e.versaoAtual) await carregar(atual.current).catch(() => {})
+      throw e
+    }
   }
 
   async function publicarVersao() {
     setAviso(null)
+    setEnviando(true)
     try {
-      const resultado = await publicar(relatorioId)
+      const resultado = await publicar(relatorioId, resumo.versao)
       setRevisao(resultado)
       setAviso({
         kind: 'success',
@@ -159,7 +209,9 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice }) {
           : `Baseline não enviado ao Monitoramento: ${resultado.baseline?.motivo}`,
       })
     } catch (e) {
-      setAviso({ kind: 'error', title: 'Não foi possível publicar', subtitle: e.message })
+      await tratarErro(e, 'Não foi possível publicar')
+    } finally {
+      setEnviando(false)
     }
   }
 
@@ -172,10 +224,9 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice }) {
   // documento mudou.
   async function reprocessarRelatorio() {
     const pedido = `Gere o relatório de crédito da ${resumo.empresa} do ${resumo.periodo}.`
-    if (!window.confirm(`Pedir ao Agente Analista de Crédito um relatório novo (${resumo.empresa}, ${resumo.periodo})?
-
-`
-      + 'Ele é gerado do zero, com os documentos atuais. A revisão e os ajustes desta versão continuam no relatório atual.')) return
+    if (!window.confirm(`Pedir ao Agente Analista de Crédito um relatório novo (${resumo.empresa}, ${resumo.periodo})?`
+      + '\n\nEle é gerado do zero, com os documentos atuais. A revisão e os ajustes desta versão continuam no relatório atual.')) return
+    const origem = relatorioId
     setAviso(null)
     setReprocessando(true)
     let fim = null
@@ -195,15 +246,18 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice }) {
         subtitle: erro || 'O agente respondeu sem o link de um relatório novo. Tente de novo ou peça pelo chat.' })
       return
     }
-    // O resumo chega em segundos pelo monitor; espera até 90 s antes de desistir.
+    // O resumo chega em segundos pelo monitor; espera até 90 s antes de desistir. Só troca a tela se o analista
+    // continua no relatório de onde pediu; se mudou de relatório, o aviso do App leva ao novo.
     for (let tentativa = 0; tentativa < 30; tentativa++) {
       const indice = await listarResumos().catch(() => null)
       if (indice?.relatorios?.some(r => r.relatorio_id === novoId)) {
         setRelatorios(indice.relatorios)
-        setRelatorioId(novoId)
         setReprocessando(false)
-        setAviso({ kind: 'success', title: 'Relatório regerado pelo Agente Analista de Crédito',
-          subtitle: `Relatório novo ${novoId}, versão 1.` })
+        if (atual.current === origem) {
+          setRelatorioId(novoId)
+          setAviso({ kind: 'success', title: 'Relatório regerado pelo Agente Analista de Crédito',
+            subtitle: `Relatório novo ${novoId}, versão 1.` })
+        }
         return
       }
       await new Promise(r => setTimeout(r, 3000))
@@ -217,12 +271,15 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice }) {
     const justificativa = window.prompt('Por que a versão está sendo devolvida para ajuste?')
     if (!justificativa?.trim()) return
     setAviso(null)
+    setEnviando(true)
     try {
-      setRevisao(await devolver(relatorioId, justificativa))
+      setRevisao(await devolver(relatorioId, justificativa, resumo.versao))
       setAviso({ kind: 'info', title: 'Versão devolvida para ajuste',
         subtitle: 'Peça a correção ao agente no chat: a versão nova reabre a revisão dos itens que mudarem.' })
     } catch (e) {
-      setAviso({ kind: 'error', title: 'Não foi possível devolver', subtitle: e.message })
+      await tratarErro(e, 'Não foi possível devolver')
+    } finally {
+      setEnviando(false)
     }
   }
 
@@ -277,9 +334,14 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice }) {
             onClick={reprocessarRelatorio}>
             {reprocessando ? 'Agente gerando o relatório…' : 'Reprocessar'}
           </Button>
-          {gerando && <Tag type="blue" size="md">Gerando a versão {resumo.versao + 1}…</Tag>}
+          {gerando && !gerando.atrasado && <Tag type="blue" size="md">Gerando a versão {resumo.versao + 1}…</Tag>}
+          {gerando?.atrasado && (
+            <Button kind="secondary" size="sm" onClick={gerarVersao} disabled={enviando}>
+              Versão nova sem resposta: pedir de novo
+            </Button>
+          )}
           {!gerando && revisao?.ajustes?.aguardando > 0 && (
-            <Button kind="secondary" size="sm" onClick={gerarVersao}>
+            <Button kind="secondary" size="sm" onClick={gerarVersao} disabled={enviando}>
               Gerar versão {resumo.versao + 1} ({revisao.ajustes.aguardando} ajuste(s))
             </Button>
           )}
@@ -291,9 +353,11 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice }) {
           {pendentes === 0 && revisao?.status !== 'publicada' && (
             <>
               <Button kind="ghost" size="sm" onClick={() => abrirRevisao(null)}>Ver revisão</Button>
-              <Button kind="ghost" size="sm" onClick={devolverVersao}>Devolver para ajuste</Button>
-              <Button kind="primary" size="sm" onClick={publicarVersao} disabled={bloqueios.length > 0}>
-                Aprovar e publicar
+              {revisao?.status !== 'devolvida' && (
+                <Button kind="ghost" size="sm" onClick={devolverVersao} disabled={enviando}>Devolver para ajuste</Button>
+              )}
+              <Button kind="primary" size="sm" onClick={publicarVersao} disabled={enviando || bloqueios.length > 0}>
+                {enviando ? 'Enviando…' : 'Aprovar e publicar'}
               </Button>
             </>
           )}

@@ -20,7 +20,8 @@ function RelatorioCompleto({ aberto, onFechar, relatorioId, versao, titulo, anco
 
   useEffect(() => {
     if (!aberto) setCarregado(false)
-  }, [aberto, relatorioId])
+    setSemAncora(false)
+  }, [aberto, relatorioId, ancora])
 
   useEffect(() => {
     if (!aberto || !carregado || !ancora) return
@@ -56,6 +57,8 @@ function RelatorioCompleto({ aberto, onFechar, relatorioId, versao, titulo, anco
             ref={quadro}
             title="Relatório completo"
             className="rel-modal__quadro"
+            // Sem allow-scripts: o relatório não roda código nenhum. allow-same-origin mantém a rolagem até a âncora.
+            sandbox="allow-same-origin"
             src={enderecoHtml(relatorioId, versao)}
             onLoad={() => setCarregado(true)}
           />

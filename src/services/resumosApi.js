@@ -17,7 +17,10 @@ async function pedir(rota, opcoes = {}) {
   })
   if (!resposta.ok) {
     const corpo = await resposta.json().catch(() => ({}))
-    throw new Error(corpo.detail || `Falha em ${rota} (HTTP ${resposta.status})`)
+    const erro = new Error(corpo.detail || `Falha em ${rota} (HTTP ${resposta.status})`)
+    // 409 com versao_atual: o relatório mudou enquanto a tela estava aberta (a tela recarrega e avisa).
+    if (corpo.versao_atual) erro.versaoAtual = corpo.versao_atual
+    throw erro
   }
   return resposta.json()
 }
@@ -73,40 +76,45 @@ export function obterRevisao(id) {
   return pedir(`/api/resumos/${encodeURIComponent(id)}/revisao`)
 }
 
+// Toda decisão leva a `versao` do relatório que está na tela: se ela mudou no
+// meio-tempo, a API recusa (409) em vez de aprovar um texto que ninguém viu.
+
 // decisao: aprovado | ajustado | rejeitado. Rejeitar exige motivo; ajustar, o texto.
-export function decidirItem(id, itemId, { decisao, motivo, textoAjustado }) {
+export async function decidirItem(id, itemId, { decisao, motivo, textoAjustado, versao }) {
   if (decisao === 'rejeitado' && !motivo?.trim()) throw new Error('A rejeição exige motivo.')
   if (decisao === 'ajustado' && !textoAjustado?.trim()) throw new Error('O ajuste exige o texto revisado.')
   return pedir(`/api/resumos/${encodeURIComponent(id)}/itens/${encodeURIComponent(itemId)}`, {
     method: 'PATCH',
-    body: JSON.stringify({ decisao, motivo, texto_ajustado: textoAjustado }),
+    body: JSON.stringify({ versao, decisao, motivo, texto_ajustado: textoAjustado }),
   })
 }
 
 // Vários itens de uma vez (seção, categoria, filtro). Ajuste é sempre um a um.
-export function decidirLote(id, itens, { decisao, motivo }) {
+export function decidirLote(id, itens, { decisao, motivo, versao }) {
   return pedir(`/api/resumos/${encodeURIComponent(id)}/revisao/lote`, {
     method: 'POST',
-    body: JSON.stringify({ itens, decisao, motivo }),
+    body: JSON.stringify({ versao, itens, decisao, motivo }),
   })
 }
 
 // Gera a versão nova do relatório com todos os ajustes aguardando (um pedido
 // por vez). A resposta volta logo, com `ajustes.pedido`; a versão nova chega
 // em segundos, publicada pelo job do monitor, e então `ajustes.pedido` some.
-export function aplicarAjustes(id) {
-  return pedir(`/api/resumos/${encodeURIComponent(id)}/ajustes/aplicar`, { method: 'POST' })
+export function aplicarAjustes(id, versao) {
+  return pedir(`/api/resumos/${encodeURIComponent(id)}/ajustes/aplicar`, {
+    method: 'POST', body: JSON.stringify({ versao }),
+  })
 }
 
-export function devolver(id, justificativa) {
+export function devolver(id, justificativa, versao) {
   return pedir(`/api/resumos/${encodeURIComponent(id)}/devolver`, {
     method: 'POST',
-    body: JSON.stringify({ justificativa }),
+    body: JSON.stringify({ versao, justificativa }),
   })
 }
 
 // Exige todos os itens revisados e nenhum rejeitado. Devolve o estado da
 // revisão e `baseline` ({enviado, motivo}) do envio ao Monitoramento.
-export function publicar(id) {
-  return pedir(`/api/resumos/${encodeURIComponent(id)}/publicar`, { method: 'POST' })
+export function publicar(id, versao) {
+  return pedir(`/api/resumos/${encodeURIComponent(id)}/publicar`, { method: 'POST', body: JSON.stringify({ versao }) })
 }

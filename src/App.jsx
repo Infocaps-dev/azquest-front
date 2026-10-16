@@ -37,7 +37,10 @@ function Gate() {
     <>
       <AppHeader aba={aba} onTrocarAba={setAba} />
       {aba === 'monitoramento' ? <MonitoramentoPage />
-        : aba === 'analise' ? <AnalisePage onTrocarAba={setAba} relatorioAlvo={alvo} sinalIndice={sinal} />
+        : aba === 'analise' ? (
+          <AnalisePage onTrocarAba={setAba} relatorioAlvo={alvo} sinalIndice={sinal}
+            onAlvoConsumido={() => setAlvo(null)} />
+        )
           : aba === 'desempenho' ? <DesempenhoPage sinalIndice={sinal} />
           : <ChatPage onTrocarAba={setAba} />}
       <AvisosRelatorios avisos={avisos} onAbrir={abrirRelatorio} onDispensar={dispensar} />

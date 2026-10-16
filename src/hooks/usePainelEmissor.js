@@ -90,7 +90,8 @@ export function montarPainel(baseline, resumo) {
       return {
         id: `gatilho-${i}`,
         titulo: `${g.agencia || 'Agência'}, ${sobe ? 'rebaixamento' : 'elevação'}`,
-        regra: `${sobe ? 'acima de' : 'próxima de'} ${x(g.limite)}${/consistente/i.test(g.condicao || '') ? ' de forma consistente' : ''}`,
+        regra: `${sobe ? 'acima de' : /pr[óo]xim/i.test(g.condicao || '') ? 'próxima de' : 'abaixo de'} ${x(g.limite)}`
+          + `${/consistente/i.test(g.condicao || '') ? ' de forma consistente' : ''}`,
         apurado: alav?.valor ?? doMesmoTipo?.apurado,
         limite: g.limite,
         tipo: sobe ? 'max' : 'min',

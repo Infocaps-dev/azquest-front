@@ -17,7 +17,11 @@ function daReferencia(entrada) {
   return entrada?.origem === 'relatorio_publicado' || fontes.some(f => DA_REFERENCIA.test(f.documento || ''))
 }
 
-const numeroBr = texto => Number(String(texto).replace(/\./g, '').replace(',', '.'))
+// "1.769,3" (milhar com ponto) → 1769.3; "2.5" (decimal com ponto, como no "R$ 2.5 bi") → 2.5.
+const numeroBr = texto => {
+  const t = String(texto)
+  return /^\d+\.\d{1,2}$/.test(t) ? Number(t) : Number(t.replace(/\./g, '').replace(',', '.'))
+}
 
 function fimDoPeriodo(periodo) {
   const m = /^(\d)T(\d{2})$/.exec(periodo || '')

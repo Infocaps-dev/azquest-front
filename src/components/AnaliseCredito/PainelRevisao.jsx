@@ -198,7 +198,8 @@ function Detalhe({ item, decisao, rotulos, onDecidir, onVerNoRelatorio, onAnteri
         <span className="rev-detalhe__botoes">
           {modo ? (
             <>
-              <Button kind="ghost" size="sm" disabled={enviando} onClick={() => setModo(null)}>Cancelar</Button>
+              <Button kind="ghost" size="sm" disabled={enviando}
+                onClick={() => { setModo(null); setMotivo(''); setTexto(item.texto || ''); setErro('') }}>Cancelar</Button>
               {modo === 'ajustar' ? (
                 <Button kind="primary" size="sm" renderIcon={Checkmark} disabled={enviando}
                   onClick={() => decidir('ajustado')}>Salvar ajuste</Button>
@@ -238,6 +239,10 @@ function PainelRevisao({
   const [erroLote, setErroLote] = useState('')
 
   const itens = useMemo(() => resumo?.itens || [], [resumo])
+
+  // A confirmação do lote vale para o conjunto que estava na tela quando foi armada: mudar o filtro a desarma, senão
+  // o segundo clique aprovaria outro conjunto de itens.
+  useEffect(() => { setConfirmar(null) }, [status, categoriasSel, secao, busca])
   const rotulos = useMemo(() => Object.fromEntries(categorias.map(c => [c.id, c])), [categorias])
   const statusDe = id => revisao?.itens?.[id]?.status || 'pendente'
 
@@ -265,7 +270,7 @@ function PainelRevisao({
   const visiveis = porStatus.filter(i =>
     (!secao || i.secao === secao)
     && (!categoriasSel.length || categoriasSel.includes(i.categoria))
-    && (!termo || i.texto.toLowerCase().includes(termo) || i.id.toLowerCase().includes(termo)))
+    && (!termo || (i.texto || '').toLowerCase().includes(termo) || i.id.toLowerCase().includes(termo)))
 
   const grupos = []
   for (const item of visiveis) {
@@ -371,8 +376,13 @@ function PainelRevisao({
         {erroLote && <InlineNotification kind="error" lowContrast hideCloseButton title={erroLote} />}
         {(revisao?.ajustes?.aguardando > 0 || revisao?.ajustes?.pedido) && (
           <div className="rev-ajustes">
-            {revisao.ajustes.pedido ? (
+            {revisao.ajustes.pedido && !revisao.ajustes.pedido.atrasado ? (
               <span>Gerando a versão {resumo.versao + 1} com {revisao.ajustes.pedido.itens} ajuste(s)…</span>
+            ) : revisao.ajustes.pedido?.atrasado ? (
+              <>
+                <span>O pedido de versão nova ficou sem resposta.</span>
+                <Button kind="primary" size="sm" onClick={onGerarVersao}>Pedir de novo</Button>
+              </>
             ) : (
               <>
                 <span>{revisao.ajustes.aguardando} ajuste(s) ainda fora do relatório.</span>

@@ -2,7 +2,7 @@
 //
 // A revisão de um relatório fica em revisoes/<relatorio_id>.json:
 //   { relatorio_id, itens: { <item_id>: {status, motivo, texto_ajustado, texto, versao, usuario, em} },
-//     decisao: {status, versao, justificativa, usuario, em}, historico: [...] }
+//     decisao: {status, versao, justificativa, usuario, em}, ajuste_pendente, historico: [...] }
 //
 // Cada decisão guarda o texto do item que foi revisado. Numa versão nova do relatório (alteração pelo agente), o item
 // cujo texto mudou volta a pendente, com a decisão anterior à vista: aprovar um texto não aprova o texto que entrou
@@ -15,10 +15,14 @@
 
 export const DECISOES = ['aprovado', 'ajustado', 'rejeitado']
 export const TIPOS_AJUSTAVEIS = ['texto', 'lista', 'campo']
+// Pedido de versão nova sem resposta depois disto é tratado como perdido (job fora do ar) e pode ser refeito.
+export const PEDIDO_ATRASADO_MIN = 15
+// Publicação em andamento: segura as outras decisões por no máximo isto (se a API cair no meio, libera sozinha).
+export const PUBLICANDO_MAX_MIN = 3
 
 // Mesma limpeza que a montagem faz no texto do item (marcadores, negrito, espaços), para comparar textos.
 export function normalizar(texto) {
-  return (texto || '')
+  return (typeof texto === 'string' ? texto : '')
     .replace(/\{(?:A[~+]?|R|T|AJ):[^}]*\}/g, '')
     .replace(/\*\*(.+?)\*\*/g, '$1')
     .replace(/\{/g, '(').replace(/\}/g, ')')
@@ -28,13 +32,31 @@ export function normalizar(texto) {
 }
 
 export function revisaoVazia(relatorioId) {
-  return { relatorio_id: relatorioId, itens: {}, decisao: null, historico: [] }
+  return { relatorio_id: relatorioId, itens: {}, decisao: null, ajuste_pendente: null, historico: [] }
 }
 
-export function validarDecisao({ decisao, motivo, texto_ajustado: texto }) {
+const texto = v => (typeof v === 'string' ? v : '')
+
+// O texto do analista entra no relatório como ele escreveu: nada que a montagem leia como estrutura (as mesmas regras
+// de conferir_texto em monitor_resumo/ajustes.py, para o analista saber na hora, e não só quando o job rodar).
+export function problemaNoAjuste(valor) {
+  const t = texto(valor).replace(/\s+/g, ' ').trim()
+  if (!t) return 'O ajuste exige o texto revisado.'
+  if (t.length > 4000) return 'O texto ajustado passa de 4.000 caracteres.'
+  if (/^\**\s*(Fonte\b|N[aã]o localizado\b)/i.test(t)) {
+    return 'O texto não pode começar com "Fonte" ou "Não localizado": o relatório leria como linha de fonte.'
+  }
+  if (/^([#>|]|[-*+•]\s|\d+[.)]\s)/.test(t)) return 'O texto não pode começar com #, >, | ou marcador de lista.'
+  if (t.includes('](') || t.includes('⟦')) return 'O texto não pode ter link nem marcadores internos.'
+  return null
+}
+
+export function validarDecisao({ decisao, motivo, texto_ajustado: ajustado }) {
   if (!DECISOES.includes(decisao)) return 'Decisão inválida: use aprovado, ajustado ou rejeitado.'
-  if (decisao === 'rejeitado' && !motivo?.trim()) return 'A rejeição exige motivo.'
-  if (decisao === 'ajustado' && !texto?.trim()) return 'O ajuste exige o texto revisado.'
+  if (motivo !== undefined && motivo !== null && typeof motivo !== 'string') return 'Motivo inválido.'
+  if (texto(motivo).length > 2000) return 'O motivo passa de 2.000 caracteres.'
+  if (decisao === 'rejeitado' && !texto(motivo).trim()) return 'A rejeição exige motivo.'
+  if (decisao === 'ajustado') return problemaNoAjuste(ajustado)
   return null
 }
 
@@ -43,14 +65,14 @@ function quem(usuario) {
 }
 
 // Aplica decisões a itens do resumo. Devolve os ids que não existem no relatório.
-export function decidir(revisao, resumo, ids, { decisao, motivo, texto_ajustado: texto }, usuario, agora) {
+export function decidir(revisao, resumo, ids, { decisao, motivo, texto_ajustado: ajustado }, usuario, agora) {
   const porId = Object.fromEntries((resumo.itens || []).map(i => [i.id, i]))
   const faltando = ids.filter(id => !porId[id])
   for (const id of ids.filter(i => porId[i])) {
-    const ajuste = decisao === 'ajustado' ? normalizar(texto) : null
+    const ajuste = decisao === 'ajustado' ? normalizar(ajustado) : null
     revisao.itens[id] = {
       status: decisao,
-      motivo: motivo?.trim() || null,
+      motivo: texto(motivo).trim() || null,
       texto_ajustado: ajuste,
       texto: ajuste ?? porId[id].texto,
       texto_original: ajuste ? porId[id].texto : null,
@@ -63,9 +85,33 @@ export function decidir(revisao, resumo, ids, { decisao, motivo, texto_ajustado:
     }
   }
   revisao.historico.push({ em: agora, usuario: quem(usuario), acao: decisao, itens: ids.filter(i => porId[i]),
-    motivo: motivo?.trim() || null })
+    motivo: texto(motivo).trim() || null })
   revisao.historico = revisao.historico.slice(-500)
   return faltando
+}
+
+const minutosDesde = (iso, agora = Date.now()) => (agora - Date.parse(iso || 0)) / 60000
+
+export function pedidoAtrasado(revisao, agora = Date.now()) {
+  return Boolean(revisao.ajuste_pendente) && minutosDesde(revisao.ajuste_pendente.em, agora) >= PEDIDO_ATRASADO_MIN
+}
+
+// Pedido perdido (o job não rodou ou caiu antes de responder): os itens dele voltam a aguardar, para entrarem no
+// próximo pedido, em vez de ficarem "enviados" para sempre.
+export function recuperarPedidoAtrasado(revisao, agoraIso) {
+  const perdido = revisao.ajuste_pendente
+  for (const item of Object.values(revisao.itens)) {
+    if (item.status === 'ajustado' && item.aplicacao?.status === 'enviado' && item.aplicacao.pedido === perdido.pedido_id) {
+      item.aplicacao = { status: 'aguardando' }
+    }
+  }
+  revisao.historico.push({ em: agoraIso, acao: 'pedido de ajuste sem resposta descartado', ...perdido })
+  revisao.ajuste_pendente = null
+}
+
+export function publicando(revisao, resumo, agora = Date.now()) {
+  const d = revisao.decisao
+  return d?.status === 'publicando' && d.versao === resumo.versao && minutosDesde(d.em, agora) < PUBLICANDO_MAX_MIN
 }
 
 // Ajustes que ainda não entraram no relatório: aguardando o "Gerar versão nova" ou com erro na aplicação.
@@ -91,7 +137,7 @@ export function pedidoDeAjustes(resumo, revisao, usuario, agora) {
 }
 
 // Estado da revisão para a versão atual do resumo: decisão por item, contagens e o que bloqueia a publicação.
-export function estadoDaRevisao(resumo, revisao) {
+export function estadoDaRevisao(resumo, revisao, agora = Date.now()) {
   const itens = {}
   const contagem = { pendente: 0, aprovado: 0, ajustado: 0, rejeitado: 0 }
   const pendentesPorCategoria = {}
@@ -108,8 +154,10 @@ export function estadoDaRevisao(resumo, revisao) {
   const naoAplicados = ajustesNaoAplicados(resumo, revisao)
   const aguardando = naoAplicados.filter(([, r]) => r.aplicacao?.status === 'aguardando').length
   const comErro = naoAplicados.filter(([, r]) => r.aplicacao?.status === 'erro').length
-  const pendente = revisao.ajuste_pendente || null
-  const decisaoValida = revisao.decisao && revisao.decisao.versao === resumo.versao ? revisao.decisao : null
+  const pendente = revisao.ajuste_pendente
+    ? { ...revisao.ajuste_pendente, atrasado: pedidoAtrasado(revisao, agora) } : null
+  const decisaoValida = revisao.decisao && revisao.decisao.versao === resumo.versao
+    && (revisao.decisao.status !== 'publicando' || publicando(revisao, resumo, agora)) ? revisao.decisao : null
   const bloqueios = []
   if (contagem.pendente) bloqueios.push(`${contagem.pendente} item(ns) pendente(s) de revisão`)
   if (contagem.rejeitado) {
@@ -118,6 +166,8 @@ export function estadoDaRevisao(resumo, revisao) {
   if (aguardando) bloqueios.push(`${aguardando} ajuste(s) fora do relatório: gere a versão nova`)
   if (comErro) bloqueios.push(`${comErro} ajuste(s) não aplicado(s): veja o erro no item e ajuste de novo`)
   if (pendente) bloqueios.push('versão nova com os ajustes em geração')
+  if (decisaoValida?.status === 'devolvida') bloqueios.push('versão devolvida para ajuste: corrija e gere uma versão nova')
+  if (decisaoValida?.status === 'publicando') bloqueios.push('publicação em andamento')
   return {
     relatorio_id: resumo.relatorio_id,
     versao: resumo.versao,

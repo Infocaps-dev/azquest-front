@@ -21,6 +21,14 @@ arquivos com a credencial do COS. O formato está em `relatorio-creditos/monitor
 | `GET /api/baselines/:emissor` | baseline vigente do emissor (última versão publicada); 404 enquanto nada foi publicado |
 | `GET /api/health` | `{status: "ok"}`, sem login |
 
+Regras de escrita (auditoria de 16/10/2026):
+- Todo `POST`/`PATCH` leva `versao` (a versão do relatório que a tela mostrava) e é JSON; versão diferente da atual
+  responde 409 com `versao_atual`, e pedido de outro site (`Sec-Fetch-Site`) ou sem JSON é recusado (403/415).
+- A revisão é gravada com If-Match (ETag): a API e o job dos ajustes nunca apagam a decisão um do outro.
+- Publicar reserva a versão ("publicando"), monta e envia o baseline e só então marca "publicada"; versão publicada não
+  pode ser devolvida nem publicada de novo. `PAPEIS_PUBLICACAO` restringe quem publica e devolve.
+- Pedido de versão nova sem resposta há 15 minutos aparece como `atrasado` e pode ser refeito: os itens dele voltam.
+
 Revisão: fica em `revisoes/<id>.json` no mesmo bucket, com o usuário da sessão em cada decisão. Cada decisão guarda o
 texto revisado: numa versão nova do relatório, o item cujo texto mudou volta a pendente (a decisão anterior fica em
 `anterior`). Regras em `server/revisao.js`.

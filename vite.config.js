@@ -34,7 +34,8 @@ export default defineConfig({
       // A analise-api e a etapa 1.2 e roda em outro servico. Mesmo padrao do
       // /monitor: prefixo proprio, para nao colidir com o /api do BFF.
       '/analise': {
-        target: process.env.VITE_ANALISE_TARGET || 'http://localhost:8081',
+        target: process.env.VITE_ANALISE_TARGET
+          || 'https://analise-api.2fom3olxz1yh.br-sao.codeengine.appdomain.cloud',
         changeOrigin: true,
         secure: true,
         rewrite: caminho => caminho.replace(/^\/analise/, ''),

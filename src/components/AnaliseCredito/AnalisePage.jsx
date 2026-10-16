@@ -18,6 +18,7 @@ import {
   obterIndice,
   obterResumo,
   publicar,
+  reprocessar,
   revisarItem,
 } from '../../services/analiseApi'
 import CoberturaPiloto from './CoberturaPiloto.jsx'
@@ -49,6 +50,7 @@ function AnalisePage({ onTrocarAba }) {
   const [carregando, setCarregando] = useState(true)
   const [erroCarga, setErroCarga] = useState('')
   const [aviso, setAviso] = useState(null)
+  const [reprocessando, setReprocessando] = useState(false)
 
   const carregar = useCallback(async id => {
     const [novoResumo, novosItens, novoIndice, novasFontes] = await Promise.all([
@@ -137,6 +139,31 @@ function AnalisePage({ onTrocarAba }) {
     }
   }
 
+  async function reprocessarAnalise() {
+    setAviso(null)
+    setReprocessando(true)
+    try {
+      const { agente } = await reprocessar(analiseId)
+      await carregar(analiseId)
+      setAviso(
+        agente.acionado && agente.concluido
+          ? { kind: 'success',
+              title: 'Relatório regerado pelo Agente Analista de Crédito',
+              subtitle: `Execução ${agente.run_id}.` }
+          // O agente é quem gera o relatório; o roteiro é quem monta a tela.
+          // Dizer "reprocessado" quando só a segunda metade aconteceu faria o
+          // analista crer que o relatório é novo.
+          : { kind: 'warning',
+              title: 'A tela foi remontada, mas o relatório não foi regerado',
+              subtitle: agente.motivo },
+      )
+    } catch (e) {
+      setAviso({ kind: 'error', title: 'Não foi possível reprocessar', subtitle: e.message })
+    } finally {
+      setReprocessando(false)
+    }
+  }
+
   function exportarComo(formato) {
     setAviso(null)
     try {
@@ -200,6 +227,10 @@ function AnalisePage({ onTrocarAba }) {
           <Button kind="tertiary" size="sm" renderIcon={Document}
             onClick={() => setRelatorioAberto(true)}>
             Relatório completo
+          </Button>
+          <Button kind="tertiary" size="sm" renderIcon={Renew}
+            disabled={reprocessando} onClick={reprocessarAnalise}>
+            {reprocessando ? 'Reprocessando…' : 'Reprocessar'}
           </Button>
           <OverflowMenu size="sm" flipped aria-label="Exportar" iconDescription="Exportar">
             <OverflowMenuItem itemText="Exportar .docx"

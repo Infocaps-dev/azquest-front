@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Credenciais locais: regra 10 do handoff
+orchestrate-key.json
+*-key.json

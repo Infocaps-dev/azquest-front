@@ -168,6 +168,18 @@ export async function publicar(id) {
   return pedir(`/api/analises/${encodeURIComponent(id)}/publicar`, { method: 'POST' })
 }
 
+// Reprocessar: aciona o Agente Analista de Crédito, que gera o relatório, e
+// depois remonta a tela a partir do roteiro. A resposta diz o que aconteceu em
+// cada metade, porque a segunda acontece mesmo que a primeira falhe.
+export async function reprocessar(id) {
+  if (MODO_SIMULADO) {
+    throw new Error(
+      'Reprocessar aciona o agente no Orchestrate e precisa da analise-api.',
+    )
+  }
+  return pedir(`/api/analises/${encodeURIComponent(id)}/reprocessar`, { method: 'POST' })
+}
+
 // Exportação, etapa 8. O .docx vem pronto do servidor; o PDF é a impressão
 // do HTML que o servidor monta, com @page A4 já definido.
 //

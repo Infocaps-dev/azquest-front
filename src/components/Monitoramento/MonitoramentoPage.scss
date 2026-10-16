@@ -37,24 +37,42 @@
   color: $text-secondary;
 }
 
-// Acoes da pagina, alinhadas a direita no topo.
-// Linha do processo e acao, lado a lado. O botao nao empurra o conteudo para
-// baixo nem corre o risco de cair sobre as etapas em tela estreita, porque a
-// linha do processo rola dentro do proprio espaco.
-.mon-pagina__topo {
+// ── Cabeçalho ───────────────────────────────────────────────────────────
+// Mesmo desenho do cabeçalho da aba Análise de Crédito: identidade à esquerda,
+// ações à direita, uma linha divisória abaixo. As duas abas são o mesmo
+// processo em momentos diferentes.
+.mon-cabecalho {
   display: flex;
-  align-items: flex-start;
+  flex-wrap: wrap;
   gap: $spacing-05;
-
-  .mon-processo {
-    flex: 1;
-    min-width: 0;
-  }
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: $spacing-05;
+  margin-bottom: $spacing-05;
+  border-bottom: 1px solid $border-subtle-01;
 }
 
-.mon-pagina__reiniciar {
-  flex-shrink: 0;
-  margin-top: $spacing-03;
+.mon-cabecalho__identidade {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03 $spacing-05;
+  align-items: baseline;
+}
+
+.mon-cabecalho__emissor {
+  @include type-style('heading-04');
+}
+
+.mon-cabecalho__evento,
+.mon-cabecalho__estado {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.mon-cabecalho__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03;
 }
 
 // ── Modais de fluxo e de decisão ────────────────────────────────────────
@@ -164,22 +182,6 @@
 .mon-processo__passo--selecionado {
   outline: 2px solid $focus;
   outline-offset: 2px;
-}
-
-// ── Selo do baseline ────────────────────────────────────────────────────
-.mon-baseline {
-  display: flex;
-  flex-wrap: wrap;
-  gap: $spacing-03 $spacing-05;
-  align-items: center;
-  margin-bottom: $spacing-05;
-}
-
-.mon-baseline__data,
-.mon-baseline__aprovador,
-.mon-baseline__origem {
-  @include type-style('label-01');
-  color: $text-secondary;
 }
 
 // ── Cartões de KPI ──────────────────────────────────────────────────────

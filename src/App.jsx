@@ -24,7 +24,7 @@ function Gate() {
   return (
     <>
       <AppHeader aba={aba} onTrocarAba={setAba} />
-      {aba === 'monitoramento' ? <MonitoramentoPage onTrocarAba={setAba} />
+      {aba === 'monitoramento' ? <MonitoramentoPage />
         : aba === 'analise' ? <AnalisePage onTrocarAba={setAba} />
           : <ChatPage />}
     </>

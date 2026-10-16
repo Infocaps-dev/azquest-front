@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Button, InlineNotification, Loading } from '@carbon/react'
-import { Renew } from '@carbon/icons-react'
+import { Button, InlineNotification, Loading, Tag } from '@carbon/react'
+import { Renew, Warning } from '@carbon/icons-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useExecucao } from '../../hooks/useExecucao'
 import {
@@ -11,7 +11,6 @@ import {
   historicoDeCiclos,
   listarAlertas,
   listarExecucoes,
-  obterBaseline,
   obterComparacao,
 } from '../../services/monitorApi'
 import CartoesKpi from './CartoesKpi.jsx'
@@ -20,10 +19,10 @@ import HistoricoAprovacoes from './HistoricoAprovacoes.jsx'
 import HistoricoCiclos from './HistoricoCiclos.jsx'
 import LinhaProcesso from './LinhaProcesso.jsx'
 import ModalDesvio from './ModalDesvio.jsx'
-import SeloBaseline from './SeloBaseline.jsx'
 import PainelAprovacao from './PainelAprovacao.jsx'
 import QuadroComparativo from './QuadroComparativo.jsx'
 import VisualizadorFonte from './VisualizadorFonte.jsx'
+import { nivelDe } from './niveis'
 import './MonitoramentoPage.scss'
 
 // Aba Monitoramento, seção 11 do Handoff_Monitoramento_1.5_Bob.md.
@@ -49,7 +48,7 @@ function alertaDoCiclo(alertas, periodo) {
   return doPeriodo[0] || alertas[0] || null
 }
 
-function MonitoramentoPage({ onTrocarAba }) {
+function MonitoramentoPage() {
   const { user } = useAuth()
   const [execucaoId, setExecucaoId] = useState(null)
   const [comparacao, setComparacao] = useState(null)
@@ -63,7 +62,6 @@ function MonitoramentoPage({ onTrocarAba }) {
   const [carregando, setCarregando] = useState(true)
   const [historico, setHistorico] = useState([])
   const [decisoes, setDecisoes] = useState([])
-  const [baseline, setBaseline] = useState(null)
   const [rodando, setRodando] = useState(false)
   const [erroCiclo, setErroCiclo] = useState('')
 
@@ -96,17 +94,13 @@ function MonitoramentoPage({ onTrocarAba }) {
           (pendente?.comparacao_id ? await obterComparacao(pendente.comparacao_id) : null)
         if (ativo) setComparacao(comp)
 
-        const [ciclos, decididas, tese] = await Promise.all([
+        const [ciclos, decididas] = await Promise.all([
           historicoDeCiclos(EMISSOR),
           historicoDeAprovacoes(EMISSOR).catch(() => []),
-          // O baseline diz contra que tese o ciclo compara. Falhar aqui não
-          // derruba a tela: o ciclo continua legível sem o selo.
-          obterBaseline(EMISSOR).catch(() => null),
         ])
         if (!ativo) return
         setHistorico(ciclos)
         setDecisoes(decididas)
-        setBaseline(tese)
       } catch (e) {
         if (ativo) setErroCarga(e.message)
       } finally {
@@ -170,6 +164,11 @@ function MonitoramentoPage({ onTrocarAba }) {
     !etapas.some(e => e.status === 'em_execucao' || e.status === 'aguardando_aprovacao')
   const etapaApontada = temDesvio ? etapas[primeiraAberta]?.etapa : null
 
+  // O nível máximo do ciclo, para a etiqueta do cabeçalho. Sem comparação
+  // ainda, cai em "informativo": dizer "Relevante" antes de comparar seria
+  // anunciar um achado que não existe.
+  const nivel = nivelDe(comparacao?.nivel_maximo)
+
   if (carregando) {
     return (
       <main className="mon-pagina mon-pagina--vazia">
@@ -194,26 +193,50 @@ function MonitoramentoPage({ onTrocarAba }) {
           title={erro} className="mon-pagina__aviso" />
       )}
 
-      {/* O botão fica ao lado da linha do processo, não acima: acrescentar uma
-          ação não deve custar uma faixa inteira da primeira tela. */}
-      <div className="mon-pagina__topo">
-        <LinhaProcesso
-          etapas={etapas}
-          destino={destino}
-          selecionada={etapaSelecionada}
-          onSelecionar={setEtapaSelecionada}
-        />
-        <Button
-          kind="tertiary"
-          size="sm"
-          renderIcon={Renew}
-          disabled={rodando || cicloEmAndamento}
-          onClick={rodarCiclo}
-          className="mon-pagina__reiniciar"
-        >
-          {rodando ? 'Rodando…' : 'Reiniciar'}
-        </Button>
-      </div>
+      {/* Cabeçalho no mesmo padrão da aba Análise de Crédito: identidade à
+          esquerda, ações à direita. As duas abas são o mesmo processo em
+          momentos diferentes, e abrir uma depois da outra não deveria exigir
+          reaprender onde ficam as coisas. */}
+      <header className="mon-cabecalho">
+        <div className="mon-cabecalho__identidade">
+          <h1 className="mon-cabecalho__emissor">{EMISSOR}</h1>
+          <span className="mon-cabecalho__evento">
+            {execucao?.evento || `Ciclo ${execucao?.periodo || ''}`}
+          </span>
+          <Tag type={nivel.tag} size="sm">{nivel.rotulo}</Tag>
+          {aguardandoAprovacao && (
+            <span className="mon-cabecalho__estado">aguardando sua decisão</span>
+          )}
+        </div>
+        <div className="mon-cabecalho__acoes">
+          {/* "Analisar o impacto" aparece quando o ciclo chega nessa etapa, e
+              some quando passa dela. Antes só existia como caminho de volta,
+              depois de o modal ser fechado: quem fechasse e rolasse a tela não
+              tinha como voltar à decisão sem recarregar. */}
+          {aguardandoAprovacao && alerta && (
+            <Button kind="primary" size="sm" renderIcon={Warning}
+              onClick={() => setAprovacaoAberta(true)}>
+              Analisar o impacto
+            </Button>
+          )}
+          <Button
+            kind="tertiary"
+            size="sm"
+            renderIcon={Renew}
+            disabled={rodando || cicloEmAndamento}
+            onClick={rodarCiclo}
+          >
+            {rodando ? 'Rodando…' : 'Reprocessar'}
+          </Button>
+        </div>
+      </header>
+
+      <LinhaProcesso
+        etapas={etapas}
+        destino={destino}
+        selecionada={etapaSelecionada}
+        onSelecionar={setEtapaSelecionada}
+      />
 
       {erroCiclo && (
         <InlineNotification kind="error" lowContrast hideCloseButton
@@ -223,22 +246,13 @@ function MonitoramentoPage({ onTrocarAba }) {
 
       {/* Fechar o modal nao faz o assunto sumir: o ciclo continua parado ou
           aguardando decisao, e precisa de um caminho de volta. */}
-      {(temDesvio && !desvioAberto) || (aguardandoAprovacao && alerta && !aprovacaoAberta) ? (
+      {temDesvio && !desvioAberto && (
         <p className="mon-pagina__retomar">
-          {temDesvio && !desvioAberto && (
-            <Button kind="tertiary" size="sm" onClick={() => setDesvioAberto(true)}>
-              O ciclo segue por outro caminho
-            </Button>
-          )}
-          {aguardandoAprovacao && alerta && !aprovacaoAberta && (
-            <Button kind="primary" size="sm" onClick={() => setAprovacaoAberta(true)}>
-              Revisar a análise de impacto
-            </Button>
-          )}
+          <Button kind="tertiary" size="sm" onClick={() => setDesvioAberto(true)}>
+            O ciclo segue por outro caminho
+          </Button>
         </p>
-      ) : null}
-
-      <SeloBaseline baseline={baseline} onTrocarAba={onTrocarAba} />
+      )}
 
       <CartoesKpi comparacao={comparacao} execucao={execucao} />
 

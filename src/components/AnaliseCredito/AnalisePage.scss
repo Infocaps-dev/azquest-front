@@ -1,0 +1,532 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/theme' as *;
+@use '@carbon/react/scss/type' as *;
+
+// Aba Análise de Crédito. Mesmo vocabulário visual do resto da plataforma:
+// tokens do Carbon, sem cor inventada. O template da Marcela, com a paleta
+// própria do documento, fica contido no relatório completo.
+
+.ana-pagina {
+  // O Header do Carbon é fixo e ocupa 3rem. A aba Monitoramento já aprendeu
+  // isso da forma difícil: sem a folga, o começo da aba fica debaixo dele.
+  padding: calc(3rem + #{$spacing-05}) $spacing-07 $spacing-09;
+  overflow-y: auto;
+  background: $background;
+}
+
+.ana-pagina--vazia {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.ana-secao__titulo {
+  @include type-style('heading-03');
+  margin-bottom: $spacing-05;
+}
+
+.ana-vazio {
+  @include type-style('body-compact-01');
+  color: $text-secondary;
+}
+
+.ana-aviso {
+  max-width: none;
+  margin-bottom: $spacing-05;
+}
+
+.ana-rodape {
+  @include type-style('label-01');
+  padding-top: $spacing-05;
+  margin-top: $spacing-07;
+  color: $text-secondary;
+  border-top: 1px solid $border-subtle-01;
+}
+
+// ── Cabeçalho ───────────────────────────────────────────────────────────
+.ana-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-05;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: $spacing-05;
+  margin-bottom: $spacing-05;
+  border-bottom: 1px solid $border-subtle-01;
+}
+
+.ana-cabecalho__identidade {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03 $spacing-05;
+  align-items: baseline;
+}
+
+.ana-cabecalho__emissor {
+  @include type-style('heading-04');
+}
+
+.ana-cabecalho__referencia,
+.ana-cabecalho__aprovador {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.ana-cabecalho__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03;
+}
+
+.ana-selo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03 $spacing-05;
+  align-items: center;
+  margin-bottom: $spacing-05;
+}
+
+// ── Faixa do processo ───────────────────────────────────────────────────
+.ana-faixa {
+  padding-bottom: $spacing-05;
+  margin-bottom: $spacing-06;
+  overflow-x: auto;
+
+  .cds--progress-step { min-width: 9.5rem; }
+
+  // O conector some: posicionado em absoluto no topo do passo, com o rótulo
+  // em duas linhas ele fica solto, um filete sem ligação com o passo.
+  .cds--progress-line { display: none; }
+
+  .cds--progress-label {
+    max-width: 8rem;
+    white-space: normal;
+    line-height: 1.2;
+    min-height: 2.4em;
+  }
+
+  // O Carbon põe o rótulo secundário a 28px fixos do topo, contando com uma
+  // linha só. Com o nome quebrando, a segunda linha caía em cima do status.
+  .cds--progress-optional {
+    position: static;
+    margin-block-start: $spacing-02;
+    margin-inline-start: 0;
+  }
+}
+
+.ana-faixa__topo {
+  display: flex;
+  justify-content: flex-end;
+}
+
+// A2 não vai acontecer: fica cinza e sem o visto das que aconteceram. O
+// Carbon pinta de "concluído" todo passo antes do índice corrente, e o ícone
+// tem dois traçados -- o visto e o círculo. Some só o visto.
+.ana-faixa__passo--inaplicavel {
+  .cds--progress-step-button > svg path:first-of-type { display: none; }
+}
+
+.ana-faixa__passo--selecionado {
+  outline: 2px solid $focus;
+  outline-offset: 2px;
+}
+
+// ── Sumário ─────────────────────────────────────────────────────────────
+.ana-sumario {
+  padding: $spacing-06;
+  margin-bottom: $spacing-06;
+  background: $layer-01;
+}
+
+.ana-sumario__campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: $spacing-05;
+  margin-bottom: $spacing-06;
+}
+
+.ana-sumario__campo {
+  dt {
+    @include type-style('label-01');
+    margin-bottom: $spacing-02;
+    color: $text-secondary;
+  }
+
+  dd {
+    @include type-style('body-compact-01');
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-03;
+    align-items: center;
+  }
+}
+
+.ana-sumario__previsto {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+// Texto do analista: verde, rotulado. Ele não tem fonte por natureza, e o
+// rótulo é o que o distingue de uma afirmação do agente sem evidência.
+.ana-sumario__observacao {
+  padding: $spacing-05;
+  margin-bottom: $spacing-06;
+  background: $layer-02;
+  border-left: 3px solid $support-success;
+
+  p {
+    @include type-style('body-01');
+    margin-top: $spacing-03;
+  }
+}
+
+.ana-rotulo {
+  @include type-style('label-01');
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ana-rotulo--analista { color: $support-success; }
+.ana-rotulo--ok { color: $support-success; }
+.ana-rotulo--parcial { color: $support-warning; }
+.ana-rotulo--atualizada { color: $support-info; }
+.ana-rotulo--ausente { color: $support-error; }
+
+.ana-sumario__colunas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: $spacing-06;
+}
+
+.ana-sumario__coluna-titulo {
+  @include type-style('heading-compact-01');
+  margin-bottom: $spacing-03;
+}
+
+.ana-sumario__coluna-titulo--atencao { color: $support-error; }
+.ana-sumario__coluna-titulo--fortes { color: $support-success; }
+
+.ana-sumario__lista {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+
+  li { @include type-style('body-compact-01'); }
+}
+
+// ── Números-chave ───────────────────────────────────────────────────────
+.ana-numeros { margin-bottom: $spacing-06; }
+
+.ana-numeros__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: $spacing-05;
+}
+
+.ana-kpi {
+  padding: 0;
+  border-left: 3px solid $border-subtle-01;
+}
+
+.ana-kpi--ressalva { border-left-color: $support-warning; }
+.ana-kpi--sem-fonte { border-left-color: $support-error; }
+
+.ana-kpi__gatilho {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-02;
+  width: 100%;
+  padding: $spacing-05;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+
+  &:hover { background: $layer-hover-01; }
+  &:focus-visible { outline: 2px solid $focus; outline-offset: -2px; }
+}
+
+.ana-kpi__titulo {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.ana-kpi__valor {
+  @include type-style('productive-heading-04');
+}
+
+.ana-kpi__periodo,
+.ana-kpi__contexto,
+.ana-kpi__origem {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.ana-kpi__origem { font-style: italic; }
+
+.ana-kpi__ressalva {
+  @include type-style('label-01');
+  display: flex;
+  gap: $spacing-02;
+  align-items: flex-start;
+  margin-top: $spacing-02;
+  color: $text-primary;
+
+  svg { flex-shrink: 0; margin-top: 0.125rem; fill: $support-warning; }
+}
+
+.ana-kpi__rodape {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03;
+  align-items: center;
+  margin-top: $spacing-03;
+}
+
+// ── Fontes clicáveis e links ────────────────────────────────────────────
+.ana-fonte,
+.ana-link {
+  @include type-style('label-01');
+  display: inline-flex;
+  gap: $spacing-02;
+  align-items: center;
+  padding: 0;
+  color: $link-primary;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+
+  &:hover { text-decoration: underline; }
+  &:focus-visible { outline: 2px solid $focus; outline-offset: 2px; }
+}
+
+.ana-fonte--estatica {
+  color: $text-secondary;
+  cursor: default;
+
+  &:hover { text-decoration: none; }
+}
+
+// ── Destaques por tema ──────────────────────────────────────────────────
+.ana-temas { margin-bottom: $spacing-06; }
+
+.ana-temas__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: $spacing-05;
+}
+
+.ana-tema {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+}
+
+.ana-tema__cabecalho {
+  display: flex;
+  gap: $spacing-03;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ana-tema__titulo { @include type-style('heading-compact-01'); }
+
+.ana-tema__lista {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: $spacing-04;
+}
+
+.ana-tema__item {
+  padding-left: $spacing-04;
+  border-left: 2px solid $border-subtle-01;
+}
+
+.ana-tema__item--ok { border-left-color: $support-success; }
+.ana-tema__item--parcial { border-left-color: $support-warning; }
+.ana-tema__item--atualizada { border-left-color: $support-info; }
+.ana-tema__item--ausente { border-left-color: $support-error; }
+
+.ana-tema__frase {
+  @include type-style('body-compact-01');
+  display: block;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+
+  &:hover { text-decoration: underline; }
+  &:focus-visible { outline: 2px solid $focus; outline-offset: 2px; }
+}
+
+.ana-tema__rodape {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-04;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: $spacing-03;
+  border-top: 1px solid $border-subtle-01;
+}
+
+.ana-tema__contagem {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+// ── Cobertura ───────────────────────────────────────────────────────────
+.ana-cobertura {
+  padding: $spacing-06;
+  margin-bottom: $spacing-06;
+  background: $layer-01;
+}
+
+.ana-cobertura__barras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: $spacing-05;
+  margin-bottom: $spacing-05;
+}
+
+.ana-cobertura__barra {
+  position: relative;
+  padding: $spacing-04 $spacing-05 $spacing-05;
+  background: $layer-02;
+}
+
+.ana-cobertura__numero {
+  @include type-style('productive-heading-04');
+  display: block;
+}
+
+.ana-cobertura__rotulo {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+// A faixa inferior dá a proporção sem um gráfico: a cor nunca é o único
+// portador da informação, porque o número aparece escrito acima dela.
+.ana-cobertura__fatia {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: $border-subtle-01;
+}
+
+.ana-cobertura__barra--fonte .ana-cobertura__fatia { background: $support-success; }
+.ana-cobertura__barra--parcial .ana-cobertura__fatia { background: $support-warning; }
+.ana-cobertura__barra--atualizada .ana-cobertura__fatia { background: $support-info; }
+.ana-cobertura__barra--nao_localizado .ana-cobertura__fatia { background: $support-error; }
+
+.ana-cobertura__linha {
+  @include type-style('body-compact-01');
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03;
+  align-items: center;
+  margin-bottom: $spacing-03;
+}
+
+.ana-cobertura__nota {
+  @include type-style('label-01');
+  margin-top: $spacing-04;
+  color: $text-secondary;
+}
+
+// ── Kit de Fontes ───────────────────────────────────────────────────────
+.ana-fontes {
+  padding: $spacing-06;
+  background: $layer-01;
+}
+
+.ana-fontes__lista {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-03 $spacing-05;
+    align-items: baseline;
+  }
+}
+
+.ana-fontes__documento { @include type-style('body-compact-01'); }
+
+.ana-fontes__origem,
+.ana-fontes__referencias {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.ana-fontes__referencias { margin-left: auto; }
+
+// ── Gaveta ──────────────────────────────────────────────────────────────
+.ana-gaveta {
+  .ana-gaveta__selos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-03;
+    align-items: center;
+    margin-bottom: $spacing-05;
+  }
+
+  .cds--text-area__wrapper { margin-bottom: $spacing-05; }
+}
+
+.ana-gaveta__secao {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.ana-gaveta__conteudo {
+  @include type-style('body-01');
+  margin-bottom: $spacing-06;
+}
+
+.ana-gaveta__titulo {
+  @include type-style('heading-compact-01');
+  margin-bottom: $spacing-03;
+}
+
+.ana-gaveta__evidencias {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+  margin-bottom: $spacing-06;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-03;
+    align-items: baseline;
+  }
+}
+
+.ana-gaveta__ref {
+  @include type-style('body-compact-01');
+}
+
+.ana-gaveta__observacao {
+  @include type-style('label-01');
+  padding: $spacing-04;
+  margin-bottom: $spacing-05;
+  color: $text-secondary;
+  background: $layer-02;
+}
+
+.ana-gaveta__restantes {
+  @include type-style('label-01');
+  display: flex;
+  align-items: center;
+  padding: 0 $spacing-05;
+  margin-right: auto;
+  color: $text-secondary;
+}

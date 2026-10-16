@@ -31,6 +31,14 @@ export default defineConfig({
       },
       // A monitor-api e a etapa 1.5 e roda noutro servico, com outro host. O
       // prefixo proprio evita colidir com /api do BFF de autenticacao.
+      // A analise-api e a etapa 1.2 e roda em outro servico. Mesmo padrao do
+      // /monitor: prefixo proprio, para nao colidir com o /api do BFF.
+      '/analise': {
+        target: process.env.VITE_ANALISE_TARGET || 'http://localhost:8081',
+        changeOrigin: true,
+        secure: true,
+        rewrite: caminho => caminho.replace(/^\/analise/, ''),
+      },
       '/monitor': {
         target: process.env.VITE_MONITOR_TARGET
           || 'https://monitor-api.2fom3olxz1yh.br-sao.codeengine.appdomain.cloud',

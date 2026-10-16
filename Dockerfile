@@ -17,7 +17,7 @@ COPY public/ ./public/
 COPY src/ ./src/
 
 # Sem .env: `vite build` roda em modo producao e nao le o .env.development.
-# Os quatro flags VITE_*_MOCK ficam indefinidos, o que e o mesmo que false.
+# Os flags VITE_*_MOCK ficam indefinidos, o que e o mesmo que false.
 # E o que se quer no ar: nenhuma tela servindo dado de mentira.
 RUN npm run build
 

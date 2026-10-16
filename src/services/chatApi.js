@@ -6,8 +6,8 @@
 // descarta a alternativa de o front falar direto com o Orchestrate.
 //
 // Modo simulado: com VITE_CHAT_MOCK=true o módulo responde de um roteiro
-// fixo, no mesmo padrão dos outros três flags (VITE_AUTH_MOCK,
-// VITE_MONITOR_MOCK, VITE_ANALISE_MOCK). Serve para a demonstração não
+// fixo, no mesmo padrão dos outros flags (VITE_AUTH_MOCK,
+// VITE_MONITOR_MOCK). Serve para a demonstração não
 // depender de o Orchestrate estar de pé.
 
 export const MODO_SIMULADO = import.meta.env.VITE_CHAT_MOCK === 'true'

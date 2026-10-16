@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ATIVOS, COVENANTS, EMISSOR, FONTES_ATIVOS, GATILHOS } from '../../data/ecorodovias'
+import { usePainelEmissor } from '../../hooks/usePainelEmissor'
 
 const fx = v => `${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}x`
 
@@ -41,7 +41,12 @@ function Indicador({ item }) {
   )
 }
 
+// Os números vêm do baseline vigente (última versão publicada na Análise de
+// Crédito) e dos documentos extraídos mais recentes; a carga manual do piloto
+// completa o que nenhuma fonte nova traz. Ver hooks/usePainelEmissor.js.
 function CovenantsPanel() {
+  const { emissor: EMISSOR, covenants: COVENANTS, gatilhos: GATILHOS, ativos: ATIVOS, fontesAtivos: FONTES_ATIVOS } =
+    usePainelEmissor()
   const [tab, setTab] = useState('covenants')
   const tabs = [
     { id: 'covenants', label: 'Covenants e gatilhos' },

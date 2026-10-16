@@ -50,6 +50,17 @@ export function enderecoHtml(id, versao) {
   return `${BASE}/api/relatorios/${encodeURIComponent(id)}/html${consulta}`
 }
 
+// Baseline vigente do emissor: o da última versão publicada na Análise de
+// Crédito (null enquanto nada foi publicado). Fonte dos dados de referência.
+export async function obterBaselineVigente(emissor) {
+  const resposta = await fetch(`${BASE}/api/baselines/${encodeURIComponent(emissor)}`, {
+    headers: { Accept: 'application/json' },
+  })
+  if (resposta.status === 404) return null
+  if (!resposta.ok) throw new Error(`Falha ao ler o baseline (HTTP ${resposta.status})`)
+  return resposta.json()
+}
+
 // ── Revisão e publicação ────────────────────────────────────────────────
 //
 // A revisão vale para a versão atual do relatório. Cada decisão guarda o texto

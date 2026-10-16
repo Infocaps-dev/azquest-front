@@ -18,6 +18,7 @@ arquivos com a credencial do COS. O formato está em `relatorio-creditos/monitor
 | `POST /api/resumos/:id/ajustes/aplicar` | gera a versão nova do relatório com todos os ajustes aguardando (um pedido por vez) |
 | `POST /api/resumos/:id/devolver` | devolve a versão para ajuste: `{justificativa}` |
 | `POST /api/resumos/:id/publicar` | aprova e publica: exige 0 pendentes e 0 rejeitados |
+| `GET /api/baselines/:emissor` | baseline vigente do emissor (última versão publicada); 404 enquanto nada foi publicado |
 | `GET /api/health` | `{status: "ok"}`, sem login |
 
 Revisão: fica em `revisoes/<id>.json` no mesmo bucket, com o usuário da sessão em cada decisão. Cada decisão guarda o

@@ -224,6 +224,12 @@ app.post('/api/resumos/:id/devolver', comId(async (req, res, resumo, revisao) =>
   res.json(estadoDaRevisao(resumo, revisao))
 }))
 
+// Pasta do baseline do emissor no bucket: baselines/ecorodovias/.
+function pastaDoBaseline(emissor) {
+  const slug = emissorCanonico(emissor).normalize('NFKD').replace(/\p{M}/gu, '').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase()
+  return /^[a-z0-9][a-z0-9-]{0,80}$/.test(slug) ? `baselines/${slug}` : null
+}
+
 // Baseline vigente na monitor-api (o que o Monitoramento usa hoje), com a sessão de quem publica. null se não houver.
 async function baselineDaMonitorApi(emissor, cookie) {
   try {
@@ -253,7 +259,7 @@ app.post('/api/resumos/:id/publicar', comId(async (req, res, resumo, revisao) =>
   // do relatório de referência pelos dados desta versão. Fica guardado no bucket (vigente e histórico) mesmo com o
   // envio desligado ou a monitor-api fora do ar.
   const emissor = emissorCanonico(resumo.empresa)
-  const pasta = `baselines/${emissor.normalize('NFKD').replace(/[^\w]+/g, '-').toLowerCase()}`
+  const pasta = pastaDoBaseline(emissor)
   const anterior = (await baselineDaMonitorApi(emissor, req.headers.cookie)) ?? (await lerJson(`${pasta}/vigente.json`))
   const baseline = baselineAtualizado(anterior, resumo, req.usuario, agora)
   await gravarJson(`${pasta}/vigente.json`, baseline)
@@ -280,6 +286,20 @@ app.post('/api/resumos/:id/publicar', comId(async (req, res, resumo, revisao) =>
   await gravarJson(`revisoes/${req.params.id}.json`, revisao)
   res.json({ ...estadoDaRevisao(resumo, revisao), baseline: envio })
 }))
+
+// Baseline vigente do emissor (o da última versão publicada), na cópia que a publicação guarda no bucket. É a fonte
+// dos dados de referência das telas (painel da tela de início); 404 enquanto nada foi publicado.
+app.get('/api/baselines/:emissor', async (req, res, next) => {
+  const pasta = pastaDoBaseline(req.params.emissor)
+  if (!pasta) return res.status(400).json({ detail: 'Emissor inválido.' })
+  try {
+    const vigente = await lerJson(`${pasta}/vigente.json`)
+    if (!vigente) return res.status(404).json({ detail: 'Nenhuma versão publicada deste emissor.' })
+    res.json(vigente)
+  } catch (e) {
+    next(e)
+  }
+})
 
 // HTML do relatório pela própria API (mesma origem do front): a tela abre num iframe e rola até a âncora.
 app.get('/api/relatorios/:id/html', async (req, res, next) => {

@@ -1,6 +1,7 @@
+# Upload do build no Code Engine (ibmcloud ce ... --build-source .): vale para o front (Dockerfile) e para a
+# resumos-api (server/Dockerfile). Nunca sobe dependências, build local, credenciais nem chaves.
 node_modules/
 dist/
-src/
-public/
 *.local
 .env*
+*-key.json

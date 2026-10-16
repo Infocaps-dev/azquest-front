@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button, InlineNotification, Loading, Select, SelectItem, Tag } from '@carbon/react'
-import { ChartLineData, Document, TaskApproved } from '@carbon/icons-react'
+import { ChartLineData, Document, Renew, TaskApproved } from '@carbon/icons-react'
 import {
   aplicarAjustes,
   decidirItem,
@@ -11,6 +11,7 @@ import {
   obterRevisao,
   publicar,
 } from '../../services/resumosApi'
+import { conversar } from '../../services/chatApi'
 import NumerosChave from './NumerosChave.jsx'
 import PainelRevisao from './PainelRevisao.jsx'
 import RelatorioCompleto from './RelatorioCompleto.jsx'
@@ -44,6 +45,7 @@ function AnalisePage({ onTrocarAba }) {
   const [aviso, setAviso] = useState(null)
   const [painel, setPainel] = useState({ aberto: false, filtro: null })
   const [relatorio, setRelatorio] = useState({ aberto: false, ancora: null })
+  const [reprocessando, setReprocessando] = useState(false)
 
   useEffect(() => {
     let ativo = true
@@ -76,7 +78,6 @@ function AnalisePage({ onTrocarAba }) {
     if (!relatorioId) return
     let ativo = true
     setCarregando(true)
-    setAviso(null)
     carregar(relatorioId)
       .catch(e => { if (ativo) setErroCarga(e.message) })
       .finally(() => { if (ativo) setCarregando(false) })
@@ -145,6 +146,56 @@ function AnalisePage({ onTrocarAba }) {
     }
   }
 
+  // Reprocessar: pede ao Agente Analista de Crédito um relatório novo do mesmo
+  // emissor e período, pela conversa da analise-api (é lá que a chave do
+  // Orchestrate fica), e muda a tela para ele quando o resumo chegar. O agente
+  // gera do zero, a partir dos documentos atuais: a revisão e os ajustes desta
+  // versão continuam no relatório atual. O aviso diz o que de fato aconteceu:
+  // dizer "reprocessado" sem relatório novo faria o analista crer que o
+  // documento mudou.
+  async function reprocessarRelatorio() {
+    const pedido = `Gere o relatório de crédito da ${resumo.empresa} do ${resumo.periodo}.`
+    if (!window.confirm(`Pedir ao Agente Analista de Crédito um relatório novo (${resumo.empresa}, ${resumo.periodo})?
+
+`
+      + 'Ele é gerado do zero, com os documentos atuais. A revisão e os ajustes desta versão continuam no relatório atual.')) return
+    setAviso(null)
+    setReprocessando(true)
+    let fim = null
+    let erro = null
+    try {
+      for await (const evento of conversar(pedido)) {
+        if (evento.tipo === 'fim') fim = evento
+        if (evento.tipo === 'erro') erro = evento.detalhe
+      }
+    } catch (e) {
+      erro = e.message
+    }
+    const novoId = /relatorios\/([a-z0-9-]+)\.html/.exec(fim?.texto || '')?.[1]
+    if (!novoId) {
+      setReprocessando(false)
+      setAviso({ kind: 'warning', title: 'O relatório não foi regerado',
+        subtitle: erro || 'O agente respondeu sem o link de um relatório novo. Tente de novo ou peça pelo chat.' })
+      return
+    }
+    // O resumo chega em segundos pelo monitor; espera até 90 s antes de desistir.
+    for (let tentativa = 0; tentativa < 30; tentativa++) {
+      const indice = await listarResumos().catch(() => null)
+      if (indice?.relatorios?.some(r => r.relatorio_id === novoId)) {
+        setRelatorios(indice.relatorios)
+        setRelatorioId(novoId)
+        setReprocessando(false)
+        setAviso({ kind: 'success', title: 'Relatório regerado pelo Agente Analista de Crédito',
+          subtitle: `Relatório novo ${novoId}, versão 1.` })
+        return
+      }
+      await new Promise(r => setTimeout(r, 3000))
+    }
+    setReprocessando(false)
+    setAviso({ kind: 'warning', title: 'O agente gerou o relatório, mas o resumo ainda não chegou',
+      subtitle: `Relatório ${novoId}. Ele aparece no seletor assim que o resumo for montado.` })
+  }
+
   async function devolverVersao() {
     const justificativa = window.prompt('Por que a versão está sendo devolvida para ajuste?')
     if (!justificativa?.trim()) return
@@ -197,13 +248,17 @@ function AnalisePage({ onTrocarAba }) {
         </div>
         <div className="ana-cabecalho__acoes">
           <Select id="ana-relatorio" labelText="Relatório" hideLabel size="sm" value={relatorioId}
-            onChange={e => setRelatorioId(e.target.value)} className="ana-cabecalho__seletor">
+            onChange={e => { setAviso(null); setRelatorioId(e.target.value) }} className="ana-cabecalho__seletor">
             {relatorios.map(r => (
               <SelectItem key={r.relatorio_id} value={r.relatorio_id} text={rotuloRelatorio(r)} />
             ))}
           </Select>
           <Button kind="tertiary" size="sm" renderIcon={Document} onClick={() => abrirRelatorio(null)}>
             Relatório completo
+          </Button>
+          <Button kind="tertiary" size="sm" renderIcon={Renew} disabled={reprocessando || Boolean(gerando)}
+            onClick={reprocessarRelatorio}>
+            {reprocessando ? 'Agente gerando o relatório…' : 'Reprocessar'}
           </Button>
           {gerando && <Tag type="blue" size="md">Gerando a versão {resumo.versao + 1}…</Tag>}
           {!gerando && revisao?.ajustes?.aguardando > 0 && (

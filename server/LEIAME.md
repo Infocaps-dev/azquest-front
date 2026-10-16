@@ -50,9 +50,9 @@ do COS (nunca commite: o repositório é público), rode `npm run resumos-api` e
 ## Code Engine
 
 App `resumos-api` no projeto `azquest-resumo-relatorios` (br-sao), com o secret `cos-hmac`. Imagem só da API
-(`Dockerfile`; o `.ceignore` deixa o front fora do upload). Para publicar uma mudança:
+(`server/Dockerfile`; o `Dockerfile` da raiz é o do front, com nginx). Para publicar uma mudança:
 
 ```powershell
 ibmcloud ce project select --name azquest-resumo-relatorios
-ibmcloud ce app update --name resumos-api --build-source . --strategy dockerfile
+ibmcloud ce app update --name resumos-api --build-source . --build-dockerfile server/Dockerfile
 ```

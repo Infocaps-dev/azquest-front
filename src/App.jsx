@@ -28,7 +28,7 @@ function Gate() {
       {aba === 'monitoramento' ? <MonitoramentoPage />
         : aba === 'analise' ? <AnalisePage onTrocarAba={setAba} />
           : aba === 'desempenho' ? <DesempenhoPage />
-          : <ChatPage />}
+          : <ChatPage onTrocarAba={setAba} />}
     </>
   )
 }

@@ -80,6 +80,52 @@ $side-width: 22rem;
   color: $text-secondary;
 }
 
+// Histórico de conversas. A lista rola sozinha, dentro da coluna: sem
+// `min-height: 0` o flex não deixa o filho encolher e a rolagem vai para a
+// página inteira, tirando o cabeçalho da tela.
+.chat-sidebar__lista {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: $spacing-03 0;
+  list-style: none;
+}
+
+.chat-sidebar__item {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: $spacing-02;
+  padding: $spacing-04 $spacing-06;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    background: $layer-hover-01;
+  }
+
+  &--atual {
+    border-left-color: $accent;
+    background: $layer-01;
+  }
+}
+
+.chat-sidebar__titulo {
+  @include type-style('body-compact-01');
+  overflow: hidden;
+  color: $text-primary;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-sidebar__meta {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
 .chat-sidebar__footer {
   display: flex;
   gap: $spacing-05;
@@ -154,6 +200,135 @@ $side-width: 22rem;
   @include type-style('label-01');
   color: $accent;
   font-weight: 600;
+}
+
+// A conversa
+.chat-conversa {
+  display: flex;
+  max-width: 46rem;
+  flex-direction: column;
+  gap: $spacing-07;
+}
+
+.chat-msg__quem {
+  @include type-style('label-01');
+  margin-bottom: $spacing-03;
+  color: $text-secondary;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chat-msg__corpo {
+  @include type-style('body-02');
+  color: $text-primary;
+
+  p {
+    margin-bottom: $spacing-05;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+// A pergunta recebe fundo e a resposta não: a assimetria é deliberada. A
+// resposta é o conteúdo que a pessoa vai ler com atenção, e tirar a caixa de
+// volta dela dá a largura inteira para o texto.
+.chat-msg--usuario {
+  padding: $spacing-05 $spacing-06;
+  border-left: 3px solid $accent;
+  background: $layer-01;
+}
+
+.chat-msg__lista {
+  margin: 0 0 $spacing-05 $spacing-06;
+
+  li {
+    margin-bottom: $spacing-03;
+    list-style: disc;
+  }
+}
+
+// Tabelas que o agente manda — quadros de notícias, comparativos. O embrulho
+// rola na horizontal porque um quadro de quatro colunas com texto não cabe nas
+// 46rem da coluna central.
+.chat-msg__tabela-rolagem {
+  max-width: 100%;
+  margin-bottom: $spacing-05;
+  overflow-x: auto;
+}
+
+.chat-msg__tabela {
+  @include type-style('body-compact-01');
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: $spacing-03 $spacing-05;
+    border-bottom: 1px solid $border-subtle-01;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    @include type-style('label-01');
+    background: $layer-accent-01;
+    color: $text-secondary;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+}
+
+.chat-msg__link {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-02;
+  color: $accent;
+}
+
+.chat-msg__relatorio {
+  margin-top: $spacing-05;
+  padding: $spacing-05;
+  border: 1px solid $border-subtle-01;
+  background: $layer-01;
+}
+
+.chat-msg__relatorio-cabeca {
+  @include type-style('heading-compact-01');
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+  margin-bottom: $spacing-05;
+  color: $text-primary;
+}
+
+.chat-msg__relatorio-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03;
+}
+
+.chat-msg--andamento {
+  color: $text-secondary;
+}
+
+.chat-msg__demora {
+  @include type-style('label-01');
+  margin-top: $spacing-02;
+  color: $text-secondary;
+}
+
+.chat-msg--erro {
+  @include type-style('body-compact-01');
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-03;
+  padding: $spacing-05;
+  border-left: 3px solid $support-error;
+  background: $layer-01;
+  color: $text-primary;
 }
 
 .chat-composer {

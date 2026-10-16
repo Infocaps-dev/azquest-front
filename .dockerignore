@@ -1,7 +1,8 @@
 node_modules
 dist
-src
-public
 .git
-*.local
 .env*
+*.log
+logo-azquest.jpg
+template.png
+*-key.json

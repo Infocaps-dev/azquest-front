@@ -1,38 +1,137 @@
-import { Button, ClickableTile, TextArea } from '@carbon/react'
-import { Send } from '@carbon/icons-react'
+import { useEffect, useRef, useState } from 'react'
+import { Button, ClickableTile, InlineLoading, TextArea } from '@carbon/react'
+import { Send, WarningAlt } from '@carbon/icons-react'
+import RespostaDoAgente from './RespostaDoAgente.jsx'
+import { MODO_SIMULADO } from '../../services/chatApi'
 
 const suggestions = [
   'Gerar relatório de crédito de uma nova empresa',
   'Acompanhar projeção da empresa',
 ]
 
-function ChatMain() {
+// O tempo decorrido ao lado do andamento. O Orchestrate fica ~39s sem mandar
+// nada (medido), então sem o relógio a tela parece travada justamente no
+// pedido mais importante, que é o de gerar relatório.
+function decorrido(segundos) {
+  if (segundos < 60) return `${segundos}s`
+  return `${Math.floor(segundos / 60)}min ${String(segundos % 60).padStart(2, '0')}s`
+}
+
+function ChatMain({
+  mensagens = [],
+  passo = '',
+  enviando = false,
+  erro = '',
+  segundos = 0,
+  onEnviar,
+  onTrocarAba,
+}) {
+  const [texto, setTexto] = useState('')
+  const fim = useRef(null)
+  const conversando = mensagens.length > 0
+
+  // Rola para o fim quando a conversa cresce. `block: 'end'` em vez de
+  // `scrollIntoView()` puro: o padrão rola a página inteira e tira o cabeçalho
+  // da tela.
+  useEffect(() => {
+    fim.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [mensagens, passo])
+
+  function enviar() {
+    const limpo = texto.trim()
+    if (!limpo || enviando) return
+    setTexto('')
+    onEnviar?.(limpo)
+  }
+
+  // O rodapé promete "Enter envia, Shift + Enter quebra a linha" desde a
+  // primeira versão da tela. Agora é verdade.
+  function aoTeclar(evento) {
+    if (evento.key === 'Enter' && !evento.shiftKey) {
+      evento.preventDefault()
+      enviar()
+    }
+  }
+
   return (
     <main className="chat-main">
       <div className="chat-main__body">
-        <section className="chat-hero">
-          <p className="chat-eyebrow">Assistente de análise</p>
-          <h1 className="chat-hero__title">
-            Da informação financeira à análise de investimento.
-          </h1>
-          <hr className="chat-hero__rule" />
-          <p className="chat-hero__lead">
-            Analise dados financeiros e informações de mercado de forma integrada. O agente
-            consolida DREs, ITRs, documentos corporativos e fontes públicas para apoiar a
-            construção de relatórios e análises de investimento.
-          </p>
-        </section>
+        {!conversando && (
+          <>
+            <section className="chat-hero">
+              <p className="chat-eyebrow">Assistente de análise</p>
+              <h1 className="chat-hero__title">
+                Da informação financeira à análise de investimento.
+              </h1>
+              <hr className="chat-hero__rule" />
+              <p className="chat-hero__lead">
+                Analise dados financeiros e informações de mercado de forma integrada. O agente
+                consolida DREs, ITRs, documentos corporativos e fontes públicas para apoiar a
+                construção de relatórios e análises de investimento.
+              </p>
+            </section>
 
-        <div className="chat-suggestions">
-          {suggestions.map((text, i) => (
-            <ClickableTile key={text} className="chat-suggestions__tile">
-              <span className="chat-suggestions__index">
-                {String(i + 1).padStart(2, '0')}
-              </span>
-              <span>{text}</span>
-            </ClickableTile>
-          ))}
-        </div>
+            <div className="chat-suggestions">
+              {suggestions.map((text, i) => (
+                <ClickableTile
+                  key={text}
+                  className="chat-suggestions__tile"
+                  onClick={() => onEnviar?.(text)}
+                >
+                  <span className="chat-suggestions__index">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <span>{text}</span>
+                </ClickableTile>
+              ))}
+            </div>
+          </>
+        )}
+
+        {conversando && (
+          <div className="chat-conversa">
+            {mensagens.map(m => (
+              <article
+                key={m.id}
+                className={`chat-msg chat-msg--${m.papel}`}
+              >
+                <p className="chat-msg__quem">
+                  {m.papel === 'usuario' ? 'Você' : 'Analista de Crédito AZ Quest'}
+                </p>
+                <div className="chat-msg__corpo">
+                  {m.papel === 'usuario'
+                    ? <p>{m.texto}</p>
+                    : <RespostaDoAgente texto={m.texto} onTrocarAba={onTrocarAba} />}
+                </div>
+              </article>
+            ))}
+
+            {/* O andamento fica fora da lista: é substituível e não faz
+                parte da conversa. O relógio vem da tela, não do agente —
+                durante os primeiros ~39s o Orchestrate não manda nada. */}
+            {(passo || enviando) && (
+              <div className="chat-msg chat-msg--andamento">
+                <InlineLoading
+                  description={`${passo || 'Aguardando o agente'} · ${decorrido(segundos)}`}
+                />
+                {segundos >= 20 && (
+                  <p className="chat-msg__demora">
+                    Pedidos de relatório levam cerca de 40 segundos.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {erro && (
+              <div className="chat-msg chat-msg--erro" role="alert">
+                <WarningAlt size={16} />
+                <span>{erro}</span>
+              </div>
+            )}
+
+            <div ref={fim} />
+          </div>
+        )}
       </div>
 
       <div className="chat-composer">
@@ -42,15 +141,26 @@ function ChatMain() {
             labelText="Mensagem"
             hideLabel
             rows={2}
+            value={texto}
+            onChange={e => setTexto(e.target.value)}
+            onKeyDown={aoTeclar}
+            disabled={enviando}
             placeholder="Ex.: Qual a folga do covenant de alavancagem da Ecorodovias no 2T26?"
           />
-          <Button kind="primary" renderIcon={Send} className="chat-composer__send">
-            Enviar
+          <Button
+            kind="primary"
+            renderIcon={Send}
+            className="chat-composer__send"
+            onClick={enviar}
+            disabled={enviando || !texto.trim()}
+          >
+            {enviando ? 'Enviando' : 'Enviar'}
           </Button>
         </div>
         <p className="chat-composer__hint">
           Enter envia, Shift + Enter quebra a linha. Valide as respostas antes de decisões de
           crédito.
+          {MODO_SIMULADO && ' Modo simulado: o agente não está sendo acionado.'}
         </p>
       </div>
     </main>

@@ -26,7 +26,7 @@ function Cartao({ titulo, valor, detalhe }) {
   )
 }
 
-function DesempenhoPage() {
+function DesempenhoPage({ sinalIndice }) {
   const [relatorios, setRelatorios] = useState([])
   const [relatorioId, setRelatorioId] = useState('')
   const [resumo, setResumo] = useState(null)
@@ -43,6 +43,12 @@ function DesempenhoPage() {
       })
       .catch(e => { setErro(e.message); setCarregando(false) })
   }, [])
+
+  // Relatório novo disponível: a tabela de todos os relatórios se atualiza.
+  useEffect(() => {
+    if (!sinalIndice) return
+    listarResumos().then(indice => setRelatorios(indice.relatorios || [])).catch(() => {})
+  }, [sinalIndice])
 
   useEffect(() => {
     if (!relatorioId) return

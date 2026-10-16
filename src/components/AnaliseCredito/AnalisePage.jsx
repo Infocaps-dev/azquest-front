@@ -35,7 +35,7 @@ function rotuloRelatorio(r) {
   return `${r.empresa} · ${r.periodo} · versão ${r.versao} · ${dataHora(r.atualizado_em)}`
 }
 
-function AnalisePage({ onTrocarAba }) {
+function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice }) {
   const [relatorios, setRelatorios] = useState([])
   const [relatorioId, setRelatorioId] = useState('')
   const [resumo, setResumo] = useState(null)
@@ -53,7 +53,11 @@ function AnalisePage({ onTrocarAba }) {
       .then(indice => {
         if (!ativo) return
         setRelatorios(indice.relatorios || [])
-        if (indice.relatorios?.length) setRelatorioId(indice.relatorios[0].relatorio_id)
+        if (indice.relatorios?.length) {
+          // Só na abertura da aba: chegando pelo "Abrir" do aviso, abre aquele relatório; senão, o mais recente.
+          const pedido = relatorioAlvo?.id && indice.relatorios.some(r => r.relatorio_id === relatorioAlvo.id)
+          setRelatorioId(pedido ? relatorioAlvo.id : indice.relatorios[0].relatorio_id)
+        }
         else {
           setErroCarga('Nenhum relatório gerado ainda. Peça um relatório ao agente no chat.')
           setCarregando(false)
@@ -67,6 +71,19 @@ function AnalisePage({ onTrocarAba }) {
       })
     return () => { ativo = false }
   }, [])
+
+  // Relatório novo disponível (aviso do App): a lista do seletor se atualiza
+  // sem trocar o que está aberto; o "Abrir" do aviso troca para ele.
+  useEffect(() => {
+    if (!sinalIndice) return
+    listarResumos().then(indice => setRelatorios(indice.relatorios || [])).catch(() => {})
+  }, [sinalIndice])
+
+  useEffect(() => {
+    if (!relatorioAlvo?.id) return
+    setAviso(null)
+    setRelatorioId(relatorioAlvo.id)
+  }, [relatorioAlvo])
 
   const carregar = useCallback(async id => {
     const [novoResumo, novaRevisao] = await Promise.all([obterResumo(id), obterRevisao(id)])

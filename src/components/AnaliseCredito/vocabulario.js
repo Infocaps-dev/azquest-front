@@ -1,36 +1,12 @@
 // Vocabulário da aba Análise de Crédito, compartilhado pelos componentes.
 //
 // Mesma ideia do `niveis.js` do Monitoramento: os rótulos ficam num lugar só,
-// porque quatro telas mostram os mesmos estados -- a faixa do processo, os
-// cartões, a gaveta e o relatório completo -- e um nome divergente entre elas
-// é lido como estado diferente.
+// porque várias telas mostram os mesmos estados (cartões, painel de revisão,
+// seções, aba Desempenho) e um nome divergente entre elas é lido como estado
+// diferente.
 
-// Os seis passos do ciclo de construção da tese, como na seção 2 do handoff.
-// O código A1 a A6 é a chave na API e no banco; o nome é o que se lê.
-export const ETAPAS_DO_FLUXO = {
-  A1: 'Consolidar informações',
-  A2: 'Atualizar modelo',
-  A3: 'Tese e relatório',
-  A4: 'Definir o baseline',
-  A5: 'Revisão e aprovação',
-  A6: 'Publicar a tese',
-}
-
-export const nomeDaEtapa = codigo => ETAPAS_DO_FLUXO[codigo] || codigo || ''
-
-export const ESTADO_DA_ETAPA = {
-  pendente: 'Pendente',
-  em_execucao: 'Em execução',
-  concluido: 'Concluído',
-  aguardando_humano: 'Aguardando você',
-  // A2 não é um passo que alguém esqueceu: as projeções seguem no Excel do
-  // analista, por decisão de escopo. "Pendente" diria que ainda vai acontecer.
-  fora_do_mvp: 'Fora do MVP',
-  falhou: 'Falhou',
-}
-
-// Tipo de evidência. A cor repete a do template da Marcela: laranja para
-// fonte, vermelho para ausência, verde para o comentário do analista.
+// Tipo de fonte do item, o mesmo do relatório: laranja para fonte, vermelho
+// para ausência, como no template.
 export const EVIDENCIA = {
   fonte: { rotulo: 'Fonte', tag: 'green', classe: 'ok' },
   parcial: { rotulo: 'Fonte parcial', tag: 'teal', classe: 'parcial' },
@@ -40,7 +16,25 @@ export const EVIDENCIA = {
 
 export const evidenciaDe = tipo => EVIDENCIA[tipo] || EVIDENCIA.nao_localizado
 
-// Estado da revisão humana de um item ou cartão.
+// Categoria de revisão: o que precisa ser revisado no item. O rótulo e a
+// descrição vêm do resumo (`categorias_revisao`), calculados por código no
+// monitor; aqui fica só a cor, da mais grave (vermelho) para a mais leve.
+export const COR_CATEGORIA = {
+  montagem: 'red',
+  numero_removido: 'red',
+  preencher: 'magenta',
+  nao_extraido: 'purple',
+  fonte_ausente: 'red',
+  desatualizado: 'cyan',
+  outra_entidade: 'warm-gray',
+  informacao_incompleta: 'teal',
+  dado_interno: 'blue',
+  conferir: 'green',
+}
+
+export const corDaCategoria = id => COR_CATEGORIA[id] || 'gray'
+
+// Estado da revisão humana de um item.
 export const REVISAO = {
   pendente: { rotulo: 'Pendente', tag: 'gray' },
   aprovado: { rotulo: 'Aprovado', tag: 'green' },
@@ -50,32 +44,59 @@ export const REVISAO = {
 
 export const revisaoDe = status => REVISAO[status] || REVISAO.pendente
 
-// O item vale pela evidência mais forte. Mesma regra de `cobertura.py`: um
-// parágrafo com uma fonte plena e outra parcial está sustentado.
-export function tipoDeEvidencia(item) {
-  const tipos = new Set((item?.evidencias || []).map(e => e.tipo_fonte))
-  return ['fonte', 'atualizada', 'parcial'].find(t => tipos.has(t)) || 'nao_localizado'
+// Estado da versão do relatório.
+export const STATUS_VERSAO = {
+  em_revisao: { rotulo: 'em revisão', tag: 'blue' },
+  devolvida: { rotulo: 'devolvida para ajuste', tag: 'magenta' },
+  publicada: { rotulo: 'publicada', tag: 'green' },
 }
 
-// "ITR-2T26-ECORODOVIAS.pdf, p. 26 (Nota 16)"
+// Linha de fonte da evidência, como no relatório:
+// "ITR-2T26-ECORODOVIAS.pdf, p. 26 (impressa 24), Nota 16".
 export function rotuloEvidencia(evidencia) {
   if (!evidencia) return ''
+  if (typeof evidencia === 'string') return evidencia
+  if (evidencia.texto) return evidencia.texto
   const partes = [evidencia.arquivo]
   if (evidencia.pagina) partes.push(`p. ${evidencia.pagina}`)
-  const base = partes.filter(Boolean).join(', ')
-  return evidencia.trecho ? `${base} (${evidencia.trecho})` : base
+  if (evidencia.local) partes.push(evidencia.local)
+  return partes.filter(Boolean).join(', ')
 }
 
-// Número no padrão brasileiro. A unidade vem do próprio dado: a API já
-// converteu R$ mil para R$ mi onde fazia sentido, e guardou o valor de origem.
+// Seção do item no relatório: "10. Endividamento > e. Covenants apurados".
+export function caminhoDoItem(item) {
+  return [item.secao_titulo, item.subsecao_titulo].filter(Boolean).join(' > ')
+}
+
+// Âncora da seção no HTML do relatório (o quadro-resumo é "sumario").
+export function ancoraDaSecao(secao) {
+  return secao === 'S' ? 'sumario' : `secao-${secao}`
+}
+
+// Número no padrão brasileiro. A unidade vem do próprio dado.
 export function formatar(valor, unidade = '', casas) {
   if (valor === null || valor === undefined || Number.isNaN(valor)) return '—'
-  const decimais = casas ?? (Math.abs(valor) >= 1000 ? 0 : 2)
+  if (typeof valor === 'string') return valor
+  // Múltiplos com até duas casas (3,87x; 4,1x); valores grandes sem casas.
+  const decimais = casas ?? (Math.abs(valor) >= 1000 ? 0 : 1)
   const texto = Number(valor).toLocaleString('pt-BR', {
     minimumFractionDigits: decimais,
-    maximumFractionDigits: decimais,
+    maximumFractionDigits: casas ?? (unidade === 'x' ? 2 : decimais),
   })
   if (unidade === 'x') return `${texto}x`
   if (unidade === '%') return `${texto}%`
   return unidade ? `${texto} ${unidade}` : texto
+}
+
+// "12 s", "3 min 05 s"
+export function duracao(segundos) {
+  if (segundos === null || segundos === undefined) return '—'
+  if (segundos < 60) return `${segundos.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} s`
+  const m = Math.floor(segundos / 60)
+  return `${m} min ${String(Math.round(segundos % 60)).padStart(2, '0')} s`
+}
+
+export function dataHora(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 }

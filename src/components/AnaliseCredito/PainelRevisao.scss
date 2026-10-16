@@ -1,0 +1,300 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/theme' as *;
+@use '@carbon/react/scss/type' as *;
+@use '@carbon/react/scss/colors' as *;
+
+// Painel de revisão: lista à esquerda, detalhe à direita, na altura da janela.
+
+.rev-painel .cds--modal-container {
+  width: min(1320px, 96vw);
+  max-width: none;
+  height: 92vh;
+  max-height: none;
+}
+
+.rev-painel__corpo.cds--modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+  padding-right: $spacing-05;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+
+.rev-painel__progresso {
+  flex-shrink: 0;
+}
+
+.rev-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-04;
+  align-items: center;
+}
+.rev-filtros__status { width: 22rem; }
+.rev-filtros__secao { min-width: 16rem; }
+.rev-filtros__busca { flex: 1; min-width: 12rem; }
+
+.rev-categorias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03;
+  align-items: center;
+}
+.rev-categorias__lote { margin-left: auto; }
+
+// Chip de categoria: borda na cor da categoria; preenchido quando ativo.
+.rev-chip {
+  @include type-style('label-01');
+  display: inline-flex;
+  gap: $spacing-02;
+  align-items: center;
+  padding: $spacing-02 $spacing-04;
+  cursor: pointer;
+  background: $layer-01;
+  border: 1px solid $border-subtle-01;
+  border-left-width: 4px;
+  border-radius: 1rem;
+
+  &:hover { background: $layer-hover-01; }
+  &:focus-visible { outline: 2px solid $focus; outline-offset: 1px; }
+}
+.rev-chip--ativo { color: $text-on-color; }
+@each $nome, $cor in ('red': $red-60, 'magenta': $magenta-60, 'purple': $purple-60, 'cyan': $cyan-60,
+  'warm-gray': $warm-gray-60, 'teal': $teal-60, 'blue': $blue-60, 'green': $green-60, 'gray': $gray-60) {
+  .rev-chip--#{$nome} { border-left-color: $cor; }
+  .rev-chip--#{$nome}.rev-chip--ativo { background: $cor; border-color: $cor; }
+}
+
+.rev-painel__colunas {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(18rem, 2fr) 3fr;
+  gap: $spacing-05;
+  min-height: 0;
+}
+
+// ── Lista ───────────────────────────────────────────────────────────────
+.rev-lista {
+  overflow-y: auto;
+  border: 1px solid $border-subtle-01;
+}
+.rev-lista__vazio { padding: $spacing-05; }
+
+.rev-grupo__cabecalho {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  gap: $spacing-03;
+  align-items: center;
+  padding: $spacing-03 $spacing-04;
+  background: $layer-accent-01;
+}
+.rev-grupo__titulo {
+  @include type-style('heading-compact-01');
+  flex: 1;
+}
+.rev-grupo__contagem {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+.rev-grupo__lote {
+  @include type-style('label-01');
+  padding: $spacing-01 $spacing-03;
+  color: $link-primary;
+  cursor: pointer;
+  background: none;
+  border: 1px solid $link-primary;
+
+  &:hover { background: $layer-hover-01; }
+}
+.rev-grupo__lote--confirmar {
+  color: $text-on-color;
+  background: $interactive;
+  border-color: $interactive;
+
+  &:hover { background: $link-primary-hover; }
+}
+
+.rev-linha {
+  display: flex;
+  gap: $spacing-03;
+  align-items: flex-start;
+  width: 100%;
+  padding: $spacing-03 $spacing-04;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-bottom: 1px solid $border-subtle-01;
+  border-left: 3px solid transparent;
+
+  &:hover { background: $layer-hover-01; }
+  &:focus-visible { outline: 2px solid $focus; outline-offset: -2px; }
+}
+.rev-linha--atual {
+  background: $layer-selected-01;
+  border-left-color: $interactive;
+}
+.rev-linha__status {
+  flex-shrink: 0;
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-top: 0.4rem;
+  border: 1px solid $border-strong-01;
+  border-radius: 50%;
+}
+.rev-linha__status--aprovado { background: $support-success; border-color: $support-success; }
+.rev-linha__status--ajustado { background: $support-info; border-color: $support-info; }
+.rev-linha__status--rejeitado { background: $support-error; border-color: $support-error; }
+.rev-linha__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-02;
+  align-items: flex-start;
+  min-width: 0;
+}
+.rev-linha__texto {
+  @include type-style('body-compact-01');
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+// Categoria na linha da lista: mesmo desenho do Tag sm, sem ser botão.
+.rev-etiqueta {
+  @include type-style('label-01');
+  padding: 0 $spacing-03;
+  color: $text-primary;
+  border-radius: 1rem;
+}
+@each $nome, $fundo in ('red': $red-20, 'magenta': $magenta-20, 'purple': $purple-20, 'cyan': $cyan-20,
+  'warm-gray': $warm-gray-20, 'teal': $teal-20, 'blue': $blue-20, 'green': $green-20, 'gray': $gray-20) {
+  .rev-etiqueta--#{$nome} { background: $fundo; }
+}
+
+// ── Detalhe ─────────────────────────────────────────────────────────────
+.rev-detalhe {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+  padding: $spacing-05;
+  overflow-y: auto;
+  background: $layer-01;
+}
+.rev-detalhe--vazio {
+  align-items: center;
+  justify-content: center;
+  color: $text-secondary;
+}
+.rev-detalhe__topo {
+  display: flex;
+  gap: $spacing-03;
+  align-items: center;
+  justify-content: space-between;
+}
+.rev-detalhe__caminho {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+.rev-detalhe__selos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03;
+  align-items: center;
+}
+.rev-detalhe__tipo {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+.rev-detalhe__motivos {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-02;
+
+  li {
+    @include type-style('body-compact-01');
+    display: flex;
+    gap: $spacing-03;
+    align-items: center;
+    color: $text-secondary;
+  }
+}
+.rev-detalhe__texto {
+  @include type-style('body-01');
+  padding: $spacing-04;
+  white-space: pre-line;
+  background: $background;
+  border-left: 3px solid $border-strong-01;
+}
+.rev-detalhe__texto--ausente { border-left-color: $support-error; }
+.rev-detalhe__subtitulo {
+  @include type-style('heading-compact-01');
+}
+.rev-detalhe__evidencias {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+
+  li {
+    @include type-style('body-compact-01');
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-02 $spacing-03;
+    align-items: baseline;
+  }
+}
+.rev-detalhe__nota {
+  @include type-style('label-01');
+  flex-basis: 100%;
+  color: $text-secondary;
+}
+.rev-detalhe__nota--alerta { color: $support-error; }
+.rev-detalhe__decisao {
+  @include type-style('label-01');
+  padding: $spacing-03;
+  background: $background;
+}
+.rev-detalhe__decisao--anterior { border-left: 3px solid $support-warning; }
+.rev-detalhe__ajuste {
+  display: block;
+  margin-top: $spacing-02;
+  font-style: italic;
+}
+.rev-detalhe__aplicacao {
+  @include type-style('label-01');
+  padding: $spacing-03;
+  background: $background;
+  border-left: 3px solid $support-info;
+}
+.rev-detalhe__aplicacao--aplicado { border-left-color: $support-success; }
+.rev-detalhe__aplicacao--erro { color: $support-error; border-left-color: $support-error; }
+
+// Faixa dos ajustes que ainda não entraram no relatório.
+.rev-ajustes {
+  @include type-style('body-compact-01');
+  display: flex;
+  gap: $spacing-05;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-03 $spacing-05;
+  background: $layer-accent-01;
+  border-left: 3px solid $support-info;
+}
+
+.rev-detalhe__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: $spacing-04;
+  margin-top: auto;
+  border-top: 1px solid $border-subtle-01;
+}
+.rev-detalhe__botoes {
+  display: flex;
+  gap: $spacing-03;
+}

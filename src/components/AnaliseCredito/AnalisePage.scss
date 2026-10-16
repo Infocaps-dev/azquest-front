@@ -79,57 +79,14 @@
   gap: $spacing-03;
 }
 
+.ana-cabecalho__seletor { min-width: 22rem; }
+
 .ana-selo {
   display: flex;
   flex-wrap: wrap;
   gap: $spacing-03 $spacing-05;
   align-items: center;
   margin-bottom: $spacing-05;
-}
-
-// ── Faixa do processo ───────────────────────────────────────────────────
-.ana-faixa {
-  padding-bottom: $spacing-05;
-  margin-bottom: $spacing-06;
-  overflow-x: auto;
-
-  .cds--progress-step { min-width: 9.5rem; }
-
-  // O conector some: posicionado em absoluto no topo do passo, com o rótulo
-  // em duas linhas ele fica solto, um filete sem ligação com o passo.
-  .cds--progress-line { display: none; }
-
-  .cds--progress-label {
-    max-width: 8rem;
-    white-space: normal;
-    line-height: 1.2;
-    min-height: 2.4em;
-  }
-
-  // O Carbon põe o rótulo secundário a 28px fixos do topo, contando com uma
-  // linha só. Com o nome quebrando, a segunda linha caía em cima do status.
-  .cds--progress-optional {
-    position: static;
-    margin-block-start: $spacing-02;
-    margin-inline-start: 0;
-  }
-}
-
-.ana-faixa__topo {
-  display: flex;
-  justify-content: flex-end;
-}
-
-// A2 não vai acontecer: fica cinza e sem o visto das que aconteceram. O
-// Carbon pinta de "concluído" todo passo antes do índice corrente, e o ícone
-// tem dois traçados -- o visto e o círculo. Some só o visto.
-.ana-faixa__passo--inaplicavel {
-  .cds--progress-step-button > svg path:first-of-type { display: none; }
-}
-
-.ana-faixa__passo--selecionado {
-  outline: 2px solid $focus;
-  outline-offset: 2px;
 }
 
 // ── Sumário ─────────────────────────────────────────────────────────────
@@ -180,6 +137,23 @@
     margin-top: $spacing-03;
   }
 }
+
+// Texto clicável do sumário: abre o relatório completo no lugar dele.
+.ana-sumario__texto {
+  @include type-style('body-compact-01');
+  display: block;
+  padding: 0;
+  margin: $spacing-02 0;
+  color: $text-primary;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+
+  &:hover { text-decoration: underline; }
+  &:focus-visible { outline: 2px solid $focus; outline-offset: 2px; }
+}
+.ana-sumario__observacao .ana-sumario__texto { @include type-style('body-01'); white-space: pre-line; }
 
 .ana-rotulo {
   @include type-style('label-01');
@@ -310,7 +284,18 @@
   &:hover { text-decoration: none; }
 }
 
-// ── Destaques por tema ──────────────────────────────────────────────────
+.ana-fonte--ausente { color: $support-error; }
+
+// Linha de fonte longa (trecho citado do documento): três linhas, o resto no title.
+.ana-kpi__rodape .ana-fonte,
+.ana-sumario__lista .ana-fonte {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+// ── Seções do relatório ──────────────────────────────────────────────────
 .ana-temas { margin-bottom: $spacing-06; }
 
 .ana-temas__grade {
@@ -377,6 +362,18 @@
 .ana-tema__contagem {
   @include type-style('label-01');
   color: $text-secondary;
+}
+
+.ana-tema__categorias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-02;
+}
+
+.ana-tema__acoes {
+  display: flex;
+  gap: $spacing-04;
+  align-items: center;
 }
 
 // ── Cobertura ───────────────────────────────────────────────────────────
@@ -467,66 +464,3 @@
 }
 
 .ana-fontes__referencias { margin-left: auto; }
-
-// ── Gaveta ──────────────────────────────────────────────────────────────
-.ana-gaveta {
-  .ana-gaveta__selos {
-    display: flex;
-    flex-wrap: wrap;
-    gap: $spacing-03;
-    align-items: center;
-    margin-bottom: $spacing-05;
-  }
-
-  .cds--text-area__wrapper { margin-bottom: $spacing-05; }
-}
-
-.ana-gaveta__secao {
-  @include type-style('label-01');
-  color: $text-secondary;
-}
-
-.ana-gaveta__conteudo {
-  @include type-style('body-01');
-  margin-bottom: $spacing-06;
-}
-
-.ana-gaveta__titulo {
-  @include type-style('heading-compact-01');
-  margin-bottom: $spacing-03;
-}
-
-.ana-gaveta__evidencias {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-03;
-  margin-bottom: $spacing-06;
-
-  li {
-    display: flex;
-    flex-wrap: wrap;
-    gap: $spacing-03;
-    align-items: baseline;
-  }
-}
-
-.ana-gaveta__ref {
-  @include type-style('body-compact-01');
-}
-
-.ana-gaveta__observacao {
-  @include type-style('label-01');
-  padding: $spacing-04;
-  margin-bottom: $spacing-05;
-  color: $text-secondary;
-  background: $layer-02;
-}
-
-.ana-gaveta__restantes {
-  @include type-style('label-01');
-  display: flex;
-  align-items: center;
-  padding: 0 $spacing-05;
-  margin-right: auto;
-  color: $text-secondary;
-}

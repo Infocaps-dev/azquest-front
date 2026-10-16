@@ -1,0 +1,101 @@
+// Cliente da resumos-api: os resumos dos relatórios de crédito gerados pelo agente.
+//
+// As chamadas vão para /resumos, que o Vite encaminha para a resumos-api (ver
+// vite.config.js). A API não tem login próprio: confere a sessão do BFF de
+// autenticação pelo cookie, que vai junto sozinho por ser a mesma origem.
+//
+// Cada relatório gerado ou alterado no agente vira, em segundos, uma linha no
+// índice e um resumo completo. O formato está em
+// relatorio-creditos/monitor_resumo/LEIAME.md.
+
+const BASE = '/resumos'
+
+async function pedir(rota, opcoes = {}) {
+  const resposta = await fetch(`${BASE}${rota}`, {
+    ...opcoes,
+    headers: { Accept: 'application/json', ...(opcoes.body ? { 'Content-Type': 'application/json' } : {}) },
+  })
+  if (!resposta.ok) {
+    const corpo = await resposta.json().catch(() => ({}))
+    throw new Error(corpo.detail || `Falha em ${rota} (HTTP ${resposta.status})`)
+  }
+  return resposta.json()
+}
+
+// {atualizado_em, total, relatorios: [...]}, do mais recente para o mais antigo.
+// Cada linha: relatorio_id, empresa, periodo, referencia, versao, atualizado_em,
+// rating, alavancagem_consolidada, alavancagem_ecs, folga_covenant,
+// ebitda_ajustado, divida_liquida, pontos_atencao, numeros_removidos,
+// nao_localizados.
+export function listarResumos() {
+  return pedir('/api/resumos')
+}
+
+// Resumo completo: sumario, ratings, indicadores, covenants, pontos de atenção
+// e fortes, documentos e validação. `link.url` abre o HTML (vale 1 hora).
+export function obterResumo(id) {
+  return pedir(`/api/resumos/${encodeURIComponent(id)}`)
+}
+
+// Endereço para abrir o relatório numa aba nova (a API redireciona para o HTML).
+export function enderecoRelatorio(id, versao) {
+  const consulta = versao ? `?versao=${encodeURIComponent(versao)}` : ''
+  return `${BASE}/api/relatorios/${encodeURIComponent(id)}${consulta}`
+}
+
+// HTML servido pela própria API (mesma origem): é o que o iframe do relatório
+// completo carrega, para poder rolar até a âncora (#item-E-070, #secao-10-e).
+export function enderecoHtml(id, versao) {
+  const consulta = versao ? `?versao=${encodeURIComponent(versao)}` : ''
+  return `${BASE}/api/relatorios/${encodeURIComponent(id)}/html${consulta}`
+}
+
+// ── Revisão e publicação ────────────────────────────────────────────────
+//
+// A revisão vale para a versão atual do relatório. Cada decisão guarda o texto
+// revisado: numa versão nova, o item cujo texto mudou volta a pendente, com a
+// decisão anterior em `anterior`.
+
+// {itens: {id: {status, motivo, texto_ajustado, usuario, em, anterior?}},
+//  contagem, pendentes_por_categoria, status, decisao, bloqueios_para_publicar, historico}
+export function obterRevisao(id) {
+  return pedir(`/api/resumos/${encodeURIComponent(id)}/revisao`)
+}
+
+// decisao: aprovado | ajustado | rejeitado. Rejeitar exige motivo; ajustar, o texto.
+export function decidirItem(id, itemId, { decisao, motivo, textoAjustado }) {
+  if (decisao === 'rejeitado' && !motivo?.trim()) throw new Error('A rejeição exige motivo.')
+  if (decisao === 'ajustado' && !textoAjustado?.trim()) throw new Error('O ajuste exige o texto revisado.')
+  return pedir(`/api/resumos/${encodeURIComponent(id)}/itens/${encodeURIComponent(itemId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ decisao, motivo, texto_ajustado: textoAjustado }),
+  })
+}
+
+// Vários itens de uma vez (seção, categoria, filtro). Ajuste é sempre um a um.
+export function decidirLote(id, itens, { decisao, motivo }) {
+  return pedir(`/api/resumos/${encodeURIComponent(id)}/revisao/lote`, {
+    method: 'POST',
+    body: JSON.stringify({ itens, decisao, motivo }),
+  })
+}
+
+// Gera a versão nova do relatório com todos os ajustes aguardando (um pedido
+// por vez). A resposta volta logo, com `ajustes.pedido`; a versão nova chega
+// em segundos, publicada pelo job do monitor, e então `ajustes.pedido` some.
+export function aplicarAjustes(id) {
+  return pedir(`/api/resumos/${encodeURIComponent(id)}/ajustes/aplicar`, { method: 'POST' })
+}
+
+export function devolver(id, justificativa) {
+  return pedir(`/api/resumos/${encodeURIComponent(id)}/devolver`, {
+    method: 'POST',
+    body: JSON.stringify({ justificativa }),
+  })
+}
+
+// Exige todos os itens revisados e nenhum rejeitado. Devolve o estado da
+// revisão e `baseline` ({enviado, motivo}) do envio ao Monitoramento.
+export function publicar(id) {
+  return pedir(`/api/resumos/${encodeURIComponent(id)}/publicar`, { method: 'POST' })
+}

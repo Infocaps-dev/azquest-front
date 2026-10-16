@@ -11,6 +11,7 @@ import {
   historicoDeCiclos,
   listarAlertas,
   listarExecucoes,
+  obterBaseline,
   obterComparacao,
 } from '../../services/monitorApi'
 import CartoesKpi from './CartoesKpi.jsx'
@@ -64,6 +65,7 @@ function MonitoramentoPage() {
   const [decisoes, setDecisoes] = useState([])
   const [rodando, setRodando] = useState(false)
   const [erroCiclo, setErroCiclo] = useState('')
+  const [baseline, setBaseline] = useState(null)
 
   const { execucao, etapas, aguardandoAprovacao, erro } =
     useExecucao(execucaoId, { decisao })
@@ -94,13 +96,15 @@ function MonitoramentoPage() {
           (pendente?.comparacao_id ? await obterComparacao(pendente.comparacao_id) : null)
         if (ativo) setComparacao(comp)
 
-        const [ciclos, decididas] = await Promise.all([
+        const [ciclos, decididas, vigente] = await Promise.all([
           historicoDeCiclos(EMISSOR),
           historicoDeAprovacoes(EMISSOR).catch(() => []),
+          obterBaseline(EMISSOR).catch(() => null),
         ])
         if (!ativo) return
         setHistorico(ciclos)
         setDecisoes(decididas)
+        setBaseline(vigente?.baseline ?? vigente)
       } catch (e) {
         if (ativo) setErroCarga(e.message)
       } finally {
@@ -230,6 +234,23 @@ function MonitoramentoPage() {
           </Button>
         </div>
       </header>
+
+      {/* Baseline em uso: a referência das comparações. Vem da última versão
+          publicada na Análise de Crédito; o que ainda é do relatório de
+          referência antigo aparece contado, para não ser lido como novo. */}
+      {baseline?.versao && (
+        <p className="mon-pagina__baseline">
+          Baseline {baseline.versao}
+          {baseline.relatorio_id
+            ? ` · relatório publicado${baseline.publicado_por ? ` por ${baseline.publicado_por}` : ''}`
+              + `${baseline.publicado_em ? ` em ${new Date(baseline.publicado_em).toLocaleString('pt-BR')}` : ''}`
+            : ` · ${baseline.origem || 'relatório de referência'}`}
+          {baseline.herdados_da_referencia?.length > 0
+            && ` · ${baseline.herdados_da_referencia.length} item(ns) ainda do relatório de referência anterior`}
+          {baseline.publicado_em && execucao?.inicio && baseline.publicado_em > execucao.inicio
+            && ' · publicado depois deste ciclo: reprocesse para comparar com ele'}
+        </p>
+      )}
 
       <LinhaProcesso
         etapas={etapas}

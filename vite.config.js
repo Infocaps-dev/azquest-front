@@ -31,20 +31,23 @@ export default defineConfig({
       },
       // A monitor-api e a etapa 1.5 e roda noutro servico, com outro host. O
       // prefixo proprio evita colidir com /api do BFF de autenticacao.
-      // A analise-api e a etapa 1.2 e roda em outro servico. Mesmo padrao do
-      // /monitor: prefixo proprio, para nao colidir com o /api do BFF.
-      '/analise': {
-        target: process.env.VITE_ANALISE_TARGET || 'http://localhost:8081',
-        changeOrigin: true,
-        secure: true,
-        rewrite: caminho => caminho.replace(/^\/analise/, ''),
-      },
       '/monitor': {
         target: process.env.VITE_MONITOR_TARGET
           || 'https://monitor-api.2fom3olxz1yh.br-sao.codeengine.appdomain.cloud',
         changeOrigin: true,
         secure: true,
         rewrite: caminho => caminho.replace(/^\/monitor/, ''),
+      },
+      // A resumos-api (server/index.js) entrega os resumos dos relatórios de
+      // crédito gerados pelo agente. Mesmo padrão: prefixo próprio, e a sessão
+      // é a do BFF (o cookie vai junto e a API confere em /api/auth/me).
+      // Para rodar a API local: VITE_RESUMOS_TARGET=http://localhost:8082.
+      '/resumos': {
+        target: process.env.VITE_RESUMOS_TARGET
+          || 'https://resumos-api.2g1a5bl5ugid.br-sao.codeengine.appdomain.cloud',
+        changeOrigin: true,
+        secure: true,
+        rewrite: caminho => caminho.replace(/^\/resumos/, ''),
       },
     },
   },

@@ -1,0 +1,58 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/theme' as *;
+@use '@carbon/react/scss/type' as *;
+
+// Aba Desempenho. Os cartões repetem o desenho dos cartões de KPI do
+// Monitoramento (título, valor, detalhe), para os dois lerem igual.
+
+.des-secao {
+  padding: $spacing-06;
+  margin-bottom: $spacing-06;
+  background: $layer-01;
+}
+
+.des-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: $spacing-05;
+  margin-bottom: $spacing-05;
+}
+
+.des-kpi {
+  padding: $spacing-05;
+  background: $layer-02;
+  border-left: 3px solid $interactive;
+}
+.des-kpi__titulo {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+.des-kpi__valor {
+  @include type-style('productive-heading-04');
+  margin: $spacing-02 0;
+}
+.des-kpi__detalhe {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.des-tabela {
+  @include type-style('body-compact-01');
+  width: 100%;
+  margin-top: $spacing-05;
+  border-collapse: collapse;
+
+  th {
+    @include type-style('heading-compact-01');
+    padding: $spacing-03 $spacing-04;
+    text-align: left;
+    background: $layer-accent-01;
+  }
+  td {
+    padding: $spacing-03 $spacing-04;
+    border-bottom: 1px solid $border-subtle-01;
+  }
+  tbody tr { cursor: default; }
+  tbody tr:hover { background: $layer-hover-01; }
+}
+.des-tabela__atual { background: $layer-selected-01; }

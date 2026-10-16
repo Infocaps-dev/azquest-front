@@ -1,177 +1,164 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { Button, InlineNotification, Loading, Select, SelectItem, Tag } from '@carbon/react'
+import { ChartLineData, Document, TaskApproved } from '@carbon/icons-react'
 import {
-  Button,
-  InlineNotification,
-  Loading,
-  OverflowMenu,
-  OverflowMenuItem,
-  Tag,
-} from '@carbon/react'
-import { ChartLineData, Document, Renew } from '@carbon/icons-react'
-import {
-  MODO_SIMULADO,
-  decidirVersao,
-  exportar,
-  listarAnalises,
-  listarFontes,
-  listarItens,
-  obterIndice,
+  aplicarAjustes,
+  decidirItem,
+  decidirLote,
+  devolver,
+  listarResumos,
   obterResumo,
+  obterRevisao,
   publicar,
-  revisarItem,
-} from '../../services/analiseApi'
-import CoberturaPiloto from './CoberturaPiloto.jsx'
-import DestaquesTema from './DestaquesTema.jsx'
-import FaixaProcesso from './FaixaProcesso.jsx'
-import GavetaItem from './GavetaItem.jsx'
+} from '../../services/resumosApi'
 import NumerosChave from './NumerosChave.jsx'
+import PainelRevisao from './PainelRevisao.jsx'
 import RelatorioCompleto from './RelatorioCompleto.jsx'
+import SecoesRelatorio from './SecoesRelatorio.jsx'
 import SumarioTese from './SumarioTese.jsx'
+import { STATUS_VERSAO, dataHora } from './vocabulario'
 import './AnalisePage.scss'
 
-// Aba Análise de Crédito, etapa 1.2 (Construção da Tese).
+// Aba Análise de Crédito: o relatório gerado pelo agente, resumido e revisável.
 //
-// O layout segue a seção 3 do handoff, e a ordem importa: quem abre a aba vê
-// primeiro o que importa da tese -- sumário, números-chave, destaques por tema
-// -- e o relatório completo fica um clique abaixo, nunca na frente do resumo.
+// Os dados vêm da resumos-api: o resumo de cada relatório é montado por código
+// pelo monitor, a cada versão publicada no bucket. A ordem da tela segue o que
+// importa para quem abre: números-chave no topo, sumário da tese, as seções do
+// relatório com o que falta revisar, e o relatório completo a um clique, aberto
+// sempre no lugar do que foi clicado.
+//
+// Cobertura e tempos de execução ficam na aba Desempenho: medem o sistema, não
+// o emissor, e não fazem parte do relatório.
 
-const EMISSOR = 'Ecorodovias'
+function rotuloRelatorio(r) {
+  return `${r.empresa} · ${r.periodo} · versão ${r.versao} · ${dataHora(r.atualizado_em)}`
+}
 
 function AnalisePage({ onTrocarAba }) {
-  const [analiseId, setAnaliseId] = useState(null)
+  const [relatorios, setRelatorios] = useState([])
+  const [relatorioId, setRelatorioId] = useState('')
   const [resumo, setResumo] = useState(null)
-  const [itens, setItens] = useState([])
-  const [indice, setIndice] = useState([])
-  const [fontes, setFontes] = useState([])
-  const [itemAberto, setItemAberto] = useState(null)
-  const [emFila, setEmFila] = useState(false)
-  const [relatorioAberto, setRelatorioAberto] = useState(false)
+  const [revisao, setRevisao] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [erroCarga, setErroCarga] = useState('')
   const [aviso, setAviso] = useState(null)
-
-  const carregar = useCallback(async id => {
-    const [novoResumo, novosItens, novoIndice, novasFontes] = await Promise.all([
-      obterResumo(id),
-      listarItens(id),
-      obterIndice(id).catch(() => []),
-      listarFontes(id).catch(() => []),
-    ])
-    setResumo(novoResumo)
-    setItens(novosItens)
-    setIndice(novoIndice)
-    setFontes(novasFontes)
-  }, [])
+  const [painel, setPainel] = useState({ aberto: false, filtro: null })
+  const [relatorio, setRelatorio] = useState({ aberto: false, ancora: null })
 
   useEffect(() => {
     let ativo = true
-    async function abrir() {
-      try {
-        const analises = await listarAnalises(EMISSOR)
+    listarResumos()
+      .then(indice => {
         if (!ativo) return
-        if (!analises.length) {
-          setErroCarga('Nenhuma análise foi construída ainda para este emissor.')
-          return
+        setRelatorios(indice.relatorios || [])
+        if (indice.relatorios?.length) setRelatorioId(indice.relatorios[0].relatorio_id)
+        else {
+          setErroCarga('Nenhum relatório gerado ainda. Peça um relatório ao agente no chat.')
+          setCarregando(false)
         }
-        setAnaliseId(analises[0].id)
-        await carregar(analises[0].id)
-      } catch (e) {
-        if (ativo) setErroCarga(e.message)
-      } finally {
-        if (ativo) setCarregando(false)
-      }
-    }
-    abrir()
+      })
+      .catch(e => {
+        if (ativo) {
+          setErroCarga(e.message)
+          setCarregando(false)
+        }
+      })
     return () => { ativo = false }
-  }, [carregar])
+  }, [])
 
-  const pendentes = useMemo(
-    () => itens.filter(i => (i.revisao?.status || 'pendente') === 'pendente'),
-    [itens],
-  )
+  const carregar = useCallback(async id => {
+    const [novoResumo, novaRevisao] = await Promise.all([obterResumo(id), obterRevisao(id)])
+    setResumo(novoResumo)
+    setRevisao(novaRevisao)
+  }, [])
 
-  const porId = useMemo(
-    () => Object.fromEntries(itens.map(i => [i.id, i])),
-    [itens],
-  )
+  useEffect(() => {
+    if (!relatorioId) return
+    let ativo = true
+    setCarregando(true)
+    setAviso(null)
+    carregar(relatorioId)
+      .catch(e => { if (ativo) setErroCarga(e.message) })
+      .finally(() => { if (ativo) setCarregando(false) })
+    return () => { ativo = false }
+  }, [relatorioId, carregar])
 
-  const abrirItem = useCallback(id => {
-    const item = typeof id === 'string' ? porId[id] : id
-    if (item) {
-      setEmFila(false)
-      setItemAberto(item)
+  // Versão nova com os ajustes em geração: acompanha até ela chegar (o job do
+  // monitor publica e refaz o resumo em segundos) e então recarrega a tela.
+  const gerando = revisao?.ajustes?.pedido
+  useEffect(() => {
+    if (!gerando || !relatorioId) return
+    const relogio = setInterval(async () => {
+      try {
+        const nova = await obterRevisao(relatorioId)
+        if (nova.ajustes?.pedido) return
+        clearInterval(relogio)
+        await carregar(relatorioId)
+        listarResumos().then(i => setRelatorios(i.relatorios || [])).catch(() => {})
+        const erros = Object.values(nova.itens).filter(i => i.aplicacao?.status === 'erro').length
+        setAviso(erros
+          ? { kind: 'warning', title: `Versão ${nova.versao} gerada, mas ${erros} ajuste(s) não entraram`,
+            subtitle: 'Veja o motivo em cada item no painel de revisão.' }
+          : { kind: 'success', title: `Versão ${nova.versao} gerada com os ajustes`,
+            subtitle: 'O relatório completo já mostra os textos ajustados.' })
+      } catch {
+        // falha de rede passageira: tenta de novo no próximo ciclo
+      }
+    }, 4000)
+    return () => clearInterval(relogio)
+  }, [gerando, relatorioId, carregar])
+
+  async function gerarVersao() {
+    setAviso(null)
+    try {
+      setRevisao(await aplicarAjustes(relatorioId))
+    } catch (e) {
+      setAviso({ kind: 'error', title: 'Não foi possível gerar a versão nova', subtitle: e.message })
     }
-  }, [porId])
-
-  function abrirFila() {
-    if (!pendentes.length) return
-    setEmFila(true)
-    setItemAberto(pendentes[0])
   }
 
-  async function revisar(itemId, decisao) {
-    await revisarItem(analiseId, itemId, decisao)
-    await carregar(analiseId)
+  const abrirRelatorio = useCallback(ancora => setRelatorio({ aberto: true, ancora: ancora || null }), [])
+  const abrirRevisao = useCallback(filtro => setPainel({ aberto: true, filtro: filtro || null }), [])
+
+  async function decidir(itemId, decisao) {
+    setRevisao(await decidirItem(relatorioId, itemId, decisao))
   }
 
-  function proximoDaFila() {
-    const restantes = pendentes.filter(i => i.id !== itemAberto?.id)
-    setItemAberto(restantes[0] || null)
-    if (!restantes.length) setEmFila(false)
+  async function decidirVarios(ids, decisao) {
+    setRevisao(await decidirLote(relatorioId, ids, decisao))
   }
 
   async function publicarVersao() {
     setAviso(null)
     try {
-      const resultado = await publicar(analiseId)
-      await carregar(analiseId)
+      const resultado = await publicar(relatorioId)
+      setRevisao(resultado)
       setAviso({
         kind: 'success',
-        title: `Versão ${resultado.versao.versao} publicada`,
-        subtitle: resultado.baseline.enviado
+        title: `Versão ${resumo.versao} publicada`,
+        subtitle: resultado.baseline?.enviado
           ? 'O baseline chegou ao Monitoramento.'
-          : `Baseline não entregue: ${resultado.baseline.motivo}`,
+          : `Baseline não enviado ao Monitoramento: ${resultado.baseline?.motivo}`,
       })
     } catch (e) {
       setAviso({ kind: 'error', title: 'Não foi possível publicar', subtitle: e.message })
     }
   }
 
-  function exportarComo(formato) {
-    setAviso(null)
-    try {
-      exportar(analiseId, formato)
-    } catch (e) {
-      setAviso({ kind: 'info', title: 'Exportação indisponível', subtitle: e.message })
-    }
-  }
-
-  async function devolver() {
+  async function devolverVersao() {
     const justificativa = window.prompt('Por que a versão está sendo devolvida para ajuste?')
     if (!justificativa?.trim()) return
     setAviso(null)
     try {
-      await decidirVersao(analiseId, { decisao: 'devolver', justificativa })
-      await carregar(analiseId)
-      setAviso({
-        kind: 'info',
-        title: 'Versão devolvida para ajuste',
-        subtitle: 'O fluxo voltou para a etapa de tese e relatório.',
-      })
+      setRevisao(await devolver(relatorioId, justificativa))
+      setAviso({ kind: 'info', title: 'Versão devolvida para ajuste',
+        subtitle: 'Peça a correção ao agente no chat: a versão nova reabre a revisão dos itens que mudarem.' })
     } catch (e) {
       setAviso({ kind: 'error', title: 'Não foi possível devolver', subtitle: e.message })
     }
   }
 
-  if (carregando) {
-    return (
-      <main className="ana-pagina ana-pagina--vazia">
-        <Loading withOverlay={false} description="Carregando a análise de crédito" />
-      </main>
-    )
-  }
-
-  if (erroCarga) {
+  if (erroCarga && !resumo) {
     return (
       <main className="ana-pagina ana-pagina--vazia">
         <InlineNotification kind="info" lowContrast hideCloseButton
@@ -180,42 +167,60 @@ function AnalisePage({ onTrocarAba }) {
     )
   }
 
-  const analise = resumo?.analise
-  const bloqueios = resumo?.bloqueios_para_publicar || []
+  if (carregando && !resumo) {
+    return (
+      <main className="ana-pagina ana-pagina--vazia">
+        <Loading withOverlay={false} description="Carregando a análise de crédito" />
+      </main>
+    )
+  }
+
+  const pendentes = revisao?.contagem?.pendente || 0
+  const status = STATUS_VERSAO[revisao?.status] || STATUS_VERSAO.em_revisao
+  const bloqueios = revisao?.bloqueios_para_publicar || []
+  const categorias = resumo?.categorias_revisao || []
+  const rotulos = Object.fromEntries(categorias.map(c => [c.id, c.rotulo]))
 
   return (
     <main className="ana-pagina">
       <header className="ana-cabecalho">
         <div className="ana-cabecalho__identidade">
-          <h1 className="ana-cabecalho__emissor">{analise?.emissor}</h1>
-          <span className="ana-cabecalho__referencia">{analise?.referencia}</span>
-          <Tag type={analise?.status === 'publicada' ? 'green' : 'blue'} size="sm">
-            {analise?.versao} {analise?.status === 'publicada' ? 'publicada' : 'em revisão'}
-          </Tag>
-          {analise?.aprovador && (
-            <span className="ana-cabecalho__aprovador">aprovada por {analise.aprovador}</span>
+          <h1 className="ana-cabecalho__emissor">{resumo?.empresa}</h1>
+          <span className="ana-cabecalho__referencia">{resumo?.referencia}</span>
+          <Tag type={status.tag} size="sm">versão {resumo?.versao} {status.rotulo}</Tag>
+          {revisao?.decisao?.usuario && (
+            <span className="ana-cabecalho__aprovador">
+              {revisao.status === 'publicada' ? 'publicada' : 'devolvida'} por {revisao.decisao.usuario}
+              {' '}em {dataHora(revisao.decisao.em)}
+            </span>
           )}
         </div>
         <div className="ana-cabecalho__acoes">
-          <Button kind="tertiary" size="sm" renderIcon={Document}
-            onClick={() => setRelatorioAberto(true)}>
+          <Select id="ana-relatorio" labelText="Relatório" hideLabel size="sm" value={relatorioId}
+            onChange={e => setRelatorioId(e.target.value)} className="ana-cabecalho__seletor">
+            {relatorios.map(r => (
+              <SelectItem key={r.relatorio_id} value={r.relatorio_id} text={rotuloRelatorio(r)} />
+            ))}
+          </Select>
+          <Button kind="tertiary" size="sm" renderIcon={Document} onClick={() => abrirRelatorio(null)}>
             Relatório completo
           </Button>
-          <OverflowMenu size="sm" flipped aria-label="Exportar" iconDescription="Exportar">
-            <OverflowMenuItem itemText="Exportar .docx"
-              onClick={() => exportarComo('docx')} />
-            <OverflowMenuItem itemText="Exportar PDF (impressão)"
-              onClick={() => exportarComo('pdf')} />
-          </OverflowMenu>
-          {pendentes.length > 0 && (
-            <Button kind="primary" size="sm" renderIcon={Renew} onClick={abrirFila}>
-              Revisar pendentes ({pendentes.length})
+          {gerando && <Tag type="blue" size="md">Gerando a versão {resumo.versao + 1}…</Tag>}
+          {!gerando && revisao?.ajustes?.aguardando > 0 && (
+            <Button kind="secondary" size="sm" onClick={gerarVersao}>
+              Gerar versão {resumo.versao + 1} ({revisao.ajustes.aguardando} ajuste(s))
             </Button>
           )}
-          {pendentes.length === 0 && analise?.status !== 'publicada' && (
+          {pendentes > 0 && (
+            <Button kind="primary" size="sm" renderIcon={TaskApproved} onClick={() => abrirRevisao(null)}>
+              Revisar ({pendentes} pendentes)
+            </Button>
+          )}
+          {pendentes === 0 && revisao?.status !== 'publicada' && (
             <>
-              <Button kind="ghost" size="sm" onClick={devolver}>Devolver para ajuste</Button>
-              <Button kind="primary" size="sm" onClick={publicarVersao}>
+              <Button kind="ghost" size="sm" onClick={() => abrirRevisao(null)}>Ver revisão</Button>
+              <Button kind="ghost" size="sm" onClick={devolverVersao}>Devolver para ajuste</Button>
+              <Button kind="primary" size="sm" onClick={publicarVersao} disabled={bloqueios.length > 0}>
                 Aprovar e publicar
               </Button>
             </>
@@ -224,56 +229,45 @@ function AnalisePage({ onTrocarAba }) {
       </header>
 
       {aviso && (
-        <InlineNotification kind={aviso.kind} lowContrast hideCloseButton
-          title={aviso.title} subtitle={aviso.subtitle} className="ana-aviso" />
+        <InlineNotification kind={aviso.kind} lowContrast className="ana-aviso"
+          title={aviso.title} subtitle={aviso.subtitle} onClose={() => setAviso(null)} />
       )}
 
-      {/* Selo da seção 3.8: a tese publicada vira o baseline que a 1.5 compara.
-          Só aparece quando a publicação aconteceu, e leva até lá. */}
-      {analise?.status === 'publicada' && (
+      {revisao?.status === 'publicada' && (
         <div className="ana-selo">
-          <Tag type="green" size="sm">Baseline disponível para o Monitoramento</Tag>
+          <Tag type="green" size="sm">
+            {revisao.decisao?.baseline?.enviado ? 'Baseline enviado ao Monitoramento' : 'Versão publicada'}
+          </Tag>
           <button type="button" className="ana-link" onClick={() => onTrocarAba?.('monitoramento')}>
             <ChartLineData size={14} /> Abrir a aba Monitoramento
           </button>
         </div>
       )}
 
-      {bloqueios.length > 0 && (
-        <InlineNotification
-          kind="info"
-          lowContrast
-          hideCloseButton
-          className="ana-aviso"
-          title="Publicação bloqueada"
-          subtitle={bloqueios.join('; ')}
-        />
+      {pendentes === 0 && bloqueios.length > 0 && (
+        <InlineNotification kind="warning" lowContrast hideCloseButton className="ana-aviso"
+          title="Publicação bloqueada" subtitle={bloqueios.join('; ')} />
       )}
 
-      <FaixaProcesso etapas={resumo?.etapas} />
+      <NumerosChave numeros={resumo?.numeros_chave} onAbrir={abrirRelatorio} />
 
-      <SumarioTese sumario={resumo?.sumario} onAbrirItem={abrirItem} />
+      <SumarioTese resumo={resumo} onAbrirRelatorio={abrirRelatorio}
+        onAbrirItem={itemId => abrirRevisao(itemId ? { itemId } : null)} />
 
-      <NumerosChave numeros={resumo?.numeros_chave} onAbrir={abrirItem} />
+      <SecoesRelatorio itens={resumo?.itens} revisao={revisao} rotulos={rotulos}
+        onRevisar={secao => abrirRevisao({ secao })} onVerNoRelatorio={abrirRelatorio} />
 
-      <DestaquesTema
-        destaques={resumo?.destaques}
-        onAbrirTema={abrirItem}
-        onVerNoRelatorio={() => setRelatorioAberto(true)}
-      />
-
-      <CoberturaPiloto cobertura={resumo?.cobertura} />
-
-      {fontes.length > 0 && (
-        <section className="ana-fontes" aria-label="Kit de Fontes">
-          <h2 className="ana-secao__titulo">Kit de Fontes</h2>
+      {resumo?.documentos?.length > 0 && (
+        <section className="ana-fontes" aria-label="Documentos citados">
+          <h2 className="ana-secao__titulo">Documentos citados</h2>
           <ul className="ana-fontes__lista">
-            {fontes.map(fonte => (
-              <li key={fonte.documento}>
-                <span className="ana-fontes__documento">{fonte.documento}</span>
-                <span className="ana-fontes__origem">{fonte.origem}</span>
+            {resumo.documentos.map(d => (
+              <li key={d.codigo}>
+                <span className="ana-fontes__documento">{d.arquivo}</span>
+                <span className="ana-fontes__origem">{d.tipo}</span>
                 <span className="ana-fontes__referencias">
-                  {fonte.referencias} {fonte.referencias === 1 ? 'referência' : 'referências'}
+                  data-base {d.data_base || '—'}
+                  {d.entidade === 'divergente' && ' · documento de outra entidade'}
                 </span>
               </li>
             ))}
@@ -281,31 +275,26 @@ function AnalisePage({ onTrocarAba }) {
         </section>
       )}
 
-      <GavetaItem
-        item={itemAberto}
-        aberta={Boolean(itemAberto)}
-        onFechar={() => { setItemAberto(null); setEmFila(false) }}
-        onRevisar={revisar}
-        onProximo={emFila ? proximoDaFila : undefined}
-        restantes={emFila ? Math.max(pendentes.length - 1, 0) : 0}
+      <PainelRevisao
+        aberto={painel.aberto}
+        filtroInicial={painel.filtro}
+        onFechar={() => setPainel({ aberto: false, filtro: null })}
+        resumo={resumo}
+        revisao={revisao}
+        categorias={categorias}
+        onDecidir={decidir}
+        onDecidirLote={decidirVarios}
+        onVerNoRelatorio={abrirRelatorio}
+        onGerarVersao={gerarVersao}
       />
 
       <RelatorioCompleto
-        aberto={relatorioAberto}
-        onFechar={() => setRelatorioAberto(false)}
-        analise={analise}
-        indice={indice}
-        itens={itens}
-        onAbrirItem={abrirItem}
+        aberto={relatorio.aberto}
+        ancora={relatorio.ancora}
+        onFechar={() => setRelatorio({ aberto: false, ancora: null })}
+        relatorioId={relatorioId}
+        titulo={`${resumo?.empresa || ''} · ${resumo?.referencia || ''}`}
       />
-
-      {MODO_SIMULADO && (
-        <p className="ana-rodape">
-          Modo simulado: os dados são os do Piloto, servidos do arquivo, e as
-          decisões de revisão não são gravadas em lugar nenhum. Desligue com
-          VITE_ANALISE_MOCK=false.
-        </p>
-      )}
     </main>
   )
 }

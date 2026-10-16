@@ -76,6 +76,12 @@
 }
 
 // ── Modais de fluxo e de decisão ────────────────────────────────────────
+.mon-pagina__baseline {
+  @include type-style('label-01');
+  margin: 0 0 $spacing-05;
+  color: $text-secondary;
+}
+
 .mon-pagina__retomar {
   display: flex;
   gap: $spacing-03;

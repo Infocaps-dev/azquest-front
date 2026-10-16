@@ -5,6 +5,7 @@ import AppHeader from './components/Chat/AppHeader.jsx'
 import ChatPage from './components/Chat/ChatPage.jsx'
 import AnalisePage from './components/AnaliseCredito/AnalisePage.jsx'
 import MonitoramentoPage from './components/Monitoramento/MonitoramentoPage.jsx'
+import DesempenhoPage from './components/Desempenho/DesempenhoPage.jsx'
 import LoginPage from './components/Login/LoginPage.jsx'
 
 function Gate() {
@@ -26,6 +27,7 @@ function Gate() {
       <AppHeader aba={aba} onTrocarAba={setAba} />
       {aba === 'monitoramento' ? <MonitoramentoPage />
         : aba === 'analise' ? <AnalisePage onTrocarAba={setAba} />
+          : aba === 'desempenho' ? <DesempenhoPage />
           : <ChatPage />}
     </>
   )

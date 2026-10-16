@@ -7,12 +7,16 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "resumos-api": "node --env-file-if-exists=.env.local server/index.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1152.0",
+    "@aws-sdk/s3-request-presigner": "^3.1152.0",
     "@carbon/icons-react": "^11.90.0",
     "@carbon/react": "^1.118.0",
     "@ibm/plex": "^6.4.1",
+    "express": "^5.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

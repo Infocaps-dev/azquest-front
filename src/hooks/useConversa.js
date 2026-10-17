@@ -39,12 +39,23 @@ export function useConversa() {
   // seriam escritos na conversa errada.
   const controlador = useRef(null)
 
+  // A analise-api fica com zero instâncias quando ninguém usa: a primeira
+  // chamada depois de um tempo parado acorda o serviço e pode falhar. Antes, essa
+  // falha deixava a barra lateral vazia até o próximo turno. Agora tenta de
+  // novo (2 s, 5 s, 10 s, 20 s) e, se mesmo assim falhar, mantém a lista que já
+  // estava na tela. Lista que não carrega não impede conversar.
+  const tentativaLista = useRef(0)
   const recarregarConversas = useCallback(() => {
-    listarConversas()
-      .then(setConversas)
-      // Lista de conversas que não carrega não impede conversar. O erro fica
-      // no console e a barra lateral mostra o vazio dela.
-      .catch(() => setConversas([]))
+    const minha = ++tentativaLista.current
+    const esperas = [2000, 5000, 10000, 20000]
+    const tentar = n => {
+      listarConversas()
+        .then(lista => { if (minha === tentativaLista.current) setConversas(lista) })
+        .catch(() => {
+          if (minha === tentativaLista.current && n < esperas.length) setTimeout(() => tentar(n + 1), esperas[n])
+        })
+    }
+    tentar(0)
   }, [])
 
   useEffect(() => {
@@ -86,6 +97,19 @@ export function useConversa() {
     // já nascer vinculada.
     let thread = threadId
     let recebeuAlgo = false
+    let concluido = false
+
+    // O turno acaba no evento `fim`, não quando a conexão fecha: o Orchestrate
+    // mantém o stream aberto por minutos depois de responder, e esperar o
+    // fechamento deixava o "Enviar" travado e a conversa fora da lista por esse
+    // tempo todo. No `fim` a tela libera o envio e atualiza a lista na hora.
+    const concluir = () => {
+      if (concluido) return
+      concluido = true
+      setEnviando(false)
+      setPasso('')
+      recarregarConversas()
+    }
 
     const escreverNaResposta = trecho => {
       setMensagens(atuais => {
@@ -101,6 +125,9 @@ export function useConversa() {
         if (meu.signal.aborted) return
 
         if (evento.tipo === 'inicio') {
+          // Conversa nova: a analise-api grava o vínculo nesse primeiro
+          // evento, então ela já pode aparecer na barra lateral.
+          if (!thread) recarregarConversas()
           thread = evento.thread_id
           setThreadId(evento.thread_id)
         } else if (evento.tipo === 'passo') {
@@ -116,17 +143,22 @@ export function useConversa() {
           // montaram. Ele só é usado quando nenhum trecho chegou — o que
           // acontece se o agente responder sem emitir delta.
           if (!recebeuAlgo && evento.texto) escreverNaResposta(evento.texto)
+          concluir()
+          break
         }
       }
     } catch (e) {
       // Abortar é saída normal, não falha: acontece toda vez que a pessoa
       // troca de conversa no meio de uma resposta.
-      if (e.name !== 'AbortError') setErro(e.message)
+      if (e.name !== 'AbortError' && !concluido) setErro(e.message)
     } finally {
-      if (!meu.signal.aborted) {
-        setEnviando(false)
-        setPasso('')
-        recarregarConversas()
+      if (concluido) {
+        // A resposta já chegou inteira: fecha a conexão que o servidor
+        // deixaria aberta. O controlador só é desta resposta.
+        if (controlador.current === meu) controlador.current = null
+        meu.abort()
+      } else if (!meu.signal.aborted) {
+        concluir()
       }
     }
   }, [enviando, threadId, recarregarConversas])

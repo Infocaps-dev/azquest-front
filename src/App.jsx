@@ -36,13 +36,18 @@ function Gate() {
   return (
     <>
       <AppHeader aba={aba} onTrocarAba={setAba} />
+      {/* O chat fica montado nas outras abas: a conversa aberta, a lista de conversas e uma resposta em andamento
+          sobrevivem à troca de aba, em vez de recarregar tudo na volta (e de abortar a geração de um relatório). */}
+      <div hidden={aba !== 'inicio'}>
+        <ChatPage onTrocarAba={setAba} />
+      </div>
       {aba === 'monitoramento' ? <MonitoramentoPage />
         : aba === 'analise' ? (
           <AnalisePage onTrocarAba={setAba} relatorioAlvo={alvo} sinalIndice={sinal}
             onAlvoConsumido={() => setAlvo(null)} />
         )
           : aba === 'desempenho' ? <DesempenhoPage sinalIndice={sinal} />
-          : <ChatPage onTrocarAba={setAba} />}
+          : null}
       <AvisosRelatorios avisos={avisos} onAbrir={abrirRelatorio} onDispensar={dispensar} />
     </>
   )

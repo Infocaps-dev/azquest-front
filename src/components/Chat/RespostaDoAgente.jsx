@@ -111,6 +111,15 @@ function Blocos({ texto }) {
   let lista = []
   let paragrafo = []
   let tabela = []
+  // Bloco de código (```): sai como <pre>, com o conteúdo como texto, nunca
+  // como HTML. `codigo` é null fora de um bloco e a lista de linhas dentro.
+  let codigo = null
+
+  const blocoDeCodigo = conteudo => {
+    blocos.push(
+      <pre key={`c-${blocos.length}`} className="chat-msg__codigo"><code>{conteudo}</code></pre>,
+    )
+  }
 
   const fecharLista = () => {
     if (!lista.length) return
@@ -139,6 +148,26 @@ function Blocos({ texto }) {
 
   for (const bruta of linhas) {
     const linha = bruta.trim()
+    if (codigo !== null) {
+      // Dentro do bloco as linhas valem como estão, inclusive as vazias.
+      if (linha.startsWith('```')) {
+        blocoDeCodigo(codigo.join('\n'))
+        codigo = null
+      } else {
+        codigo.push(bruta)
+      }
+      continue
+    }
+    if (linha.startsWith('```')) {
+      fecharLista()
+      fecharTabela()
+      fecharParagrafo()
+      // "``` texto ```" numa linha só é um bloco inteiro.
+      const naLinha = linha.slice(3).replace(/^[a-z]*\s/i, '')
+      if (naLinha.endsWith('```') && naLinha.length > 3) blocoDeCodigo(naLinha.slice(0, -3).trim())
+      else codigo = []
+      continue
+    }
     if (!linha) {
       fecharLista()
       fecharTabela()
@@ -160,6 +189,7 @@ function Blocos({ texto }) {
   fecharLista()
   fecharTabela()
   fecharParagrafo()
+  if (codigo !== null) blocoDeCodigo(codigo.join('\n')) // bloco que a resposta não fechou
 
   return blocos
 }

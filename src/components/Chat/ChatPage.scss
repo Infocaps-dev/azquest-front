@@ -281,6 +281,20 @@ $side-width: 22rem;
   }
 }
 
+// Bloco de código da resposta: fonte mono, fundo do layer e quebra de linha em
+// qualquer ponto, para uma URL longa não empurrar a conversa para o lado.
+.chat-msg__codigo {
+  margin: $spacing-03 0;
+  padding: $spacing-04;
+  background: $layer-01;
+  border: 1px solid $border-subtle-01;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .chat-msg__link {
   display: inline-flex;
   align-items: center;

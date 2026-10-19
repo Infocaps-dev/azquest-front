@@ -25,6 +25,31 @@ import { conversar, listarConversas, obterConversa } from '../services/chatApi'
 
 const AVISO_INICIAL = 'Pedido enviado ao agente'
 
+// Quanto esperar pela resposta gravada quando o stream termina sem ela: 0 s,
+// depois 3 s, 5 s, 10 s... até ~3,5 min no total, o bastante para um pedido
+// que ainda esteja rodando no Orchestrate.
+const ESPERAS_HISTORICO = [0, 3000, 5000, 10000, 15000, 20000, 30000, 30000, 30000, 30000, 30000]
+
+// A resposta do agente à `pergunta`, lida da conversa gravada no Orchestrate:
+// a primeira mensagem do agente depois da última vez que a pergunta aparece.
+// null se ela não aparecer no prazo.
+async function respostaDoHistorico(threadId, pergunta, sinal) {
+  const alvo = pergunta.trim()
+  for (const ms of ESPERAS_HISTORICO) {
+    if (ms) await new Promise(resolve => { setTimeout(resolve, ms) })
+    if (sinal.aborted) return null
+    try {
+      const { mensagens } = await obterConversa(threadId)
+      const i = mensagens.map(m => m.papel === 'usuario' && m.texto.trim() === alvo).lastIndexOf(true)
+      const resposta = i >= 0 && mensagens.slice(i + 1).find(m => m.papel === 'agente' && m.texto.trim())
+      if (resposta) return resposta.texto
+    } catch {
+      // A analise-api pode estar acordando: tenta de novo na próxima espera.
+    }
+  }
+  return null
+}
+
 export function useConversa() {
   const [mensagens, setMensagens] = useState([])
   const [threadId, setThreadId] = useState(null)
@@ -120,6 +145,7 @@ export function useConversa() {
       })
     }
 
+    let falha = ''
     try {
       for await (const evento of conversar(mensagem, thread, meu.signal)) {
         if (meu.signal.aborted) return
@@ -137,20 +163,49 @@ export function useConversa() {
           setPasso('')
           escreverNaResposta(evento.texto)
         } else if (evento.tipo === 'erro') {
-          setErro(evento.detalhe)
+          falha = evento.detalhe
         } else if (evento.tipo === 'fim') {
           // O texto do `fim` é a resposta inteira, e os trechos já a
           // montaram. Ele só é usado quando nenhum trecho chegou — o que
           // acontece se o agente responder sem emitir delta.
-          if (!recebeuAlgo && evento.texto) escreverNaResposta(evento.texto)
-          concluir()
+          if (!recebeuAlgo && evento.texto) {
+            recebeuAlgo = true
+            escreverNaResposta(evento.texto)
+          }
+          // `fim` sem texto nenhum cai na busca no histórico, logo abaixo.
+          if (recebeuAlgo) concluir()
           break
         }
       }
     } catch (e) {
       // Abortar é saída normal, não falha: acontece toda vez que a pessoa
       // troca de conversa no meio de uma resposta.
-      if (e.name !== 'AbortError' && !concluido) setErro(e.message)
+      if (e.name !== 'AbortError' && !concluido) falha = e.message
+    }
+
+    try {
+      // A resposta não chegou pelo stream, mas o agente pode tê-la terminado:
+      // medido em 19/10/2026, com as tools frias, um pedido de relatório levou
+      // mais de 140 s — o relatório saiu, e a tela mostrou erro (a conexão caiu
+      // antes) ou resposta vazia (o Orchestrate fechou o stream sem delta).
+      // O Orchestrate grava a resposta na conversa de qualquer jeito, então ela
+      // é buscada lá antes de a tela desistir.
+      if (!recebeuAlgo && !concluido && thread && !meu.signal.aborted) {
+        setPasso('Buscando a resposta gravada na conversa')
+        const texto = await respostaDoHistorico(thread, mensagem, meu.signal)
+        if (meu.signal.aborted) return
+        if (texto) {
+          recebeuAlgo = true
+          falha = ''
+          escreverNaResposta(texto)
+        }
+      }
+      if (falha) {
+        setErro(falha)
+      } else if (!recebeuAlgo && !meu.signal.aborted) {
+        setErro('A resposta do agente não chegou a tempo. Se você pediu um relatório, ele pode '
+          + 'ter sido gerado: confira a aba Análise de Crédito ou abra esta conversa de novo em alguns minutos.')
+      }
     } finally {
       if (concluido) {
         // A resposta já chegou inteira: fecha a conexão que o servidor

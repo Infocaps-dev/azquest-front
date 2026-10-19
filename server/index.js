@@ -24,6 +24,7 @@
 //   PORT           padrão 8080
 import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import { randomUUID } from 'node:crypto'
 import express from 'express'
 import { baselineAtualizado, emissorCanonico } from './baseline.js'
 import {
@@ -429,6 +430,30 @@ app.get('/api/baselines/:emissor', emRota(async (req, res) => {
   const vigente = await lerJson(`${pasta}/vigente.json`)
   if (!vigente) throw new ErroHttp(404, 'Nenhuma versão publicada deste emissor.')
   res.json(vigente)
+}))
+
+// Pedido de edição pelo botão "Editar" do relatório completo: {versao, ancora, textos}. Grava quem pediu (da sessão) e o
+// que digitou em edicoes/<id>/<pedido>.json e devolve o número do pedido, que a tela manda ao agente. A tool de edição
+// lê este registro para marcar o texto novo como do analista ({AJ:usuario|data}) e aceitar só os números que ele
+// digitou: a autoria vem da sessão, nunca do modelo. O prefixo edicoes/ não dispara job nenhum.
+const ANCORA_EDICAO = /^(?:item|secao)-[A-Za-z0-9-]{1,80}$/
+app.post('/api/resumos/:id/edicoes', emRota(async (req, res) => {
+  validarIds(req)
+  if (req.usuario?.role === 'leitor') throw new ErroHttp(403, 'Seu perfil só lê os relatórios: não pode pedir alterações.')
+  const { versao, ancora, textos } = req.body || {}
+  if (!Number.isInteger(versao) || versao < 1) throw new ErroHttp(422, 'Informe a versão do relatório que está na tela.')
+  if (typeof ancora !== 'string' || !ANCORA_EDICAO.test(ancora)) throw new ErroHttp(422, 'Trecho do relatório inválido.')
+  if (!Array.isArray(textos) || !textos.length || textos.length > 20
+      || textos.some(t => typeof t !== 'string' || !t.trim() || t.length > 4000)) {
+    throw new ErroHttp(422, 'Escreva a alteração pedida (até 4.000 caracteres por mensagem).')
+  }
+  const pedido = {
+    pedido_id: `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`,
+    relatorio_id: req.params.id, versao, ancora, textos: textos.map(t => t.trim()),
+    usuario: req.usuario?.email || req.usuario?.name || 'analista', em: agoraIso(),
+  }
+  await gravarJson(`edicoes/${req.params.id}/${pedido.pedido_id}.json`, pedido, { soSeNovo: true })
+  res.status(201).json({ pedido_id: pedido.pedido_id })
 }))
 
 // HTML do relatório pela própria API (mesma origem do front): a tela abre num iframe e rola até a âncora. O relatório

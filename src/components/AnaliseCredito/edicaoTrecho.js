@@ -87,10 +87,11 @@ export function referenciaDoTrecho({ ancora, itens, indice, textoNaTela, resumoD
 // formato que o Agente de Relatório espera) e a linha "Origem" diz que veio da tela do relatório: é o que autoriza a
 // edição fora da conversa em que o relatório foi gerado. O agente não vê as mensagens anteriores, então cada envio leva
 // o diálogo inteiro desta edição.
-export function mensagemDeEdicao({ relatorioId, versao, referencia, dialogo }) {
+export function mensagemDeEdicao({ relatorioId, versao, referencia, dialogo, pedidoId }) {
   const linhas = [
     `relatorio_id: ${relatorioId}`,
     `Origem: tela do relatório (botão Editar), versão ${versao} na tela`,
+    ...(pedidoId ? [`Pedido de edição: ${pedidoId}`] : []),
     `Campo: ${referencia.rotulo}${referencia.tipo === 'secao' ? ' (a seção inteira)' : ''}`,
     `Âncora: ${referencia.ancora}`,
   ]

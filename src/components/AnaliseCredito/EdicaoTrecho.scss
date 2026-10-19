@@ -2,20 +2,23 @@
 @use '@carbon/react/scss/theme' as *;
 @use '@carbon/react/scss/type' as *;
 
-// Janela de edição de um trecho: painel na frente do relatório, à direita, na altura do corpo do modal.
+// Janela de edição de um trecho: flutua no centro, na frente do relatório (que continua visível em volta).
 
 .edicao-trecho {
   position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
+  top: 50%;
+  left: 50%;
   z-index: 2;
   display: flex;
   flex-direction: column;
-  width: min(420px, 100%);
+  width: min(580px, 92%);
+  max-height: 86%;
   background: $layer-01;
-  border-left: 1px solid $border-subtle-01;
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.18);
+  border: 1px solid $border-subtle-01;
+  border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+  transform: translate(-50%, -50%);
+  overflow: hidden;
 }
 
 .edicao-trecho__topo {

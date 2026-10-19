@@ -65,6 +65,15 @@ export async function versaoPublicada(id, versao) {
   }
 }
 
+// Registra o pedido de edição de um trecho (botão "Editar" do relatório completo): {versao, ancora, textos} → {pedido_id}.
+// A API grava quem pediu, pela sessão; o agente recebe só o número e a tool de edição lê o registro para marcar o texto
+// novo como do analista, mantendo os números que ele digitou.
+export function registrarEdicao(id, { versao, ancora, textos }) {
+  return pedir(`/api/resumos/${encodeURIComponent(id)}/edicoes`, {
+    method: 'POST', body: JSON.stringify({ versao, ancora, textos }),
+  })
+}
+
 // Baseline vigente do emissor: o da última versão publicada na Análise de
 // Crédito (null enquanto nada foi publicado). Fonte dos dados de referência.
 export async function obterBaselineVigente(emissor) {

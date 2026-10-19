@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Button, IconButton, InlineLoading, InlineNotification, TextArea } from '@carbon/react'
 import { Close, Send } from '@carbon/icons-react'
 import { conversar } from '../../services/chatApi'
-import { versaoPublicada } from '../../services/resumosApi'
+import { registrarEdicao, versaoPublicada } from '../../services/resumosApi'
 import RespostaDoAgente from '../Chat/RespostaDoAgente.jsx'
 import { mensagemDeEdicao } from './edicaoTrecho'
 import './EdicaoTrecho.scss'
@@ -53,6 +53,18 @@ function EdicaoTrecho({ relatorioId, versao, referencia, onFechar, onVersaoNova,
       return
     }
     const novoDialogo = [...dialogo, { papel: 'usuario', texto: pedido }]
+    // O pedido fica registrado com quem pediu (sessão): é o que permite ao agente manter os números que o analista
+    // digitou, em vez de a conferência retirá-los como "número sem fonte".
+    let pedidoId
+    try {
+      ({ pedido_id: pedidoId } = await registrarEdicao(relatorioId, {
+        versao, ancora: referencia.ancora,
+        textos: novoDialogo.filter(m => m.papel === 'usuario').map(m => m.texto),
+      }))
+    } catch (e) {
+      setErro(e.message)
+      return
+    }
     setDialogo(novoDialogo)
     setTexto('')
     setEnviando(true)
@@ -76,7 +88,7 @@ function EdicaoTrecho({ relatorioId, versao, referencia, onFechar, onVersaoNova,
     let falha = ''
     const conversa = (async () => {
       try {
-        const mensagem = mensagemDeEdicao({ relatorioId, versao, referencia, dialogo: novoDialogo })
+        const mensagem = mensagemDeEdicao({ relatorioId, versao, referencia, dialogo: novoDialogo, pedidoId })
         for await (const evento of conversar(mensagem, thread.current, meu.signal)) {
           if (evento.tipo === 'inicio') thread.current = evento.thread_id
           else if (evento.tipo === 'passo') setPasso(evento.texto)

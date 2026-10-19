@@ -18,7 +18,7 @@ function Gate() {
   // Relatório novo (gerado pelo chat, pelo "Reprocessar" ou versão nova de
   // ajuste): aviso em qualquer aba, e o "Abrir" leva à Análise de Crédito com
   // ele selecionado. `alvo.n` muda a cada clique, para reabrir o mesmo id.
-  const { avisos, dispensar, sinal } = useNovosRelatorios(Boolean(user))
+  const { avisos, dispensar, sinal, ignorar } = useNovosRelatorios(Boolean(user))
   const [alvo, setAlvo] = useState(null)
   function abrirRelatorio(relatorioId) {
     setAlvo(atual => ({ id: relatorioId, n: (atual?.n || 0) + 1 }))
@@ -44,7 +44,7 @@ function Gate() {
       {aba === 'monitoramento' ? <MonitoramentoPage />
         : aba === 'analise' ? (
           <AnalisePage onTrocarAba={setAba} relatorioAlvo={alvo} sinalIndice={sinal}
-            onAlvoConsumido={() => setAlvo(null)} />
+            onAlvoConsumido={() => setAlvo(null)} onVersaoPropria={ignorar} />
         )
           : aba === 'desempenho' ? <DesempenhoPage sinalIndice={sinal} />
           : null}

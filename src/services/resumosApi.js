@@ -53,6 +53,18 @@ export function enderecoHtml(id, versao) {
   return `${BASE}/api/relatorios/${encodeURIComponent(id)}/html${consulta}`
 }
 
+// A versão N do relatório já foi publicada? O agente grava relatorios/<id>-vN.html no instante em que a edição
+// termina, antes de o monitor refazer o resumo: é o sinal mais cedo de que a versão nova existe. HEAD, sem baixar
+// o HTML; qualquer falha conta como "ainda não".
+export async function versaoPublicada(id, versao) {
+  try {
+    const resposta = await fetch(enderecoHtml(id, versao), { method: 'HEAD', cache: 'no-store' })
+    return resposta.ok
+  } catch {
+    return false
+  }
+}
+
 // Baseline vigente do emissor: o da última versão publicada na Análise de
 // Crédito (null enquanto nada foi publicado). Fonte dos dados de referência.
 export async function obterBaselineVigente(emissor) {

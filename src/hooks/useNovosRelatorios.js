@@ -56,5 +56,12 @@ export function useNovosRelatorios(ativo) {
 
   const dispensar = useCallback(chave => setAvisos(atuais => atuais.filter(a => a.chave !== chave)), [])
 
-  return { avisos, dispensar, sinal }
+  // Versão que a própria tela criou (edição pelo botão "Editar" do relatório): ela já está aberta na frente do
+  // analista, então não ganha aviso de "versão disponível". Registra antes de o índice mudar.
+  const ignorar = useCallback((relatorioId, versao) => {
+    vistos.current?.set(relatorioId, Math.max(vistos.current.get(relatorioId) ?? 0, versao))
+    setAvisos(atuais => atuais.filter(a => !(a.relatorio_id === relatorioId && a.versao <= versao)))
+  }, [])
+
+  return { avisos, dispensar, sinal, ignorar }
 }

@@ -1,0 +1,99 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/theme' as *;
+@use '@carbon/react/scss/type' as *;
+
+// Janela de edição de um trecho: painel na frente do relatório, à direita, na altura do corpo do modal.
+
+.edicao-trecho {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, 100%);
+  background: $layer-01;
+  border-left: 1px solid $border-subtle-01;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.18);
+}
+
+.edicao-trecho__topo {
+  display: flex;
+  gap: $spacing-03;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: $spacing-05 $spacing-05 $spacing-03;
+  border-bottom: 1px solid $border-subtle-01;
+}
+
+.edicao-trecho__rotulo {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.edicao-trecho__campo {
+  @include type-style('heading-compact-02');
+  margin-top: $spacing-02;
+}
+
+.edicao-trecho__atual {
+  @include type-style('body-compact-01');
+  max-height: 9rem;
+  margin: $spacing-04 $spacing-05 0;
+  padding: $spacing-03 $spacing-04;
+  overflow: auto;
+  color: $text-secondary;
+  background: $layer-02;
+  border-left: 3px solid #0186ef;
+}
+
+.edicao-trecho__conversa {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: $spacing-04;
+  min-height: 0;
+  padding: $spacing-05;
+  overflow-y: auto;
+}
+
+.edicao-trecho__dica {
+  @include type-style('helper-text-01');
+  color: $text-secondary;
+}
+
+.edicao-trecho__fala {
+  @include type-style('body-compact-01');
+  max-width: 92%;
+  padding: $spacing-03 $spacing-04;
+  white-space: pre-wrap;
+}
+
+.edicao-trecho__fala--usuario {
+  align-self: flex-end;
+  background: $layer-accent-01;
+}
+
+.edicao-trecho__fala--agente {
+  align-self: flex-start;
+  white-space: normal;
+  background: $layer-02;
+}
+
+.edicao-trecho__andamento {
+  align-self: flex-start;
+}
+
+.edicao-trecho__envio {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+  align-items: flex-end;
+  padding: $spacing-04 $spacing-05 $spacing-05;
+  border-top: 1px solid $border-subtle-01;
+
+  .cds--form-item {
+    width: 100%;
+  }
+}

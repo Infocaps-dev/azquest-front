@@ -35,7 +35,7 @@ function rotuloRelatorio(r) {
   return `${r.empresa} · ${r.periodo} · versão ${r.versao} · ${dataHora(r.atualizado_em)}`
 }
 
-function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido }) {
+function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido, onVersaoPropria }) {
   const [relatorios, setRelatorios] = useState([])
   const [relatorioId, setRelatorioId] = useState('')
   const [resumo, setResumo] = useState(null)
@@ -50,6 +50,9 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido 
   // O relatório que está na tela agora: respostas que chegam depois de o analista trocar de relatório são descartadas,
   // em vez de mostrar o relatório A com as decisões indo para o B.
   const atual = useRef('')
+  // Versões criadas pela edição no próprio relatório: a tela já está nelas, então não ganham o aviso de "chegou a
+  // versão N" (nem o do App, que é suprimido por onVersaoPropria).
+  const versoesProprias = useRef(new Set())
 
   useEffect(() => {
     let ativo = true
@@ -101,7 +104,8 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido 
       setRelatorios(indice.relatorios || [])
       const linha = (indice.relatorios || []).find(r => r.relatorio_id === atual.current)
       if (linha && resumo && linha.versao > resumo.versao) {
-        carregar(atual.current).then(novo => novo && setAviso({ kind: 'info',
+        const propria = versoesProprias.current.has(`${linha.relatorio_id}-v${linha.versao}`)
+        carregar(atual.current).then(novo => novo && !propria && setAviso({ kind: 'info',
           title: `Chegou a versão ${novo.versao} deste relatório`,
           subtitle: 'A tela foi atualizada. Itens cujo texto mudou voltaram a pendente.' }))
       }
@@ -174,6 +178,30 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido 
   }
 
   const abrirRelatorio = useCallback(ancora => setRelatorio({ aberto: true, ancora: ancora || null }), [])
+
+  // Versão nova feita pelo botão "Editar" do relatório completo. O relatório já está na tela nessa versão; o resumo
+  // (cartões, revisão) chega quando o monitor o refaz, segundos depois, e a tela o acompanha em silêncio.
+  const versaoDaEdicao = useCallback(versao => {
+    const id = atual.current
+    versoesProprias.current.add(`${id}-v${versao}`)
+    onVersaoPropria?.(id, versao)
+    const limite = Date.now() + 3 * 60 * 1000
+    const relogio = setInterval(async () => {
+      if (atual.current !== id || Date.now() > limite) {
+        clearInterval(relogio)
+        return
+      }
+      try {
+        const novo = await obterResumo(id)
+        if (novo.versao < versao) return
+        clearInterval(relogio)
+        await carregar(id)
+        listarResumos().then(i => setRelatorios(i.relatorios || [])).catch(() => {})
+      } catch {
+        // resumo ainda não refeito ou rede: tenta no próximo ciclo
+      }
+    }, 4000)
+  }, [carregar, onVersaoPropria])
   const abrirRevisao = useCallback(filtro => setPainel({ aberto: true, filtro: filtro || null }), [])
 
   // Decisões do painel: levam a versão que está na tela. Se ela mudou, a tela recarrega e o erro sobe para o painel.
@@ -429,6 +457,11 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido 
         ancora={relatorio.ancora}
         onFechar={() => setRelatorio({ aberto: false, ancora: null })}
         relatorioId={relatorioId}
+        versao={resumo?.versao}
+        versaoResumo={resumo?.versao}
+        itens={resumo?.itens}
+        indice={resumo?.indice}
+        onVersaoNova={versaoDaEdicao}
         titulo={`${resumo?.empresa || ''} · ${resumo?.referencia || ''}`}
       />
     </main>

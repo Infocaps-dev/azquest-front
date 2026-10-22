@@ -523,6 +523,44 @@ async function consultasSalvas() {
   }))
 }
 
+// Item de consulta salva que o chat mostrou, para o botão "Inserir no relatório": o gráfico do modelo do EBITDA
+// (?grafico=<pasta>/<nome>) ou a notícia (?link=<url>, a busca mais recente que a trouxe). Devolve o ID que o Agente de
+// Relatório usa para inserir o item com a citação.
+const conteudoDasConsultas = new Map() // chave -> {etag, dados}
+
+async function consultaCompleta(objeto) {
+  const guardada = conteudoDasConsultas.get(objeto.Key)
+  if (guardada?.etag === objeto.ETag) return guardada.dados
+  const dados = await lerJson(objeto.Key)
+  conteudoDasConsultas.set(objeto.Key, { etag: objeto.ETag, dados })
+  return dados
+}
+
+app.get('/api/consultas/item', emRota(async (req, res) => {
+  const { grafico, link } = req.query
+  const [pasta, nome] = String(grafico || '').split('/')
+  if (grafico && !(PASTA_GRAFICO.test(pasta) && NOME_GRAFICO.test(nome || ''))) throw new ErroHttp(400, 'Gráfico inválido.')
+  if (!grafico && !/^https?:\/\/\S{1,2000}$/.test(String(link || ''))) throw new ErroHttp(400, 'Informe o gráfico ou o link.')
+  const objetos = (await listar(grafico ? `consultas/modelo_ebitda-${pasta}` : 'consultas/'))
+    .filter(o => o.Key.endsWith('.json') && (grafico || /noticias/.test(o.Key)))
+    .sort((a, b) => b.LastModified - a.LastModified)
+  for (const objeto of objetos) {
+    const dados = await consultaCompleta(objeto)
+    const codigo = dados?.consulta?.codigo
+    const n = (dados?.itens || []).findIndex(i => (grafico ? i.grafico === nome : i.link === link))
+    if (codigo && n >= 0) {
+      const item = dados.itens[n]
+      res.json({
+        id: `${codigo}.${n}`, tipo: item.tipo,
+        descricao: grafico ? `gráfico: ${item.local.replace(/^Gráfico:\s*/, '')}` : `notícia: ${item.veiculo}, ${item.data}, "${item.titulo}"`,
+      })
+      return
+    }
+  }
+  throw new ErroHttp(404, grafico ? 'Gráfico não encontrado nas consultas salvas.'
+    : 'Esta notícia não está salva no acervo: só as trazidas pela busca de notícias do chat podem ir para o relatório.')
+}))
+
 // Fontes disponíveis para o relatório: os documentos extraídos do acervo atual (acervo/atual.json, que as tools
 // gravam quando montam o acervo) e as consultas salvas (notícias da internet, modelo do EBITDA).
 app.get('/api/fontes', emRota(async (req, res) => {

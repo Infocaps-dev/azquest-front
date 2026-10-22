@@ -3,6 +3,7 @@ import { GroupedBarChart, LineChart, SimpleBarChart } from '@carbon/charts-react
 import '@carbon/charts-react/styles.css'
 import { Button, InlineLoading } from '@carbon/react'
 import { obterGrafico } from '../../services/resumosApi'
+import InserirNoRelatorio from './InserirNoRelatorio.jsx'
 import './GraficoInterativo.scss'
 
 // Gráfico do modelo do EBITDA desenhado na conversa, interativo.
@@ -129,7 +130,7 @@ function PainelBarrasHorizontais({ painel, unidade }) {
 
 const PAINEIS = { linha: PainelLinha, barras: PainelBarras, barras_horizontais: PainelBarrasHorizontais }
 
-function GraficoInterativo({ grafico, url, titulo }) {
+function GraficoInterativo({ grafico, url, titulo, onEnviar }) {
   const [spec, setSpec] = useState(null)
   const [falhou, setFalhou] = useState(false)
 
@@ -164,6 +165,7 @@ function GraficoInterativo({ grafico, url, titulo }) {
         Fonte: {spec.fonte}.{' '}
         <a href={url} target="_blank" rel="noopener noreferrer">Imagem do gráfico</a>
       </p>
+      {onEnviar && <InserirNoRelatorio grafico={grafico} onEnviar={onEnviar} />}
     </figure>
   )
 }

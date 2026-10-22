@@ -101,7 +101,7 @@ function ChatMain({
                 <div className="chat-msg__corpo">
                   {m.papel === 'usuario'
                     ? <p>{m.texto}</p>
-                    : <RespostaDoAgente texto={m.texto} onTrocarAba={onTrocarAba} />}
+                    : <RespostaDoAgente texto={m.texto} onTrocarAba={onTrocarAba} onEnviar={onEnviar} />}
                 </div>
               </article>
             ))}

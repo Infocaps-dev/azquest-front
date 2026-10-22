@@ -1,7 +1,8 @@
-import { lazy, Suspense } from 'react'
+import { createContext, lazy, Suspense, useContext } from 'react'
 import { Button, InlineLoading } from '@carbon/react'
 import { ArrowRight, Document, Launch } from '@carbon/icons-react'
 import { graficoDaUrl } from '../../services/resumosApi'
+import InserirNoRelatorio from './InserirNoRelatorio.jsx'
 import './GraficoInterativo.scss'
 
 // O Carbon Charts (d3 junto) só é baixado quando uma resposta traz gráfico.
@@ -54,6 +55,18 @@ function comNegrito(texto, chave) {
   return pedacos
 }
 
+// Envio de mensagem do chat (onEnviar do ChatMain): com ele, gráficos e notícias ganham o botão "Inserir no
+// relatório". Fora do chat (a janela de edição do relatório), não há botão.
+const EnvioDoChat = createContext(null)
+
+// Link externo numa resposta: pode ser uma notícia salva da busca. O botão confere na hora (resumos-api) e avisa
+// quando o link não está entre as consultas salvas.
+function InserirNoticia({ link }) {
+  const onEnviar = useContext(EnvioDoChat)
+  if (!onEnviar || IMAGEM_NOSSA.test(link) || eRelatorio(link)) return null
+  return <InserirNoRelatorio link={link} onEnviar={onEnviar} compacto />
+}
+
 function comLinks(texto, chave) {
   const pedacos = []
   let fim = 0
@@ -74,6 +87,7 @@ function comLinks(texto, chave) {
         {achado[1]}
         <Launch size={14} />
       </a>,
+      <InserirNoticia key={`${chave}-i${achado.index}`} link={achado[2]} />,
     )
     fim = achado.index + achado[0].length
   }
@@ -115,11 +129,12 @@ function Tabela({ linhas, chave }) {
 }
 
 function Imagem({ titulo, url }) {
+  const onEnviar = useContext(EnvioDoChat)
   const grafico = graficoDaUrl(url)
   if (grafico) {
     return (
       <Suspense fallback={<InlineLoading description="Carregando o gráfico" />}>
-        <GraficoInterativo grafico={grafico} url={url} titulo={titulo} />
+        <GraficoInterativo grafico={grafico} url={url} titulo={titulo} onEnviar={onEnviar} />
       </Suspense>
     )
   }
@@ -268,12 +283,14 @@ function CartaoRelatorio({ url, onTrocarAba }) {
   )
 }
 
-function RespostaDoAgente({ texto, onTrocarAba }) {
+function RespostaDoAgente({ texto, onTrocarAba, onEnviar }) {
   if (!texto) return null
   const relatorio = [...texto.matchAll(LINK)].find(a => eRelatorio(a[2]))
   return (
     <>
-      <Blocos texto={texto} />
+      <EnvioDoChat.Provider value={onEnviar || null}>
+        <Blocos texto={texto} />
+      </EnvioDoChat.Provider>
       {relatorio && <CartaoRelatorio url={relatorio[2]} onTrocarAba={onTrocarAba} />}
     </>
   )

@@ -163,3 +163,10 @@ export function obterGrafico({ pasta, nome }) {
 export function obterFontes() {
   return pedir('/api/fontes')
 }
+
+// Item salvo que o chat mostrou, para inserir no relatório: {grafico: {pasta, nome}} ou {link}. Devolve {id, tipo,
+// descricao}; 404 com a explicação quando a notícia não está entre as consultas salvas.
+export function itemDaConsulta({ grafico, link }) {
+  const consulta = grafico ? `grafico=${encodeURIComponent(`${grafico.pasta}/${grafico.nome}`)}` : `link=${encodeURIComponent(link)}`
+  return pedir(`/api/consultas/item?${consulta}`)
+}

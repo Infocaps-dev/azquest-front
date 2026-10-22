@@ -41,3 +41,25 @@
 .chat-grafico__carregando {
   margin: $spacing-04 0;
 }
+
+// Botão e janela "Inserir no relatório".
+.chat-inserir__icone {
+  vertical-align: middle;
+  min-height: 1.5rem;
+  padding: 0 $spacing-02;
+}
+
+.chat-inserir__item {
+  @include type-style('body-compact-01');
+  margin-bottom: $spacing-05;
+}
+
+.chat-inserir__destino {
+  margin-top: $spacing-05;
+}
+
+.chat-inserir__dica {
+  @include type-style('helper-text-01');
+  margin-top: $spacing-05;
+  color: $text-secondary;
+}

@@ -139,3 +139,27 @@ export function devolver(id, justificativa, versao) {
 export function publicar(id, versao) {
   return pedir(`/api/resumos/${encodeURIComponent(id)}/publicar`, { method: 'POST', body: JSON.stringify({ versao }) })
 }
+
+// ── Gráficos e fontes ───────────────────────────────────────────────────
+
+// O agente de EBITDA mostra um gráfico como imagem pública no bucket: .../ecovias-itr-docs/ebitda/<pasta>/<nome>.svg.
+// A mesma pasta guarda os dados do gráfico (<nome>.json, privado), que a tela desenha como gráfico interativo.
+// Devolve {pasta, nome} quando a URL é de um desses gráficos, senão null.
+const URL_GRAFICO = /^https:\/\/s3\.br-sao\.cloud-object-storage\.appdomain\.cloud\/ecovias-itr-docs\/ebitda\/([0-9]T[0-9]{2}-[a-f0-9]{8})\/([a-z0-9_]{1,60})\.svg$/
+
+export function graficoDaUrl(url) {
+  const m = URL_GRAFICO.exec(url || '')
+  return m ? { pasta: m[1], nome: m[2] } : null
+}
+
+// Especificação do gráfico: {titulo, subtitulo, unidade, fonte, paineis: [{tipo, eixo_x, eixo_y, series, faixa}]}.
+export function obterGrafico({ pasta, nome }) {
+  return pedir(`/api/graficos/${encodeURIComponent(pasta)}/${encodeURIComponent(nome)}`)
+}
+
+// Fontes disponíveis para o relatório: {atualizado_em, documentos (extraídos: codigo, arquivo, pasta, tipo, data_base,
+// empresa, entidade, n_itens, extraido_em), consultas (salvas: codigo, subtipo, arquivo, empresa, data_base, n_itens,
+// extraido_em, consulta_usada?, janela?)}.
+export function obterFontes() {
+  return pedir('/api/fontes')
+}

@@ -22,7 +22,7 @@
 //   PUBLICAR_BASELINE   "true" envia o baseline à monitor-api (etapa 1.5) ao publicar; desligado por padrão
 //   PAPEIS_PUBLICACAO   papéis do BFF que podem publicar e devolver (ex.: "gestor,admin"); vazio = qualquer um logado
 //   PORT           padrão 8080
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { randomUUID } from 'node:crypto'
 import express from 'express'
@@ -474,6 +474,64 @@ app.get('/api/relatorios/:id/html', emRota(async (req, res) => {
     if (naoExiste(e)) throw new ErroHttp(404, 'Relatório não encontrado.')
     throw e
   }
+}))
+
+// ── Gráficos do modelo do EBITDA e fontes disponíveis ───────────────────
+
+// Dados de um gráfico do modelo do EBITDA (ebitda/<pasta>/<nome>.json), que o chat desenha como gráfico interativo.
+// A imagem (.svg) é pública; os dados, não: saem só por aqui, com sessão.
+const PASTA_GRAFICO = /^[0-9]T[0-9]{2}-[a-f0-9]{8}$/
+const NOME_GRAFICO = /^[a-z0-9_]{1,60}$/
+
+app.get('/api/graficos/:pasta/:nome', emRota(async (req, res) => {
+  const { pasta, nome } = req.params
+  if (!PASTA_GRAFICO.test(pasta) || !NOME_GRAFICO.test(nome)) throw new ErroHttp(400, 'Gráfico inválido.')
+  const grafico = await lerJson(`ebitda/${pasta}/${nome}.json`)
+  if (!grafico) throw new ErroHttp(404, 'Gráfico não encontrado.')
+  res.set('Cache-Control', 'private, max-age=3600') // o conteúdo de uma pasta nunca muda: série nova é pasta nova
+  res.json(grafico)
+}))
+
+async function listar(prefixo) {
+  const objetos = []
+  let ContinuationToken
+  do {
+    const r = await cos.send(new ListObjectsV2Command({ Bucket: BUCKET, Prefix: prefixo, ContinuationToken }))
+    objetos.push(...(r.Contents || []))
+    ContinuationToken = r.IsTruncated ? r.NextContinuationToken : undefined
+  } while (ContinuationToken)
+  return objetos
+}
+
+// Cabeçalho de cada consulta salva, por ETag: cada arquivo é lido uma vez por processo.
+const consultasLidas = new Map()
+
+async function consultasSalvas() {
+  const objetos = (await listar('consultas/')).filter(o => o.Key.endsWith('.json'))
+  return Promise.all(objetos.map(async o => {
+    const guardada = consultasLidas.get(o.Key)
+    if (guardada?.etag === o.ETag) return guardada.consulta
+    const dados = await lerJson(o.Key)
+    const c = dados?.consulta || {}
+    const consulta = {
+      codigo: c.codigo, pasta: 'consulta', subtipo: c.tipo, arquivo: c.arquivo, empresa: c.empresa,
+      data_base: c.data_base, extraido_em: c.gerado_em, n_itens: (dados?.itens || []).length,
+      ...(c.consulta_usada ? { consulta_usada: c.consulta_usada } : {}), ...(c.janela ? { janela: c.janela } : {}),
+    }
+    consultasLidas.set(o.Key, { etag: o.ETag, consulta })
+    return consulta
+  }))
+}
+
+// Fontes disponíveis para o relatório: os documentos extraídos do acervo atual (acervo/atual.json, que as tools
+// gravam quando montam o acervo) e as consultas salvas (notícias da internet, modelo do EBITDA).
+app.get('/api/fontes', emRota(async (req, res) => {
+  const [atual, consultas] = await Promise.all([lerJson('acervo/atual.json'), consultasSalvas()])
+  res.json({
+    atualizado_em: atual?.gerado_em ?? null,
+    documentos: atual?.documentos ?? [],
+    consultas: consultas.filter(c => c.codigo).sort((a, b) => String(b.extraido_em).localeCompare(String(a.extraido_em))),
+  })
 }))
 
 // Abre o HTML do relatório (versão atual, ou ?versao=N) num link assinado.

@@ -3,6 +3,7 @@ import { InlineNotification, Loading, Select, SelectItem } from '@carbon/react'
 import { listarResumos, obterResumo, obterRevisao } from '../../services/resumosApi'
 import { dataHora, duracao } from '../AnaliseCredito/vocabulario'
 import CoberturaPiloto from './CoberturaPiloto.jsx'
+import FontesDisponiveis from './FontesDisponiveis.jsx'
 import '../AnaliseCredito/AnalisePage.scss'
 import './DesempenhoPage.scss'
 
@@ -13,6 +14,7 @@ import './DesempenhoPage.scss'
 //   Relatórios gerados antes dessa medição aparecem sem tempo, e não com zero.
 // - Cobertura do Piloto: quanto do relatório está sustentado por fonte.
 // - Histórico: as duas medidas em todos os relatórios gerados.
+// - Fontes disponíveis: todos os tipos de fonte que o sistema lê, com os documentos e consultas salvas do acervo.
 
 const OPERACAO = { geracao: 'Geração', alteracao: 'Alteração' }
 
@@ -129,6 +131,8 @@ function DesempenhoPage({ sinalIndice }) {
       </section>
 
       <CoberturaPiloto cobertura={resumo?.cobertura} revisao={revisao} categorias={resumo?.categorias_revisao} />
+
+      <FontesDisponiveis resumo={resumo} sinal={sinalIndice} />
 
       <section aria-label="Histórico" className="des-secao">
         <h2 className="ana-secao__titulo">Todos os relatórios</h2>

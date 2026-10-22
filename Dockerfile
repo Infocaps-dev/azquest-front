@@ -5,6 +5,9 @@
 
 FROM node:22-alpine AS build
 
+# Carbon Charts traz o @ibm/telemetry-js: sem coleta no build.
+ENV IBM_TELEMETRY_DISABLED=true
+
 WORKDIR /app
 
 # package.json e lock separados do resto: enquanto as dependencias nao mudam,

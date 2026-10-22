@@ -13,6 +13,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1152.0",
     "@aws-sdk/s3-request-presigner": "^3.1152.0",
+    "@carbon/charts-react": "1.27.21",
     "@carbon/icons-react": "^11.90.0",
     "@carbon/react": "^1.118.0",
     "@ibm/plex": "^6.4.1",

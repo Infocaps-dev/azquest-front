@@ -56,3 +56,45 @@
   tbody tr:hover { background: $layer-hover-01; }
 }
 .des-tabela__atual { background: $layer-selected-01; }
+
+// Fontes disponíveis: um bloco por tipo de fonte.
+.des-fontes__resumo {
+  @include type-style('body-compact-01');
+  color: $text-secondary;
+}
+
+.des-fonte {
+  margin-top: $spacing-06;
+  padding-top: $spacing-05;
+  border-top: 1px solid $border-subtle-01;
+}
+
+.des-fonte__cabeca {
+  display: flex;
+  gap: $spacing-05;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.des-fonte__nome {
+  @include type-style('heading-compact-02');
+}
+
+.des-fonte__descricao {
+  @include type-style('body-compact-01');
+  margin-top: $spacing-02;
+  color: $text-secondary;
+}
+
+.des-fonte__tabela {
+  margin-top: $spacing-04;
+}
+
+.des-fonte__alerta {
+  color: $text-secondary;
+}
+
+.des-fonte__contagem {
+  flex-shrink: 0;
+  white-space: nowrap;
+}

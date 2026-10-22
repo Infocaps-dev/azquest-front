@@ -1,0 +1,43 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/theme' as *;
+@use '@carbon/react/scss/type' as *;
+
+// Gráfico do modelo do EBITDA dentro da resposta do agente: ocupa a largura da mensagem.
+
+.chat-grafico {
+  margin: $spacing-04 0;
+  padding: $spacing-04;
+  background: $layer-01;
+  border: 1px solid $border-subtle-01;
+  border-radius: 8px;
+}
+
+.chat-grafico__titulo {
+  @include type-style('heading-compact-01');
+}
+
+.chat-grafico__subtitulo {
+  @include type-style('helper-text-01');
+  margin-top: $spacing-02;
+  color: $text-secondary;
+}
+
+.chat-grafico__painel {
+  margin-top: $spacing-05;
+}
+
+.chat-grafico__fonte {
+  @include type-style('helper-text-01');
+  margin-top: $spacing-04;
+  color: $text-secondary;
+}
+
+.chat-grafico__imagem {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.chat-grafico__carregando {
+  margin: $spacing-04 0;
+}

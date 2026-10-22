@@ -1,5 +1,11 @@
-import { Button } from '@carbon/react'
+import { lazy, Suspense } from 'react'
+import { Button, InlineLoading } from '@carbon/react'
 import { ArrowRight, Document, Launch } from '@carbon/icons-react'
+import { graficoDaUrl } from '../../services/resumosApi'
+import './GraficoInterativo.scss'
+
+// O Carbon Charts (d3 junto) só é baixado quando uma resposta traz gráfico.
+const GraficoInterativo = lazy(() => import('./GraficoInterativo.jsx'))
 
 // Renderiza o texto do agente.
 //
@@ -19,14 +25,21 @@ import { ArrowRight, Document, Launch } from '@carbon/icons-react'
 // que ele é. A biblioteca resolveria mais casos do que existem e traria
 // sanitização para manter — 30 linhas honestas valem mais.
 
-const LINK = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g
+// O "!" opcional é o da imagem markdown no meio de um parágrafo: vira link, sem sobrar o "!" na tela.
+const LINK = /!?\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g
+// Imagem markdown sozinha na linha: o agente de EBITDA responde assim com o gráfico.
+const IMAGEM = /^!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)$/
+// Imagens que a tela mostra: só as do nosso bucket (gráficos do EBITDA, públicos). Imagem de outro endereço vira
+// link: carregar uma URL qualquer que o modelo escreveu entregaria a visita de quem está logado a terceiros.
+const IMAGEM_NOSSA = /^https:\/\/s3\.br-sao\.cloud-object-storage\.appdomain\.cloud\/ecovias-itr-docs\/ebitda\//
 const NEGRITO = /\*\*([^*]+)\*\*/g
 
 // O relatório é publicado como HTML no Cloud Object Storage, com URL assinada
 // que vale 7 dias. É o que distingue o link do relatório de um link qualquer
 // que o agente de busca web possa citar.
+// As imagens dos gráficos do EBITDA estão no mesmo bucket e não são relatório.
 function eRelatorio(url) {
-  return /cloud-object-storage|\/relatorios\//.test(url)
+  return /cloud-object-storage|\/relatorios\//.test(url) && !IMAGEM_NOSSA.test(url)
 }
 
 function comNegrito(texto, chave) {
@@ -101,6 +114,21 @@ function Tabela({ linhas, chave }) {
   )
 }
 
+function Imagem({ titulo, url }) {
+  const grafico = graficoDaUrl(url)
+  if (grafico) {
+    return (
+      <Suspense fallback={<InlineLoading description="Carregando o gráfico" />}>
+        <GraficoInterativo grafico={grafico} url={url} titulo={titulo} />
+      </Suspense>
+    )
+  }
+  if (IMAGEM_NOSSA.test(url)) {
+    return <figure className="chat-grafico"><img className="chat-grafico__imagem" src={url} alt={titulo} /></figure>
+  }
+  return <p>{comLinks(`[${titulo || url}](${url})`, `img-${url}`)}</p>
+}
+
 function Blocos({ texto }) {
   // Linha em branco separa parágrafo; linhas com "- " viram uma lista; linhas
   // com "|" viram tabela. O agrupamento é feito à mão porque uma lista pode
@@ -168,10 +196,16 @@ function Blocos({ texto }) {
       else codigo = []
       continue
     }
+    const imagem = IMAGEM.exec(linha)
     if (!linha) {
       fecharLista()
       fecharTabela()
       fecharParagrafo()
+    } else if (imagem) {
+      fecharLista()
+      fecharTabela()
+      fecharParagrafo()
+      blocos.push(<Imagem key={`img-${blocos.length}`} titulo={imagem[1]} url={imagem[2]} />)
     } else if (LINHA_TABELA.test(linha)) {
       fecharLista()
       fecharParagrafo()

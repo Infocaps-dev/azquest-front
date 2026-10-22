@@ -51,6 +51,16 @@ export default defineConfig({
       // crédito gerados pelo agente. Mesmo padrão: prefixo próprio, e a sessão
       // é a do BFF (o cookie vai junto e a API confere em /api/auth/me).
       // Para rodar a API local: VITE_RESUMOS_TARGET=http://localhost:8082.
+      // Serviço de envio de documentos (aba Configurações), quando existir: VITE_UPLOAD_TARGET aponta para ele.
+      // Sem o alvo, /upload não é encaminhado e a tela mostra "serviço de envio não conectado".
+      ...(process.env.VITE_UPLOAD_TARGET ? {
+        '/upload': {
+          target: process.env.VITE_UPLOAD_TARGET,
+          changeOrigin: true,
+          secure: true,
+          rewrite: caminho => caminho.replace(/^\/upload/, ''),
+        },
+      } : {}),
       '/resumos': {
         target: process.env.VITE_RESUMOS_TARGET
           || 'https://resumos-api.2g1a5bl5ugid.br-sao.codeengine.appdomain.cloud',

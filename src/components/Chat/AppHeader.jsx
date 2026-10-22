@@ -6,7 +6,7 @@ import {
   HeaderName,
   HeaderNavigation,
 } from '@carbon/react'
-import { Analytics, ChartLineData, Document, Home, Logout } from '@carbon/icons-react'
+import { Analytics, ChartLineData, Document, Home, Logout, Settings } from '@carbon/icons-react'
 import logo from '../../assets/azquest-logo.png'
 import { useAuth } from '../../auth/AuthContext.jsx'
 
@@ -52,6 +52,15 @@ function AppHeader({ aba = 'inicio', onTrocarAba }) {
         >
           <span className="chat-header__nav-item">
             <Analytics size={16} /> Desempenho
+          </span>
+        </HeaderMenuItem>
+        <HeaderMenuItem
+          href="#"
+          isCurrentPage={aba === 'configuracoes'}
+          onClick={e => { e.preventDefault(); onTrocarAba?.('configuracoes') }}
+        >
+          <span className="chat-header__nav-item">
+            <Settings size={16} /> Configurações
           </span>
         </HeaderMenuItem>
       </HeaderNavigation>

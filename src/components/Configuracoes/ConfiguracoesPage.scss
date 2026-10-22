@@ -1,0 +1,47 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/theme' as *;
+@use '@carbon/react/scss/type' as *;
+
+// Aba Configurações: envio de documentos.
+
+.cfg-texto {
+  @include type-style('body-compact-01');
+  margin-bottom: $spacing-05;
+  color: $text-secondary;
+}
+
+.cfg-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: $spacing-05;
+  margin: $spacing-05 0;
+}
+
+.cfg-soltar {
+  max-width: none;
+}
+
+.cfg-fila {
+  margin-top: $spacing-05;
+}
+
+.cfg-fila__item {
+  margin-bottom: $spacing-04;
+
+  .cds--file__selected-file {
+    max-width: none;
+    margin-bottom: $spacing-02;
+  }
+}
+
+.cfg-fila__detalhe {
+  @include type-style('helper-text-01');
+  color: $text-secondary;
+}
+
+.cfg-acoes {
+  display: flex;
+  gap: $spacing-04;
+  justify-content: flex-end;
+  margin-top: $spacing-05;
+}

@@ -6,6 +6,7 @@ import ChatPage from './components/Chat/ChatPage.jsx'
 import AnalisePage from './components/AnaliseCredito/AnalisePage.jsx'
 import MonitoramentoPage from './components/Monitoramento/MonitoramentoPage.jsx'
 import DesempenhoPage from './components/Desempenho/DesempenhoPage.jsx'
+import ConfiguracoesPage from './components/Configuracoes/ConfiguracoesPage.jsx'
 import LoginPage from './components/Login/LoginPage.jsx'
 import AvisosRelatorios from './components/Avisos/AvisosRelatorios.jsx'
 import { useNovosRelatorios } from './hooks/useNovosRelatorios'
@@ -47,6 +48,7 @@ function Gate() {
             onAlvoConsumido={() => setAlvo(null)} onVersaoPropria={ignorar} />
         )
           : aba === 'desempenho' ? <DesempenhoPage sinalIndice={sinal} />
+          : aba === 'configuracoes' ? <ConfiguracoesPage />
           : null}
       <AvisosRelatorios avisos={avisos} onAbrir={abrirRelatorio} onDispensar={dispensar} />
     </>

@@ -45,3 +45,16 @@
   justify-content: flex-end;
   margin-top: $spacing-05;
 }
+
+// Tipo e período de cada arquivo, editáveis na linha.
+.cfg-fila__campos {
+  display: grid;
+  grid-template-columns: minmax(14rem, 2fr) minmax(8rem, 1fr) auto;
+  gap: $spacing-04;
+  align-items: end;
+  margin: $spacing-03 0 $spacing-02;
+}
+
+.cfg-fila__origem {
+  padding-bottom: $spacing-02;
+}

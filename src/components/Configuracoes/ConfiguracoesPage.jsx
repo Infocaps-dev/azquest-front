@@ -6,8 +6,8 @@ import {
 import { Upload } from '@carbon/icons-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import {
-  TAMANHO_MAXIMO, TIPOS, enviarArquivo, formatoDoPeriodo, listarEnvios, nomePadronizado, situacao,
-  validarArquivo,
+  TAMANHO_MAXIMO, TIPOS, enviarArquivo, formatoDoPeriodo, lerNomeDoArquivo, listarEnvios, nomePadronizado,
+  periodoDoNome, periodoValido, situacao, validarArquivo,
 } from '../../services/uploadApi'
 import { dataHora } from '../AnaliseCredito/vocabulario'
 import '../AnaliseCredito/AnalisePage.scss'
@@ -16,12 +16,15 @@ import './ConfiguracoesPage.scss'
 
 // Aba Configurações: envio de documentos do emissor para o bucket, de onde a extração os lê para o acervo.
 //
-// O analista escolhe emissor, tipo e período, solta os arquivos e envia. Cada arquivo é conferido aqui antes de sair
-// (extensão do tipo, tamanho), e vai com o nome padronizado do acervo (ITR-3T26-ECORODOVIAS.pdf): é por ele que a
-// extração reconhece o documento. O envio em si é do serviço de upload (services/uploadApi.js, onde está o contrato);
-// sem ele no ar, a tela avisa e não envia nada.
+// O analista escolhe o emissor e solta os arquivos. Tipo e período de cada um são lidos do nome, no padrão dos
+// documentos que já estão no acervo (ITR-2T26-ECORODOVIAS.pdf, Balanco-DRE-FC-2026-06.xlsx...), e podem ser
+// corrigidos na própria linha; quando o nome não diz, a linha pede. Cada arquivo é conferido aqui antes de sair
+// (extensão do tipo, tamanho, formato do período) e vai com o nome padronizado do acervo: é por ele que a extração
+// reconhece o documento. O envio em si é do serviço de upload (services/uploadApi.js, onde está o contrato); sem ele
+// no ar, a tela avisa e não envia nada.
 
 const EMISSORES = ['Ecorodovias']
+const EXTENSOES = [...new Set(TIPOS.flatMap(t => t.extensoes))].map(e => `.${e}`)
 const STATUS = {
   recebido: { rotulo: 'Recebido', cor: 'blue' }, extraindo: { rotulo: 'Extraindo', cor: 'purple' },
   no_acervo: { rotulo: 'No acervo', cor: 'green' }, erro: { rotulo: 'Erro', cor: 'red' },
@@ -34,21 +37,29 @@ function tamanho(bytes) {
     : `${Math.max(1, Math.round(bytes / 1024))} KB`
 }
 
+// O que impede o envio do arquivo, ou ''. Conferido a cada render, com o tipo e o período da linha.
+function problemaDe(f) {
+  if (f.estado === 'enviado') return ''
+  if (!f.tipo) return 'Escolha o tipo: o nome do arquivo não diz qual é'
+  const problema = validarArquivo(f.arquivo, f.tipo)
+  if (problema) return problema
+  if (!f.periodo.trim()) return `Informe o período (ex.: ${formatoDoPeriodo(f.tipo).exemplo}): o nome do arquivo não diz`
+  if (!periodoValido(f.tipo, f.periodo)) return `Período no formato ${formatoDoPeriodo(f.tipo).exemplo}`
+  return ''
+}
+
 function ConfiguracoesPage() {
   const { user } = useAuth()
   const podeEnviar = user?.role !== 'leitor'
   const [servico, setServico] = useState(null) // {conectado, simulado, motivo}
   const [emissor, setEmissor] = useState(EMISSORES[0])
-  const [tipo, setTipo] = useState('itr')
-  const [periodo, setPeriodo] = useState('')
-  const [fila, setFila] = useState([]) // {id, arquivo, estado: pronto|enviando|enviado|erro, progresso, detalhe}
+  // {id, arquivo, tipo, periodo, lido: {tipo, periodo} (o que veio do nome), estado: pronto|enviando|enviado|erro,
+  //  progresso, detalhe}
+  const [fila, setFila] = useState([])
   const [enviando, setEnviando] = useState(false)
   const [envios, setEnvios] = useState([])
   const [erroLista, setErroLista] = useState('')
   const controlador = useRef(null)
-
-  const formato = formatoDoPeriodo(tipo)
-  const periodoValido = formato.re.test(periodo.trim().toUpperCase())
 
   function recarregarEnvios() {
     listarEnvios().then(r => { setEnvios(r.arquivos || []); setErroLista('') }).catch(e => setErroLista(e.message))
@@ -64,24 +75,28 @@ function ConfiguracoesPage() {
     return () => { ativo = false; controlador.current?.abort() }
   }, [])
 
-  // Conferido a cada render, com o tipo escolhido agora: um .xlsx que servia para RI não serve para ITR.
-  const problema = f => (f.estado === 'enviado' ? '' : validarArquivo(f.arquivo, tipo))
-
   function adicionar(_, { addedFiles }) {
     setFila(atual => {
       const nomes = new Set(atual.map(f => f.arquivo.name))
-      const novos = addedFiles.filter(a => !nomes.has(a.name)).map(arquivo => ({
-        id: `f${++sequencia}`, arquivo, estado: 'pronto', progresso: 0,
-      }))
+      const novos = addedFiles.filter(a => !nomes.has(a.name)).map(arquivo => {
+        const lido = lerNomeDoArquivo(arquivo.name)
+        return { id: `f${++sequencia}`, arquivo, tipo: lido.tipo, periodo: lido.periodo, lido, estado: 'pronto',
+                 progresso: 0 }
+      })
       return [...atual, ...novos]
     })
   }
 
   const alterar = (id, mudanca) => setFila(atual => atual.map(f => (f.id === id ? { ...f, ...mudanca } : f)))
 
+  // Trocar o tipo na linha relê o período do nome no formato do tipo novo (o "2025" de um AF vira o ano da DFP).
+  function trocarTipo(f, tipo) {
+    alterar(f.id, { tipo, periodo: periodoDoNome(f.arquivo.name, tipo) || f.periodo })
+  }
+
   async function enviar() {
-    const prontos = fila.filter(f => !problema(f) && (f.estado === 'pronto' || f.estado === 'erro'))
-    if (!prontos.length || !periodoValido) return
+    const prontos = fila.filter(f => !problemaDe(f) && (f.estado === 'pronto' || f.estado === 'erro'))
+    if (!prontos.length) return
     const meu = new AbortController()
     controlador.current = meu
     setEnviando(true)
@@ -89,7 +104,7 @@ function ConfiguracoesPage() {
       if (meu.signal.aborted) break
       alterar(f.id, { estado: 'enviando', progresso: 0, detalhe: '' })
       try {
-        const r = await enviarArquivo({ arquivo: f.arquivo, emissor, tipo, periodo: periodo.trim().toUpperCase() },
+        const r = await enviarArquivo({ arquivo: f.arquivo, emissor, tipo: f.tipo, periodo: f.periodo.trim().toUpperCase() },
           p => alterar(f.id, { progresso: p }), meu.signal)
         alterar(f.id, { estado: 'enviado', progresso: 100, detalhe: r.chave ? `no bucket: ${r.chave}` : '' })
       } catch (e) {
@@ -100,8 +115,7 @@ function ConfiguracoesPage() {
     recarregarEnvios()
   }
 
-  const prontos = fila.filter(f => !problema(f) && f.estado !== 'enviado' && f.estado !== 'enviando')
-  const tipoAtual = TIPOS.find(t => t.id === tipo)
+  const prontos = fila.filter(f => !problemaDe(f) && f.estado !== 'enviado' && f.estado !== 'enviando')
 
   return (
     <main className="ana-pagina">
@@ -115,8 +129,10 @@ function ConfiguracoesPage() {
       <section className="des-secao" aria-label="Envio de documentos">
         <h2 className="ana-secao__titulo">Envio de documentos</h2>
         <p className="cfg-texto">
-          Os documentos enviados vão para o bucket, na pasta do tipo, com o nome padronizado do acervo. A extração os
-          lê e eles passam a aparecer em "Fontes disponíveis" (aba Desempenho) e nas consultas do chat.
+          Solte os documentos do emissor: o tipo e o período de cada um são lidos do nome do arquivo (ex.:
+          ITR-3T26-ECORODOVIAS.pdf, DFP-2025-ECORODOVIAS.pdf, Balanco-DRE-FC-2026-09.xlsx) e podem ser corrigidos na
+          linha. Eles vão para o bucket, na pasta do tipo, com o nome padronizado do acervo; a extração os lê e eles
+          passam a aparecer em "Fontes disponíveis" (aba Desempenho) e nas consultas do chat.
         </p>
 
         {servico === null && <p className="cfg-texto">Conferindo o serviço de envio…</p>}
@@ -137,45 +153,59 @@ function ConfiguracoesPage() {
           <Select id="cfg-emissor" labelText="Emissor" value={emissor} onChange={e => setEmissor(e.target.value)}>
             {EMISSORES.map(e => <SelectItem key={e} value={e} text={e} />)}
           </Select>
-          <Select id="cfg-tipo" labelText="Tipo de documento" value={tipo} onChange={e => setTipo(e.target.value)}>
-            {TIPOS.map(t => <SelectItem key={t.id} value={t.id} text={t.nome} />)}
-          </Select>
-          <TextInput id="cfg-periodo" labelText="Período / data-base" value={periodo} placeholder={formato.exemplo}
-            onChange={e => setPeriodo(e.target.value)}
-            invalid={Boolean(periodo) && !periodoValido} invalidText={`Use o formato ${formato.exemplo}`}
-            helperText={`Formato: ${formato.exemplo}`} />
         </div>
 
         <FileUploaderDropContainer className="cfg-soltar" multiple disabled={!podeEnviar || enviando}
-          accept={tipoAtual?.extensoes.map(e => `.${e}`)} onAddFiles={adicionar}
-          labelText={`Arraste os arquivos aqui ou clique para escolher (${tipoAtual?.extensoes.map(e => `.${e}`).join(', ')}, até ${TAMANHO_MAXIMO / 1024 / 1024} MB cada)`} />
+          accept={EXTENSOES} onAddFiles={adicionar}
+          labelText={`Arraste os arquivos aqui ou clique para escolher (${EXTENSOES.join(', ')}, até ${TAMANHO_MAXIMO / 1024 / 1024} MB cada)`} />
 
         {fila.length > 0 && (
           <ul className="cfg-fila">
-            {fila.map(f => (
-              <li key={f.id} className="cfg-fila__item">
-                <FileUploaderItem name={f.arquivo.name} size="md"
-                  status={f.estado === 'enviando' ? 'uploading' : f.estado === 'enviado' ? 'complete' : 'edit'}
-                  invalid={Boolean(problema(f)) || f.estado === 'erro'}
-                  errorSubject={problema(f) || f.detalhe} iconDescription="Tirar da lista"
-                  onDelete={() => setFila(atual => atual.filter(x => x.id !== f.id))} />
-                <p className="cfg-fila__detalhe">
-                  {tamanho(f.arquivo.size)}
-                  {!problema(f) && periodoValido && ` · entra como ${nomePadronizado({ arquivo: f.arquivo, tipo, periodo, emissor })}`}
-                  {f.estado === 'enviado' && f.detalhe && ` · ${f.detalhe}`}
-                </p>
-                {f.estado === 'enviando' && (
-                  <ProgressBar label={`Enviando ${f.arquivo.name}`} hideLabel value={f.progresso} max={100} size="small" />
-                )}
-              </li>
-            ))}
+            {fila.map(f => {
+              const problema = problemaDe(f)
+              const travado = f.estado === 'enviando' || f.estado === 'enviado'
+              return (
+                <li key={f.id} className="cfg-fila__item">
+                  <FileUploaderItem name={f.arquivo.name} size="md"
+                    status={f.estado === 'enviando' ? 'uploading' : f.estado === 'enviado' ? 'complete' : 'edit'}
+                    invalid={Boolean(problema) || f.estado === 'erro'}
+                    errorSubject={problema || f.detalhe} iconDescription="Tirar da lista"
+                    onDelete={() => setFila(atual => atual.filter(x => x.id !== f.id))} />
+                  <div className="cfg-fila__campos">
+                    <Select id={`${f.id}-tipo`} labelText="Tipo" size="sm" value={f.tipo} disabled={travado}
+                      onChange={e => trocarTipo(f, e.target.value)}>
+                      {!f.tipo && <SelectItem value="" text="Escolha o tipo" />}
+                      {TIPOS.map(t => <SelectItem key={t.id} value={t.id} text={t.nome} />)}
+                    </Select>
+                    <TextInput id={`${f.id}-periodo`} labelText="Período" size="sm" value={f.periodo} disabled={travado || !f.tipo}
+                      placeholder={f.tipo ? formatoDoPeriodo(f.tipo).exemplo : ''}
+                      onChange={e => alterar(f.id, { periodo: e.target.value })} />
+                    <div className="cfg-fila__origem">
+                      {f.lido.tipo && f.tipo === f.lido.tipo && f.periodo && f.periodo === f.lido.periodo
+                        ? <Tag size="sm" type="green">lido do nome</Tag>
+                        : f.tipo && f.periodo ? <Tag size="sm" type="blue">ajustado na tela</Tag>
+                          : <Tag size="sm" type="warm-gray">informe na linha</Tag>}
+                    </div>
+                  </div>
+                  <p className="cfg-fila__detalhe">
+                    {tamanho(f.arquivo.size)}
+                    {!problema && ` · entra como ${TIPOS.find(t => t.id === f.tipo)?.pasta}/${nomePadronizado({
+                      arquivo: f.arquivo, tipo: f.tipo, periodo: f.periodo, emissor })}`}
+                    {f.estado === 'enviado' && f.detalhe && ` · ${f.detalhe}`}
+                  </p>
+                  {f.estado === 'enviando' && (
+                    <ProgressBar label={`Enviando ${f.arquivo.name}`} hideLabel value={f.progresso} max={100} size="small" />
+                  )}
+                </li>
+              )
+            })}
           </ul>
         )}
 
         <div className="cfg-acoes">
           {enviando && <Button kind="secondary" size="md" onClick={() => controlador.current?.abort()}>Cancelar</Button>}
           <Button size="md" renderIcon={Upload} onClick={enviar}
-            disabled={!podeEnviar || !servico?.conectado || enviando || !prontos.length || !periodoValido}>
+            disabled={!podeEnviar || !servico?.conectado || enviando || !prontos.length}>
             {enviando ? 'Enviando…'
               : prontos.length ? `Enviar ${prontos.length} ${prontos.length === 1 ? 'arquivo' : 'arquivos'}` : 'Enviar arquivos'}
           </Button>

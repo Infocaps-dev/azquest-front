@@ -50,6 +50,60 @@ export function formatoDoPeriodo(tipo) {
   return FORMATOS[TIPOS.find(t => t.id === tipo)?.periodo || 'livre']
 }
 
+// Tipo e período lidos do nome do arquivo, no padrão dos documentos que já estão no acervo:
+//   itr/ ITR-2T26-ECORODOVIAS.pdf          dfp/ DFP-2025-ECORODOVIAS.pdf
+//   release/ RR-2T26-ECORODOVIAS.pdf (release), AR-2T26-ECORODOVIAS.pdf (apresentação)
+//   ri/ Balanco-DRE-FC-2026-06.xlsx         escritura/ ERDVB3-Escritura.pdf
+//   af/ ERDVB3-Relatorio-AF-2025.pdf        rating/ SP-17a-emissao-2026-08.pdf, Fitch - ... - 2026-08.pdf
+// Aceita variações ("ITR 3T26", "itr_3t2026", "1Q26", "2º tri 2026", "2026_06"). O que o nome não diz fica vazio.
+const TIPO_NO_NOME = [
+  ['itr', /^itr\b|\bitr[\s_-]/i],
+  ['dfp', /^dfp\b|\bdfp[\s_-]/i],
+  ['apresentacao', /^ar[\s_-]|apresenta/i],
+  ['release', /^rr[\s_-]|release/i],
+  ['ri', /balan[cç]o[\s_-]*dre|planilha[\s_-]*(?:de[\s_-]*)?ri\b|^ri[\s_-]/i],
+  ['escritura', /escritura/i],
+  ['af', /relat[oó]rio[\s_-]*af\b|agente[\s_-]*fiduci/i],
+  ['rating', /^(?:sp|s&p|fitch|moody)\b|rating/i],
+]
+
+function anoCurto(ano) {
+  return String(ano).slice(-2)
+}
+
+export function periodoDoNome(nome, tipo) {
+  const base = nome.replace(/\.[a-z0-9]+$/i, '')
+  const formato = TIPOS.find(t => t.id === tipo)?.periodo
+  if (formato === 'trimestre') {
+    const t = /(?:^|[^a-z0-9])([1-4])\s*[TQ]\s*((?:20)?\d{2})(?![0-9])/i.exec(base)
+      || /([1-4])\s*[ºo°]?\s*tri\w*\s*(?:de\s*)?((?:20)?\d{2})(?![0-9])/i.exec(base)
+    return t ? `${t[1]}T${anoCurto(t[2])}` : ''
+  }
+  if (formato === 'mes') {
+    const m = /((?:19|20)\d{2})[\s_.-](0[1-9]|1[0-2])(?![0-9])/.exec(base)
+    return m ? `${m[1]}-${m[2]}` : ''
+  }
+  if (formato === 'ano') {
+    const anos = base.match(/(?:19|20)\d{2}(?![0-9])/g)
+    return anos ? anos[anos.length - 1] : ''
+  }
+  if (tipo === 'escritura') {
+    const serie = /^([A-Z0-9]{4,8})[\s_-]/.exec(base)
+    return serie ? serie[1] : ''
+  }
+  return ''
+}
+
+// {tipo, periodo}: o que o nome diz (vazio no que não diz).
+export function lerNomeDoArquivo(nome) {
+  const tipo = (TIPO_NO_NOME.find(([, re]) => re.test(nome)) || [''])[0]
+  return { tipo, periodo: tipo ? periodoDoNome(nome, tipo) : '' }
+}
+
+export function periodoValido(tipo, periodo) {
+  return formatoDoPeriodo(tipo).re.test((periodo || '').trim().toUpperCase())
+}
+
 // Problema do arquivo para o tipo escolhido, ou '' se está tudo certo.
 export function validarArquivo(arquivo, tipo) {
   const t = TIPOS.find(x => x.id === tipo)

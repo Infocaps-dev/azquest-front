@@ -21,6 +21,7 @@ import {
   reprocessar,
   revisarItem,
 } from '../../services/analiseApi'
+import AnexarDocumentos from './AnexarDocumentos.jsx'
 import CoberturaPiloto from './CoberturaPiloto.jsx'
 import DestaquesTema from './DestaquesTema.jsx'
 import FaixaProcesso from './FaixaProcesso.jsx'
@@ -294,6 +295,12 @@ function AnalisePage({ onTrocarAba }) {
       />
 
       <CoberturaPiloto cobertura={resumo?.cobertura} />
+
+      {/* Antes do Kit de Fontes de propósito: é daqui que saem as fontes. O
+          Kit só lista o que o extrator já processou, e a extração leva
+          minutos — não dá para recarregar a lista logo depois do envio e
+          esperar que o documento novo apareça. */}
+      <AnexarDocumentos aoEnviar={() => analiseId && carregar(analiseId)} />
 
       {fontes.length > 0 && (
         <section className="ana-fontes" aria-label="Kit de Fontes">

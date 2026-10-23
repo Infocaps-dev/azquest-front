@@ -1,0 +1,68 @@
+// Cliente das rotas de documentos da analise-api.
+//
+// Duas chamadas, e o arquivo sobe uma vez só:
+//
+//   enviarParaIdentificacao()  o anexo vai para uma área de recebimento que o
+//                              extrator ignora, e volta com o tipo que a API
+//                              identificou lendo a capa do PDF.
+//   confirmarDocumentos()      grava em <tipo>/ dentro do bucket. É essa
+//                              gravação que dispara a extração.
+//
+// A confirmação no meio existe porque errar a pasta custa uma extração inteira
+// — até 10 minutos de 2 vCPU — e o erro só apareceria no JSON de saída.
+//
+// Não há `Content-Type` nas chamadas de upload de propósito: com FormData o
+// navegador precisa montar o cabeçalho sozinho, porque é ele que escolhe o
+// `boundary`. Defini-lo à mão quebra o parse no servidor.
+
+const BASE = '/analise'
+
+async function pedir(rota, opcoes = {}) {
+  const resposta = await fetch(`${BASE}${rota}`, opcoes)
+  if (!resposta.ok) {
+    const corpo = await resposta.json().catch(() => ({}))
+    const detalhe = corpo.detail
+    throw new Error(
+      typeof detalhe === 'string'
+        ? detalhe
+        : detalhe?.falhas?.[0]?.motivo
+          || detalhe?.mensagem
+          || `Falha em ${rota} (HTTP ${resposta.status})`,
+    )
+  }
+  return resposta.json()
+}
+
+/** As pastas que o extrator conhece. Alimenta o seletor de correção. */
+export async function listarTiposDeDocumento() {
+  return pedir('/api/documentos/tipos')
+}
+
+/**
+ * Sobe os anexos e devolve o palpite de tipo de cada um.
+ * Nenhum documento entra na pasta definitiva nesta chamada.
+ */
+export async function enviarParaIdentificacao(arquivos) {
+  const corpo = new FormData()
+  for (const arquivo of arquivos) corpo.append('arquivos', arquivo)
+  return pedir('/api/documentos', { method: 'POST', body: corpo })
+}
+
+/** Grava cada documento na pasta confirmada e dispara a extração. */
+export async function confirmarDocumentos(documentos) {
+  return pedir('/api/documentos/confirmar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ documentos }),
+  })
+}
+
+/** Apaga recebimentos que o analista anexou e decidiu não enviar. */
+export async function descartarDocumentos(chaves) {
+  if (!chaves.length) return { descartados: [] }
+  return pedir('/api/documentos/descartar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chaves }),
+  })
+}

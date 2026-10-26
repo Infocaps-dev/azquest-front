@@ -25,6 +25,28 @@ const ETAPA_DE_APROVACAO = 5 // índice de B6
 // todo no fim (README do front); sem a consulta, as etapas não se moveriam.
 const INTERVALO_ACOMPANHAMENTO_MS = 1500
 
+// Estado velho não sobrescreve estado novo. No Code Engine o stream chega
+// bufferizado, em blocos atrasados: depois do fim do ciclo ainda chegavam
+// estados antigos ("B3 concluído, B4 pendente"), e a tela voltava no tempo
+// por um instante. Foi o que fez o aviso de desvio piscar e sumir. A ordem é
+// o horário mais recente das etapas e, no empate (mesmo segundo), o avanço.
+const PESO_STATUS = { pendente: 0, em_execucao: 1, aguardando_aprovacao: 2, concluido: 3, falhou: 3, bloqueado: 3 }
+
+function marcaDe(execucao) {
+  const horarios = [execucao?.inicio, ...(execucao?.etapas || []).flatMap(e => [e.inicio, e.fim])]
+    .filter(Boolean).map(String).sort()
+  const avanco = (execucao?.etapas || []).reduce((soma, e) => soma + (PESO_STATUS[e.status] ?? 0), 0)
+  return [horarios[horarios.length - 1] || '', avanco]
+}
+
+function maisRecente(atual, novo) {
+  if (!atual || !novo || atual.id !== novo.id) return novo
+  const [hAtual, aAtual] = marcaDe(atual)
+  const [hNovo, aNovo] = marcaDe(novo)
+  if (hNovo < hAtual || (hNovo === hAtual && aNovo < aAtual)) return atual
+  return novo
+}
+
 export function useExecucao(execucaoId, { decisao = null, acompanhar = false } = {}) {
   const aprovado = Boolean(decisao) && decisao !== 'rejeitado'
   const [execucao, setExecucao] = useState(null)
@@ -62,14 +84,15 @@ export function useExecucao(execucaoId, { decisao = null, acompanhar = false } =
     let fonte
     // Carrega o estado uma vez antes de abrir o stream: assim a tela já
     // aparece preenchida mesmo que a próxima mudança demore.
-    obterExecucao(execucaoId).then(setExecucao).catch(e => setErro(e.message))
+    const aplicar = novo => setExecucao(atual => maisRecente(atual, novo))
+    obterExecucao(execucaoId).then(aplicar).catch(e => setErro(e.message))
 
     try {
       fonte = new EventSource(urlStream(execucaoId))
       fonte.addEventListener('open', () => setConectado(true))
       fonte.addEventListener('etapas', evento => {
         try {
-          setExecucao(JSON.parse(evento.data))
+          aplicar(JSON.parse(evento.data))
           setErro('')
         } catch {
           setErro('Não foi possível ler o andamento do ciclo.')
@@ -77,7 +100,7 @@ export function useExecucao(execucaoId, { decisao = null, acompanhar = false } =
       })
       fonte.addEventListener('fim', evento => {
         try {
-          setExecucao(JSON.parse(evento.data))
+          aplicar(JSON.parse(evento.data))
         } catch {
           /* o estado anterior já está na tela */
         }
@@ -108,7 +131,7 @@ export function useExecucao(execucaoId, { decisao = null, acompanhar = false } =
   useEffect(() => {
     if (!acompanhar || !execucaoId || MODO_SIMULADO) return undefined
     const timer = setInterval(() => {
-      obterExecucao(execucaoId).then(setExecucao).catch(() => {})
+      obterExecucao(execucaoId).then(novo => setExecucao(atual => maisRecente(atual, novo))).catch(() => {})
     }, INTERVALO_ACOMPANHAMENTO_MS)
     return () => clearInterval(timer)
   }, [acompanhar, execucaoId])

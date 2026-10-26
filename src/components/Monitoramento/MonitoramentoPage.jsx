@@ -256,6 +256,20 @@ function MonitoramentoPage() {
     !etapas.some(e => e.status === 'em_execucao' || e.status === 'aguardando_aprovacao')
   const etapaApontada = temDesvio ? etapas[primeiraAberta]?.etapa : null
 
+  // O aviso de desvio só abre fora de uma rodada e se o desvio durar: um
+  // estado de passagem (ou atrasado no stream) não pode abrir modal sobre a
+  // tela. Desvio de verdade persiste; 3 s bastam para separar os dois.
+  const [desvioEstavel, setDesvioEstavel] = useState(false)
+  const desvioAgora = temDesvio && !rodando
+  useEffect(() => {
+    if (!desvioAgora) {
+      const zera = setTimeout(() => setDesvioEstavel(false), 0)
+      return () => clearTimeout(zera)
+    }
+    const timer = setTimeout(() => setDesvioEstavel(true), 3000)
+    return () => clearTimeout(timer)
+  }, [desvioAgora])
+
   // O nível máximo do ciclo, para a etiqueta do cabeçalho. Sem comparação
   // ainda, cai em "informativo": dizer "Relevante" antes de comparar seria
   // anunciar um achado que não existe.
@@ -382,7 +396,7 @@ function MonitoramentoPage() {
 
       {/* Fechar o modal nao faz o assunto sumir: o ciclo continua parado ou
           aguardando decisao, e precisa de um caminho de volta. */}
-      {temDesvio && !desvioAberto && (
+      {desvioEstavel && !desvioAberto && (
         <p className="mon-pagina__retomar">
           <Button kind="tertiary" size="sm" onClick={() => setDesvioAberto(true)}>
             O ciclo segue por outro caminho
@@ -392,22 +406,18 @@ function MonitoramentoPage() {
 
       <CartoesKpi comparacao={comparacao} execucao={execucao} />
 
-      <div className="mon-pagina__colunas">
-        <div className="mon-pagina__principal">
-          <QuadroComparativo linhas={comparacao?.linhas} onAbrirFonte={abrirFonte} />
+      {/* O quadro comparativo ocupa a largura toda: é a tabela que o analista
+          lê linha a linha. Os dois históricos ficam logo abaixo, lado a lado,
+          situando o ciclo de hoje contra os anteriores e as decisões já
+          tomadas; a atividade, o detalhe do ciclo corrente, fecha a página. */}
+      <QuadroComparativo linhas={comparacao?.linhas} onAbrirFonte={abrirFonte} />
 
-
-        </div>
-
-        <aside className="mon-pagina__lateral">
-          {/* O historico vem antes da atividade: ele situa o ciclo de hoje
-              contra os anteriores, e e essa comparacao que o analista procura
-              ao abrir a tela. A atividade e o detalhe do ciclo corrente. */}
-          <HistoricoCiclos ciclos={historico} />
-          <FeedAtividade etapas={etapas} onAbrirFonte={abrirFonte} />
-          <HistoricoAprovacoes decisoes={decisoes} />
-        </aside>
+      <div className="mon-pagina__historicos">
+        <HistoricoCiclos ciclos={historico} />
+        <HistoricoAprovacoes decisoes={decisoes} />
       </div>
+
+      <FeedAtividade etapas={etapas} onAbrirFonte={abrirFonte} />
 
       {/* A decisão e o aviso de desvio vêm como modal: numa tela que rola, o
           que trava o ciclo não pode ficar no rodapé, fora do campo de visão. */}
@@ -426,7 +436,7 @@ function MonitoramentoPage() {
         />
       )}
 
-      {temDesvio && (
+      {desvioEstavel && (
         <ModalDesvio
           emissor={emissor}
           periodo={execucao?.periodo}

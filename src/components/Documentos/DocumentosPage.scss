@@ -94,3 +94,105 @@
   border: 1px solid $border-subtle-01;
   background: $layer-01;
 }
+
+// Busca por conteúdo: documentos com páginas e trechos.
+
+.doc-modo {
+  max-width: 28rem;
+  margin-bottom: $spacing-04;
+}
+
+.doc-grupo {
+  margin-top: $spacing-06;
+}
+
+.doc-grupo__titulo {
+  @include type-style('heading-compact-02');
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+  margin-bottom: $spacing-03;
+}
+
+.doc-achado {
+  padding: $spacing-04;
+  border-bottom: 1px solid $border-subtle-01;
+}
+
+.doc-achado__cabeca {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-03;
+}
+
+.doc-achado__nome {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-03;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: $link-primary;
+  cursor: pointer;
+  text-align: left;
+  @include type-style('heading-compact-01');
+
+  &:disabled {
+    color: $text-secondary;
+    cursor: default;
+  }
+}
+
+.doc-paginas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-02;
+  margin-top: $spacing-03;
+}
+
+.doc-pagina {
+  cursor: pointer;
+}
+
+.doc-trechos {
+  margin-top: $spacing-03;
+  list-style: none;
+}
+
+.doc-trecho {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  gap: $spacing-03;
+  width: 100%;
+  padding: $spacing-02 $spacing-03;
+  border: 0;
+  background: transparent;
+  color: $text-primary;
+  cursor: pointer;
+  text-align: left;
+  @include type-style('body-compact-01');
+
+  &:hover:not(:disabled) {
+    background: $layer-hover-01;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+
+  mark {
+    background: $highlight;
+    color: $text-primary;
+  }
+}
+
+.doc-trecho__onde {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.doc-trecho__texto {
+  overflow-wrap: anywhere;
+}

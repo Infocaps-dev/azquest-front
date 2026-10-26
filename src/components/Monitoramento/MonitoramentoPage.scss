@@ -242,6 +242,21 @@
   margin-bottom: $spacing-07;
 }
 
+.mon-pagina__coluna {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-07;
+}
+
+// Os paineis tinham margens de quando ficavam empilhados na coluna lateral
+// (o Historico de aprovacao com margin-top): dentro da grade quem espaca e o
+// gap, e os topos das duas colunas ficam alinhados.
+.mon-pagina__historicos .mon-historico,
+.mon-pagina__historicos .mon-feed,
+.mon-pagina__historicos .mon-decisoes {
+  margin: 0;
+}
+
 @media (max-width: 66rem) {
   .mon-pagina__historicos {
     grid-template-columns: minmax(0, 1fr);

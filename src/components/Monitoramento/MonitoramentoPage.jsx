@@ -187,6 +187,14 @@ function MonitoramentoPage() {
 
   async function rodarCiclo() {
     if (!periodoAlvo) return
+    // Limpa a tela antes de rodar: o ciclo recomeça na captura, e o que é da
+    // rodada anterior (linha do processo, atividade, cartões, quadro
+    // comparativo, alerta) não pode ficar à vista como se fosse da nova. Os
+    // históricos ficam: são de todos os ciclos, e se atualizam no fim.
+    acompanhamento.limpar()
+    setComparacao(null)
+    setAlerta(null)
+    setEtapaSelecionada(null)
     setErroCiclo('')
     setAprovacaoAberta(false)
     vistoAndando.current = false
@@ -407,17 +415,18 @@ function MonitoramentoPage() {
       <CartoesKpi comparacao={comparacao} execucao={execucao} />
 
       {/* O quadro comparativo ocupa a largura toda: é a tabela que o analista
-          lê linha a linha. Os dois históricos ficam logo abaixo, lado a lado,
-          situando o ciclo de hoje contra os anteriores e as decisões já
-          tomadas; a atividade, o detalhe do ciclo corrente, fecha a página. */}
+          lê linha a linha. Abaixo, duas colunas alinhadas no topo: à esquerda
+          a atividade do ciclo corrente; à direita os dois históricos, o de
+          ciclos em cima e o de aprovação embaixo. */}
       <QuadroComparativo linhas={comparacao?.linhas} onAbrirFonte={abrirFonte} />
 
       <div className="mon-pagina__historicos">
-        <HistoricoCiclos ciclos={historico} />
-        <HistoricoAprovacoes decisoes={decisoes} />
+        <FeedAtividade etapas={etapas} onAbrirFonte={abrirFonte} />
+        <div className="mon-pagina__coluna">
+          <HistoricoCiclos ciclos={historico} />
+          <HistoricoAprovacoes decisoes={decisoes} />
+        </div>
       </div>
-
-      <FeedAtividade etapas={etapas} onAbrirFonte={abrirFonte} />
 
       {/* A decisão e o aviso de desvio vêm como modal: numa tela que rola, o
           que trava o ciclo não pode ficar no rodapé, fora do campo de visão. */}

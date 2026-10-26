@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { MODO_SIMULADO, obterExecucao, urlStream } from '../services/monitorApi'
 import { TOTAL_ETAPAS, etapasSimuladas } from '../services/monitorMock'
 
@@ -39,7 +39,10 @@ function marcaDe(execucao) {
   return [horarios[horarios.length - 1] || '', avanco]
 }
 
-function maisRecente(atual, novo) {
+function maisRecente(atual, novo, corte = '') {
+  // Depois de "limpar", estado da rodada anterior (que ainda chega pelo
+  // stream atrasado) não volta: só passa o que for posterior ao corte.
+  if (corte && novo && marcaDe(novo)[0] <= corte) return atual
   if (!atual || !novo || atual.id !== novo.id) return novo
   const [hAtual, aAtual] = marcaDe(atual)
   const [hNovo, aNovo] = marcaDe(novo)
@@ -55,9 +58,12 @@ export function useExecucao(execucaoId, { decisao = null, acompanhar = false } =
   // iniciar em false obrigaria a um setState sincrono dentro do efeito.
   const [conectado, setConectado] = useState(MODO_SIMULADO)
   const avanco = useRef(0)
+  const corte = useRef('')
 
   useEffect(() => {
     if (!execucaoId) return undefined
+    // Outra execução (outro período ou emissor): o corte da anterior não vale.
+    corte.current = ''
 
     // ── Modo simulado ────────────────────────────────────────────────
     if (MODO_SIMULADO) {
@@ -84,7 +90,7 @@ export function useExecucao(execucaoId, { decisao = null, acompanhar = false } =
     let fonte
     // Carrega o estado uma vez antes de abrir o stream: assim a tela já
     // aparece preenchida mesmo que a próxima mudança demore.
-    const aplicar = novo => setExecucao(atual => maisRecente(atual, novo))
+    const aplicar = novo => setExecucao(atual => maisRecente(atual, novo, corte.current))
     obterExecucao(execucaoId).then(aplicar).catch(e => setErro(e.message))
 
     try {
@@ -131,10 +137,28 @@ export function useExecucao(execucaoId, { decisao = null, acompanhar = false } =
   useEffect(() => {
     if (!acompanhar || !execucaoId || MODO_SIMULADO) return undefined
     const timer = setInterval(() => {
-      obterExecucao(execucaoId).then(novo => setExecucao(atual => maisRecente(atual, novo))).catch(() => {})
+      obterExecucao(execucaoId).then(novo => setExecucao(atual => maisRecente(atual, novo, corte.current))).catch(() => {})
     }, INTERVALO_ACOMPANHAMENTO_MS)
     return () => clearInterval(timer)
   }, [acompanhar, execucaoId])
+
+  // "Rodar ciclo do início" limpa a tela antes de chamar a API: as etapas
+  // voltam a pendente na hora, sem mensagem nem horário. O estado zerado não
+  // tem marca de tempo, então o primeiro estado real da rodada nova o
+  // substitui pelo `maisRecente`.
+  const limpar = useCallback(() => {
+    setExecucao(atual => {
+      corte.current = atual ? marcaDe(atual)[0] : ''
+      return atual ? {
+      ...atual,
+      inicio: null,
+      fim: null,
+      etapas: (atual.etapas || []).map(e => ({
+        ...e, status: 'pendente', mensagem: '', fontes: null, inicio: null, fim: null,
+      })),
+      } : atual
+    })
+  }, [])
 
   const etapas = execucao?.etapas || []
   const concluidas = etapas.filter(e => e.status === 'concluido').length
@@ -150,5 +174,6 @@ export function useExecucao(execucaoId, { decisao = null, acompanhar = false } =
     conectado,
     erro,
     simulado: MODO_SIMULADO,
+    limpar,
   }
 }

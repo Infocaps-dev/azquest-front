@@ -30,7 +30,9 @@ const INTERVALO_ACOMPANHAMENTO_MS = 1500
 // estados antigos ("B3 concluído, B4 pendente"), e a tela voltava no tempo
 // por um instante. Foi o que fez o aviso de desvio piscar e sumir. A ordem é
 // o horário mais recente das etapas e, no empate (mesmo segundo), o avanço.
-const PESO_STATUS = { pendente: 0, em_execucao: 1, aguardando_aprovacao: 2, concluido: 3, falhou: 3, bloqueado: 3 }
+const PESO_STATUS = {
+  pendente: 0, em_execucao: 1, aguardando_aprovacao: 2, concluido: 3, falhou: 3, bloqueado: 3, nao_se_aplica: 3,
+}
 
 function marcaDe(execucao) {
   const horarios = [execucao?.inicio, ...(execucao?.etapas || []).flatMap(e => [e.inicio, e.fim])]

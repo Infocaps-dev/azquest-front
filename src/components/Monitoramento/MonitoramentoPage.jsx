@@ -68,7 +68,10 @@ function MonitoramentoPage() {
   // ontem, e a tela começa pelo processo, não pela decisão. O botão "Analisar
   // o impacto" abre; e abre sozinho quando um ciclo rodado aqui chega nela.
   const [aprovacaoAberta, setAprovacaoAberta] = useState(false)
-  const [desvioAberto, setDesvioAberto] = useState(true)
+  // O aviso de desvio não abre sozinho: o fluxo segue, e o caminho aparece na
+  // linha do processo e na mensagem de rota. O modal fica para o ciclo de
+  // fato parado, pelo botão "O ciclo segue por outro caminho".
+  const [desvioAberto, setDesvioAberto] = useState(false)
   const [erroCarga, setErroCarga] = useState('')
   const [carregando, setCarregando] = useState(true)
   const [historico, setHistorico] = useState([])
@@ -215,13 +218,21 @@ function MonitoramentoPage() {
 
   // Fim do ciclo rodado aqui: comparação, histórico e alerta são buscados uma
   // vez, e a decisão abre se o ciclo parou nela.
+  //
+  // O fim é reconhecido pelo estado final do fluxo, não pela falta de etapa em
+  // execução: entre "B1 concluído" e "B2 em execução" há um instante sem
+  // nenhuma, e o stream atrasado entrega esse instante. A tela parava de
+  // acompanhar no meio do ciclo, mostrava a comparação da rodada anterior e
+  // o aviso de desvio, e o "Seguir" dava "já há um ciclo em andamento".
+  const cicloTerminou = etapas.some(e => e.status === 'aguardando_aprovacao' || e.status === 'falhou')
+    || etapas.some(e => e.etapa === 'B5' && e.status === 'concluido')
   useEffect(() => {
     if (!rodando || !etapas.length) return
     if (cicloEmAndamento) {
       vistoAndando.current = true
       return
     }
-    if (!vistoAndando.current) return
+    if (!vistoAndando.current || !cicloTerminou) return
     const periodo = execucao?.periodo
     const falhou = etapas.find(e => e.status === 'falhou')
     const parouNaDecisao = etapas.some(e => e.status === 'aguardando_aprovacao')
@@ -246,7 +257,7 @@ function MonitoramentoPage() {
       if (ativo) setRodando(false)
     })
     return () => { ativo = false }
-  }, [rodando, etapas, cicloEmAndamento, execucao?.periodo, emissor])
+  }, [rodando, etapas, cicloEmAndamento, cicloTerminou, execucao?.periodo, emissor])
 
   // Desvio de roteamento: o ciclo esta parado numa etapa que nao vai rodar.
   //
@@ -255,13 +266,35 @@ function MonitoramentoPage() {
   // lugar sozinho -- e sem aviso o analista so ve um processo travado.
   const destino = comparacao?.roteamento?.destino
   const indiceDestino = destino ? etapas.findIndex(e => e.etapa === destino) : -1
-  const primeiraAberta = etapas.findIndex(e => e.status !== 'concluido')
+  const primeiraAberta = etapas.findIndex(e => e.status !== 'concluido' && e.status !== 'nao_se_aplica')
   const temDesvio =
     indiceDestino >= 0 &&
     primeiraAberta >= 0 &&
     primeiraAberta < indiceDestino &&
     etapas[indiceDestino]?.status === 'pendente' &&
     !etapas.some(e => e.status === 'em_execucao' || e.status === 'aguardando_aprovacao')
+  // Mensagem de rota: assim que B4 decide o caminho, a tela diz por onde o
+  // ciclo segue, sem parar o fluxo. O nível vem da mensagem de B4, porque a
+  // comparação só é buscada no fim da rodada.
+  const rota = useMemo(() => {
+    const status = id => etapas.find(e => e.etapa === id)?.status
+    const nivelB4 = (etapas.find(e => e.etapa === 'B4')?.mensagem || '').match(/n[ií]vel m[aá]ximo (\w+)/i)?.[1]
+    const rotulo = nivelB4 ? nivelDe(nivelB4).rotulo : null
+    if (status('B5') === 'nao_se_aplica') {
+      return {
+        titulo: `O ciclo segue para Análise de impacto${rotulo ? ` (nível ${rotulo})` : ''}.`,
+        texto: 'Registrar sem impacto não se aplica: é o caminho dos ciclos sem impacto material. A análise é redigida e passa pela sua aprovação.',
+      }
+    }
+    if (status('B6') === 'nao_se_aplica') {
+      return {
+        titulo: `O ciclo segue por Registrar sem impacto${rotulo ? ` (nível ${rotulo})` : ''}.`,
+        texto: 'Análise de impacto, Revisão extraordinária e Emitir alerta não se aplicam: nada material para levar à decisão.',
+      }
+    }
+    return null
+  }, [etapas])
+
   const etapaApontada = temDesvio ? etapas[primeiraAberta]?.etapa : null
 
   // O aviso de desvio só abre fora de uma rodada e se o desvio durar: um
@@ -395,6 +428,11 @@ function MonitoramentoPage() {
         selecionada={etapaSelecionada}
         onSelecionar={setEtapaSelecionada}
       />
+
+      {rota && (
+        <InlineNotification kind="info" lowContrast hideCloseButton className="mon-pagina__aviso"
+          title={rota.titulo} subtitle={rota.texto} />
+      )}
 
       {erroCiclo && (
         <InlineNotification kind="error" lowContrast hideCloseButton

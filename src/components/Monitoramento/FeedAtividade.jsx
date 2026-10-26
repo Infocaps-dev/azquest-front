@@ -28,7 +28,9 @@ function hora(iso) {
 
 function FeedAtividade({ etapas, onAbrirFonte }) {
   // Só o que já aconteceu entra no feed; etapa pendente ainda não é atividade.
-  const visiveis = etapas.filter(e => e.status !== 'pendente')
+  // Etapa fora do caminho não é atividade: o caminho aparece na linha do
+  // processo e na mensagem de rota da tela.
+  const visiveis = etapas.filter(e => e.status !== 'pendente' && e.status !== 'nao_se_aplica')
 
   return (
     <section className="mon-feed" aria-label="Atividade do ciclo">

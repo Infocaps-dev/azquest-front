@@ -1,0 +1,242 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/theme' as *;
+@use '@carbon/react/scss/type' as *;
+
+// Aba Coleta: disparo do crawler e acompanhamento.
+
+.col-texto {
+  max-width: 60rem;
+  @include type-style('body-compact-01');
+  margin-bottom: $spacing-05;
+  color: $text-secondary;
+}
+
+.col-form {
+  display: grid;
+  grid-template-columns: minmax(14rem, 22rem) 1fr;
+  gap: $spacing-05 $spacing-07;
+  align-items: start;
+
+  @media (max-width: 42rem) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.col-fontes {
+  grid-row: span 3;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0 $spacing-05;
+}
+
+.col-envio {
+  max-width: 22rem;
+}
+
+.col-titulo-linha {
+  display: flex;
+  align-items: center;
+  gap: $spacing-04;
+}
+
+.col-estagios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03;
+  margin: $spacing-04 0;
+  list-style: none;
+}
+
+.col-estagio {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-02;
+  padding: $spacing-02 $spacing-04;
+  border: 1px solid $border-subtle-01;
+  @include type-style('label-01');
+  color: $text-secondary;
+
+  &--feito {
+    border-color: $support-success;
+    color: $text-primary;
+  }
+
+  &--atual {
+    border-color: $interactive;
+    background: $layer-selected-01;
+    color: $text-primary;
+  }
+}
+
+.col-estagio__marca {
+  width: 1rem;
+  text-align: center;
+}
+
+.col-agora {
+  margin: $spacing-03 0;
+}
+
+.col-agora__url {
+  @include type-style('code-01');
+  overflow-wrap: anywhere;
+  color: $text-secondary;
+}
+
+.col-contagem {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-02;
+  margin: $spacing-04 0;
+}
+
+.col-tabela-rolagem {
+  overflow-x: auto;
+}
+
+.col-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  @include type-style('body-compact-01');
+
+  th {
+    @include type-style('heading-compact-01');
+    padding: $spacing-03 $spacing-04;
+    background: $layer-accent-01;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: $spacing-03 $spacing-04;
+    border-bottom: 1px solid $border-subtle-01;
+    vertical-align: top;
+  }
+}
+
+.col-doc {
+  font-weight: 600;
+}
+
+.col-link {
+  @include type-style('helper-text-01');
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-01;
+}
+
+.col-chave {
+  @include type-style('code-01');
+  overflow-wrap: anywhere;
+  min-width: 12rem;
+}
+
+.col-acoes {
+  display: flex;
+  align-items: center;
+}
+
+.col-atividade {
+  max-height: 28rem;
+  overflow-y: auto;
+  padding: $spacing-03;
+  border: 1px solid $border-subtle-01;
+  background: $layer-01;
+  list-style: none;
+}
+
+.col-evento {
+  display: grid;
+  grid-template-columns: 5rem 1.25rem 1fr;
+  gap: $spacing-02;
+  padding: $spacing-01 0;
+  @include type-style('body-compact-01');
+
+  &--fraco {
+    color: $text-secondary;
+    @include type-style('helper-text-01');
+  }
+
+  &--destaque {
+    margin-top: $spacing-03;
+    font-weight: 600;
+  }
+
+  &--nao_encontrado {
+    color: $text-error;
+  }
+
+  &--pendente_manual {
+    color: $support-caution-major;
+  }
+
+  &--baixado,
+  &--upload {
+    color: $support-success;
+  }
+}
+
+.col-evento__hora {
+  @include type-style('code-01');
+  color: $text-secondary;
+}
+
+.col-evento__texto {
+  overflow-wrap: anywhere;
+}
+
+.col-historico {
+  list-style: none;
+}
+
+.col-historico__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: $spacing-03 $spacing-04;
+  border: 0;
+  border-bottom: 1px solid $border-subtle-01;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  @include type-style('body-compact-01');
+
+  &:hover {
+    background: $layer-hover-01;
+  }
+
+  &--ativo {
+    background: $layer-selected-01;
+  }
+}
+
+.col-historico__tags {
+  display: flex;
+  gap: $spacing-02;
+}
+
+.col-extracao p {
+  margin-bottom: $spacing-03;
+}
+
+.col-metadata {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: $spacing-03;
+  margin: $spacing-04 0;
+
+  dt {
+    @include type-style('label-01');
+    color: $text-secondary;
+  }
+
+  dd {
+    overflow-wrap: anywhere;
+  }
+}
+
+.col-detalhe {
+  @include type-style('helper-text-01');
+  color: $text-secondary;
+}

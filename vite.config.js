@@ -47,6 +47,15 @@ export default defineConfig({
         secure: true,
         rewrite: caminho => caminho.replace(/^\/monitor/, ''),
       },
+      // A coleta-api (azquest_code_engine/coleta/api.py) dispara o crawler de fontes públicas da aba Coleta.
+      // Para rodar a API local: VITE_COLETA_TARGET=http://localhost:8083.
+      '/coleta': {
+        target: process.env.VITE_COLETA_TARGET
+          || 'https://coleta-api.2fom3olxz1yh.br-sao.codeengine.appdomain.cloud',
+        changeOrigin: true,
+        secure: true,
+        rewrite: caminho => caminho.replace(/^\/coleta/, ''),
+      },
       // A resumos-api (server/index.js) entrega os resumos dos relatórios de
       // crédito gerados pelo agente. Mesmo padrão: prefixo próprio, e a sessão
       // é a do BFF (o cookie vai junto e a API confere em /api/auth/me).

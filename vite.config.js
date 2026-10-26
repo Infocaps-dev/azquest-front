@@ -61,6 +61,15 @@ export default defineConfig({
           rewrite: caminho => caminho.replace(/^\/upload/, ''),
         },
       } : {}),
+      // A coleta-api (azquest_code_engine/coleta/api.py) dispara o crawler de fontes públicas da aba Coleta.
+      // Para rodar a API local: VITE_COLETA_TARGET=http://localhost:8083.
+      '/coleta': {
+        target: process.env.VITE_COLETA_TARGET
+          || 'https://coleta-api.2fom3olxz1yh.br-sao.codeengine.appdomain.cloud',
+        changeOrigin: true,
+        secure: true,
+        rewrite: caminho => caminho.replace(/^\/coleta/, ''),
+      },
       '/resumos': {
         target: process.env.VITE_RESUMOS_TARGET
           || 'https://resumos-api.2g1a5bl5ugid.br-sao.codeengine.appdomain.cloud',

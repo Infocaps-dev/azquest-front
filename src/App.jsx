@@ -8,6 +8,7 @@ import MonitoramentoPage from './components/Monitoramento/MonitoramentoPage.jsx'
 import DesempenhoPage from './components/Desempenho/DesempenhoPage.jsx'
 import ConfiguracoesPage from './components/Configuracoes/ConfiguracoesPage.jsx'
 import ColetaPage from './components/Coleta/ColetaPage.jsx'
+import DocumentosPage from './components/Documentos/DocumentosPage.jsx'
 import LoginPage from './components/Login/LoginPage.jsx'
 import AvisosRelatorios from './components/Avisos/AvisosRelatorios.jsx'
 import { useNovosRelatorios } from './hooks/useNovosRelatorios'
@@ -57,6 +58,7 @@ function Gate() {
           : aba === 'desempenho' ? <DesempenhoPage sinalIndice={sinal} />
           : aba === 'configuracoes' ? <ConfiguracoesPage />
           : aba === 'coleta' ? <ColetaPage />
+          : aba === 'documentos' ? <DocumentosPage />
           : null}
       <AvisosRelatorios avisos={avisos} onAbrir={abrirRelatorio} onDispensar={dispensar} />
     </>

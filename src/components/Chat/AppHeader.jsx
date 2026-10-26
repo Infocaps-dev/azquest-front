@@ -6,7 +6,7 @@ import {
   HeaderName,
   HeaderNavigation,
 } from '@carbon/react'
-import { Analytics, ChartLineData, CloudDownload, Document, Home, Logout, Settings } from '@carbon/icons-react'
+import { Analytics, ChartLineData, CloudDownload, Document, FolderOpen, Home, Logout, Settings } from '@carbon/icons-react'
 import logo from '../../assets/azquest-logo.png'
 import { useAuth } from '../../auth/AuthContext.jsx'
 
@@ -70,6 +70,15 @@ function AppHeader({ aba = 'inicio', onTrocarAba }) {
         >
           <span className="chat-header__nav-item">
             <CloudDownload size={16} /> Coleta
+          </span>
+        </HeaderMenuItem>
+        <HeaderMenuItem
+          href="#"
+          isCurrentPage={aba === 'documentos'}
+          onClick={e => { e.preventDefault(); onTrocarAba?.('documentos') }}
+        >
+          <span className="chat-header__nav-item">
+            <FolderOpen size={16} /> Documentos
           </span>
         </HeaderMenuItem>
       </HeaderNavigation>

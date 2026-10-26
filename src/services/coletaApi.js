@@ -37,6 +37,13 @@ export const resumoExtracao = (emissor, chave) =>
 export const urlArquivoExtracao = (emissor, chave) =>
   `${BASE}/api/extracoes/arquivo?emissor=${encodeURIComponent(emissor)}&chave=${encodeURIComponent(chave)}`
 
+// Acervo dos buckets de entrada (aba Documentos), por empresa e tipo.
+export const listarDocumentos = () => pedir('/api/documentos')
+
+export const urlDocumento = (empresa, chave, { baixar = false } = {}) =>
+  `${BASE}/api/documentos/arquivo?empresa=${encodeURIComponent(empresa)}&chave=${encodeURIComponent(chave)}`
+  + (baixar ? '&baixar=true' : '')
+
 // Rótulos das fontes, na ordem em que o crawler roda (a CVM primeiro: é dela que saem os códigos dos ativos).
 export const FONTES = {
   cvm: 'CVM (ITR, DFP, escrituras, AF)',

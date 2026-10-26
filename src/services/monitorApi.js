@@ -30,6 +30,13 @@ export async function saude() {
   return pedir('/api/health')
 }
 
+// Emissores monitorados, com o bucket do acervo, o baseline em uso e os
+// trimestres que têm documento para rodar o ciclo.
+export async function listarEmissores() {
+  if (MODO_SIMULADO) return [{ emissor: 'Ecorodovias', periodos: ['2T26'], baseline: { versao: 'v0' } }]
+  return pedir('/api/emissores')
+}
+
 export async function listarExecucoes(emissor) {
   if (MODO_SIMULADO) return [CICLO_SIMULADO.execucao]
   const query = emissor ? `?emissor=${encodeURIComponent(emissor)}` : ''
@@ -110,10 +117,13 @@ export async function comparacaoDoPeriodo(emissor, periodo) {
 export async function historicoDeCiclos(emissor) {
   if (MODO_SIMULADO) return CICLO_SIMULADO.historico
 
-  const [comparacoes, alertas] = await Promise.all([
+  const [comparacoes, todos] = await Promise.all([
     pedir(`/api/comparacoes${emissor ? `?emissor=${encodeURIComponent(emissor)}` : ''}`),
     listarAlertas().catch(() => []),
   ])
+  // A lista de alertas vem de todos os emissores, e Ecorodovias e Motiva têm o
+  // mesmo 2T26: sem o filtro, a decisão de um aparecia no histórico do outro.
+  const alertas = (todos || []).filter(a => !emissor || !a.emissor || a.emissor === emissor)
 
   const decisaoPorPeriodo = new Map(
     (alertas || []).map(a => [a.periodo, a.status_revisao]),

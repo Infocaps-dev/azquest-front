@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, InlineNotification, Loading, Tag } from '@carbon/react'
 import { Renew, Warning } from '@carbon/icons-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
@@ -57,7 +57,10 @@ function MonitoramentoPage() {
   const [fonteAberta, setFonteAberta] = useState(null)
   const [etapaSelecionada, setEtapaSelecionada] = useState(null)
   const [decisao, setDecisao] = useState(null)
-  const [aprovacaoAberta, setAprovacaoAberta] = useState(true)
+  // Fechado ao abrir a aba: o ciclo pode estar parado na revisão humana desde
+  // ontem, e a tela começa pelo processo, não pela decisão. O botão "Analisar
+  // o impacto" abre; e abre sozinho quando um ciclo rodado aqui chega nela.
+  const [aprovacaoAberta, setAprovacaoAberta] = useState(false)
   const [desvioAberto, setDesvioAberto] = useState(true)
   const [erroCarga, setErroCarga] = useState('')
   const [carregando, setCarregando] = useState(true)
@@ -68,7 +71,10 @@ function MonitoramentoPage() {
   const [baseline, setBaseline] = useState(null)
 
   const { execucao, etapas, aguardandoAprovacao, erro } =
-    useExecucao(execucaoId, { decisao })
+    useExecucao(execucaoId, { decisao, acompanhar: rodando })
+  // Só conta como terminado depois de ter visto o ciclo andando: a primeira
+  // consulta pode trazer ainda o estado anterior ao clique.
+  const vistoAndando = useRef(false)
 
   // Carrega o ciclo mais recente do emissor, a comparação e o alerta pendente.
   useEffect(() => {
@@ -127,30 +133,57 @@ function MonitoramentoPage() {
   // pessoa, e reiniciar e justamente o que ela pode querer fazer.
   const cicloEmAndamento = etapas.some(e => e.status === 'em_execucao')
 
+  // Roda o ciclo do início, mesmo que o período já tenha passado por todas as
+  // etapas: a API zera as oito, devolve na hora e segue em segundo plano. A
+  // tela acompanha B1 a B6 andando pelo `acompanhar` do useExecucao.
   async function rodarCiclo() {
     if (!execucao?.periodo) return
     setErroCiclo('')
+    setAprovacaoAberta(false)
+    vistoAndando.current = false
     setRodando(true)
     try {
       await executarCiclo(EMISSOR, execucao.periodo)
-      // O stream empurra as etapas conforme elas mudam; a comparacao e o
-      // historico sao buscados uma vez, ao fim.
-      const [comp, ciclos, decididas] = await Promise.all([
-        comparacaoDoPeriodo(EMISSOR, execucao.periodo),
-        historicoDeCiclos(EMISSOR),
-        historicoDeAprovacoes(EMISSOR).catch(() => []),
-      ])
-      if (comp) setComparacao(comp)
-      setHistorico(ciclos)
-      setDecisoes(decididas)
-      const alertas = await listarAlertas()
-      setAlerta(alertaDoCiclo(alertas, execucao.periodo))
     } catch (e) {
       setErroCiclo(e.message)
-    } finally {
       setRodando(false)
     }
   }
+
+  // Fim do ciclo rodado aqui: comparação, histórico e alerta são buscados uma
+  // vez, e a decisão abre se o ciclo parou nela.
+  useEffect(() => {
+    if (!rodando || !etapas.length) return
+    if (cicloEmAndamento) {
+      vistoAndando.current = true
+      return
+    }
+    if (!vistoAndando.current) return
+    const periodo = execucao?.periodo
+    const falhou = etapas.find(e => e.status === 'falhou')
+    const parouNaDecisao = etapas.some(e => e.status === 'aguardando_aprovacao')
+    let ativo = true
+    Promise.all([
+      comparacaoDoPeriodo(EMISSOR, periodo),
+      historicoDeCiclos(EMISSOR),
+      historicoDeAprovacoes(EMISSOR).catch(() => []),
+      listarAlertas(),
+    ]).then(([comp, ciclos, decididas, alertas]) => {
+      if (!ativo) return
+      if (comp) setComparacao(comp)
+      setHistorico(ciclos)
+      setDecisoes(decididas)
+      const pendente = alertaDoCiclo(alertas, periodo)
+      setAlerta(pendente)
+      if (falhou) setErroCiclo(`${falhou.etapa}: ${falhou.mensagem || 'falhou'}`)
+      else if (parouNaDecisao && pendente) setAprovacaoAberta(true)
+    }).catch(e => {
+      if (ativo) setErroCiclo(e.message)
+    }).finally(() => {
+      if (ativo) setRodando(false)
+    })
+    return () => { ativo = false }
+  }, [rodando, etapas, cicloEmAndamento, execucao?.periodo])
 
   // Desvio de roteamento: o ciclo esta parado numa etapa que nao vai rodar.
   //
@@ -230,7 +263,7 @@ function MonitoramentoPage() {
             disabled={rodando || cicloEmAndamento}
             onClick={rodarCiclo}
           >
-            {rodando ? 'Rodando…' : 'Reprocessar'}
+            {rodando ? 'Rodando…' : 'Rodar ciclo do início'}
           </Button>
         </div>
       </header>

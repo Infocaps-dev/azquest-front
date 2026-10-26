@@ -158,11 +158,15 @@ export async function historicoDeAprovacoes(emissor, periodo) {
 // A API recusa com 409 quando ja ha etapa em andamento. A tela tambem desativa
 // o botao nesse caso, mas as duas defesas precisam existir: duas abas abertas
 // sao dois botoes, e so o servidor ve as duas.
+//
+// `assincrono`: a API semeia as oito etapas, devolve na hora e roda o ciclo em
+// segundo plano. É o que deixa a tela mostrar B1 a B6 andando, em vez de só o
+// estado final.
 export async function executarCiclo(emissor, periodo) {
   if (MODO_SIMULADO) return { simulado: true }
   return pedir('/api/ciclos/executar', {
     method: 'POST',
-    body: JSON.stringify({ emissor, periodo }),
+    body: JSON.stringify({ emissor, periodo, assincrono: true }),
   })
 }
 

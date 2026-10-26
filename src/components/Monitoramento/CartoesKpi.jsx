@@ -53,7 +53,10 @@ function CartoesKpi({ comparacao, execucao }) {
         <Cartao
           titulo="Distância ao gatilho de rating"
           valor={formatar(gatilho.detalhes?.distancia, 'x')}
-          detalhe={`Gatilho da Fitch em ${formatar(gatilho.baseline, 'x')}`}
+          // A agencia vem do baseline de cada emissor: Fitch na Ecorodovias,
+          // S&P na Motiva. Antes o nome estava fixo e a Motiva aparecia com o
+          // gatilho "da Fitch".
+          detalhe={`Gatilho ${gatilho.detalhes?.agencia ? `da ${gatilho.detalhes.agencia}` : 'da agência'} em ${formatar(gatilho.baseline, 'x')}`}
           tom={gatilho.nivel}
         />
       )}

@@ -130,6 +130,9 @@ const FORA_DO_CAMINHO = {
 // recalculado que mudou de caminho, por exemplo -- o que aconteceu de fato
 // vale mais do que o roteamento atual.
 export function foraDoCaminho(etapa, destino) {
+  // A monitor-api grava "nao_se_aplica" assim que B4 decide o caminho; o
+  // calculo pelo destino fica para ciclos antigos, gravados antes disso.
+  if (etapa?.status === 'nao_se_aplica') return true
   if (!destino || etapa?.status !== 'pendente') return false
   return (FORA_DO_CAMINHO[destino] || []).includes(etapa.etapa)
 }

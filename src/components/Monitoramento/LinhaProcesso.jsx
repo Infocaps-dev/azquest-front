@@ -16,6 +16,7 @@ const ESTADO = {
   bloqueado: { invalid: true },
   falhou: { invalid: true },
   pendente: {},
+  nao_se_aplica: {},
 }
 
 const DESCRICAO = {
@@ -25,6 +26,7 @@ const DESCRICAO = {
   bloqueado: 'Bloqueado',
   falhou: 'Falhou',
   pendente: 'Pendente',
+  nao_se_aplica: 'Não se aplica',
 }
 
 // A etapa do caminho que o ciclo não tomou. "Pendente" diria que ela ainda vem

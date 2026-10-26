@@ -49,3 +49,23 @@
   background: #fff;
   border: none;
 }
+
+// "Conversar no chat sobre este relatório": botão com cara de link, ao lado de "Abrir em nova aba".
+.rel-modal__conversar {
+  margin-left: $spacing-06;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+// "Baixar PDF" enquanto o PDF é gerado: desabilitado, com o indicador no lugar do ícone.
+.rel-modal__conversar:disabled {
+  color: $text-secondary;
+  cursor: progress;
+}
+
+.rel-modal__carregando {
+  inline-size: auto;
+  min-block-size: 0;
+}

@@ -7,6 +7,7 @@ ENV NODE_ENV=production PORT=8080
 COPY server/package.json server/package-lock.json ./
 RUN npm ci --omit=dev
 COPY server/*.js ./
+COPY server/pdf ./pdf
 USER node
 EXPOSE 8080
 CMD ["node", "index.js"]

@@ -100,3 +100,13 @@
     width: 100%;
   }
 }
+
+.edicao-trecho__chat {
+  @include type-style('helper-text-01');
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-02;
+  align-items: center;
+  padding: 0 $spacing-05;
+  color: $text-secondary;
+}

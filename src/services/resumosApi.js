@@ -53,6 +53,24 @@ export function enderecoHtml(id, versao) {
   return `${BASE}/api/relatorios/${encodeURIComponent(id)}/html${consulta}`
 }
 
+// PDF da versão (sem versão, a atual), para baixar. Sai pronto do bucket depois de `prepararPdf` responder pronto.
+export function enderecoPdf(id, versao) {
+  const consulta = versao ? `?versao=${encodeURIComponent(versao)}` : ''
+  return `${BASE}/api/relatorios/${encodeURIComponent(id)}/pdf${consulta}`
+}
+
+// Começa a gerar o PDF da versão, se ainda não existe: {pronto, versao}. Sem pronto, pergunte de novo em alguns segundos.
+// A primeira vez leva de segundos a 2 min (o serviço de PDF desliga quando fica parado e precisa religar).
+export function prepararPdf(id, versao) {
+  const consulta = versao ? `?versao=${encodeURIComponent(versao)}` : ''
+  return pedir(`/api/relatorios/${encodeURIComponent(id)}/pdf/preparar${consulta}`, { method: 'POST', body: '{}' })
+}
+
+// Liga o serviço de PDF ao abrir a aba, para o "Baixar PDF" não esperar ele religar.
+export function acordarPdf() {
+  return pedir('/api/pdf/acordar', { method: 'POST', body: '{}' }).catch(() => {})
+}
+
 // A versão N do relatório já foi publicada? O agente grava relatorios/<id>-vN.html no instante em que a edição
 // termina, antes de o monitor refazer o resumo: é o sinal mais cedo de que a versão nova existe. HEAD, sem baixar
 // o HTML; qualquer falha conta como "ainda não".
@@ -169,4 +187,21 @@ export function obterFontes() {
 export function itemDaConsulta({ grafico, link }) {
   const consulta = grafico ? `grafico=${encodeURIComponent(`${grafico.pasta}/${grafico.nome}`)}` : `link=${encodeURIComponent(link)}`
   return pedir(`/api/consultas/item?${consulta}`)
+}
+
+// Relatórios gravados desde `desde` (Date), do mais recente para o mais antigo: [{relatorio_id, versao, empresa,
+// referencia, gravado_em}]. É como o chat descobre o relatório que um pedido produziu quando o Orchestrate responde
+// com erro depois de gravá-lo.
+export function relatoriosDesde(desde) {
+  return pedir(`/api/relatorios-recentes?desde=${encodeURIComponent(desde.toISOString())}`)
+}
+
+// Pedidos de relatório que uma tool ainda está rodando, iniciados desde `desde`: [{ferramenta, detalhe, inicio}].
+export function pedidosEmAndamento(desde) {
+  return pedir(`/api/pedidos-em-andamento?desde=${encodeURIComponent(desde.toISOString())}`)
+}
+
+// Estado atual de um relatório: {relatorio_id, versao, empresa, referencia, periodo}. 404 se ele não existe.
+export function estadoRelatorio(id) {
+  return pedir(`/api/relatorios/${encodeURIComponent(id)}/estado`)
 }

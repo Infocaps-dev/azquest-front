@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, InlineNotification, Loading, Select, SelectItem, Tag } from '@carbon/react'
-import { ChartLineData, Document, Renew, TaskApproved } from '@carbon/icons-react'
+import { ChartLineData, Document, DocumentPdf, Renew, TaskApproved } from '@carbon/icons-react'
 import {
   aplicarAjustes,
   decidirItem,
   decidirLote,
+  acordarPdf,
   devolver,
   listarResumos,
   obterResumo,
@@ -12,6 +13,8 @@ import {
   publicar,
 } from '../../services/resumosApi'
 import { conversar } from '../../services/chatApi'
+import { AVISO_LIGANDO_PDF, rotuloGerandoPdf, useBaixarPdf } from '../../hooks/useBaixarPdf'
+import AnexarDocumentos from './AnexarDocumentos.jsx'
 import NumerosChave from './NumerosChave.jsx'
 import PainelRevisao from './PainelRevisao.jsx'
 import RelatorioCompleto from './RelatorioCompleto.jsx'
@@ -35,7 +38,7 @@ function rotuloRelatorio(r) {
   return `${r.empresa} · ${r.periodo} · versão ${r.versao} · ${dataHora(r.atualizado_em)}`
 }
 
-function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido, onVersaoPropria }) {
+function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido, onVersaoPropria, onConversar }) {
   const [relatorios, setRelatorios] = useState([])
   const [relatorioId, setRelatorioId] = useState('')
   const [resumo, setResumo] = useState(null)
@@ -53,6 +56,14 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
   // Versões criadas pela edição no próprio relatório: a tela já está nelas, então não ganham o aviso de "chegou a
   // versão N" (nem o do App, que é suprimido por onVersaoPropria).
   const versoesProprias = useRef(new Set())
+  const pdf = useBaixarPdf()
+
+  // O serviço de PDF desliga quando fica parado: liga ao abrir a aba, para o "Baixar PDF" não esperar ele religar.
+  useEffect(() => { acordarPdf() }, [])
+
+  useEffect(() => {
+    if (pdf.erro) setAviso({ kind: 'error', title: 'O PDF não foi gerado', subtitle: pdf.erro })
+  }, [pdf.erro])
 
   useEffect(() => {
     let ativo = true
@@ -358,6 +369,10 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
           <Button kind="tertiary" size="sm" renderIcon={Document} onClick={() => abrirRelatorio(null)}>
             Relatório completo
           </Button>
+          <Button kind="tertiary" size="sm" renderIcon={DocumentPdf} disabled={pdf.gerando !== null}
+            onClick={() => { setAviso(null); pdf.limparErro(); pdf.baixar(relatorioId, resumo?.versao) }}>
+            {pdf.gerando === null ? 'Baixar PDF' : rotuloGerandoPdf(pdf.gerando)}
+          </Button>
           <Button kind="tertiary" size="sm" renderIcon={Renew} disabled={reprocessando || Boolean(gerando)}
             onClick={reprocessarRelatorio}>
             {reprocessando ? 'Agente gerando o relatório…' : 'Reprocessar'}
@@ -392,6 +407,11 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
         </div>
       </header>
 
+      {pdf.ligando && (
+        <InlineNotification kind="info" lowContrast hideCloseButton className="ana-aviso"
+          title="Gerando o PDF" subtitle={AVISO_LIGANDO_PDF} />
+      )}
+
       {aviso && (
         <InlineNotification kind={aviso.kind} lowContrast className="ana-aviso"
           title={aviso.title} subtitle={aviso.subtitle} onClose={() => setAviso(null)} />
@@ -420,6 +440,11 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
 
       <SecoesRelatorio itens={resumo?.itens} revisao={revisao} rotulos={rotulos}
         onRevisar={secao => abrirRevisao({ secao })} onVerNoRelatorio={abrirRelatorio} />
+
+      {/* Antes dos documentos citados de propósito: é daqui que saem as
+          fontes. A lista abaixo é a do relatório aberto, e a extração leva
+          minutos — o documento novo entra nos relatórios gerados depois. */}
+      <AnexarDocumentos />
 
       {resumo?.documentos?.length > 0 && (
         <section className="ana-fontes" aria-label="Documentos citados">
@@ -462,6 +487,7 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
         itens={resumo?.itens}
         indice={resumo?.indice}
         onVersaoNova={versaoDaEdicao}
+        onConversar={onConversar}
         titulo={`${resumo?.empresa || ''} · ${resumo?.referencia || ''}`}
       />
     </main>

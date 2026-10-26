@@ -1,0 +1,119 @@
+/* Impressão do relatório de crédito em PDF (Chromium 131+). Entra por cima do CSS do relatório, só na geração do PDF:
+   o HTML publicado não muda. Os textos do cabeçalho e do rodapé (marcadores entre sublinhados duplos) são
+   preenchidos pelo gerador. */
+
+/* ── Página ─────────────────────────────────────────────────────────── */
+@page {
+  size: A4;
+  margin: 19mm 14mm 17mm;
+
+  @top-left {
+    content: "AZ Quest Investimentos  ·  Relatório de Crédito";
+    font: 600 6.8pt "IBM Plex Sans", sans-serif; letter-spacing: .07em; text-transform: uppercase;
+    color: #0a3d5e; vertical-align: bottom; padding-bottom: 3mm;
+    border-bottom: .6pt solid #80c2f7;
+  }
+  @top-center { content: ""; vertical-align: bottom; border-bottom: .6pt solid #80c2f7; }
+  @top-right {
+    content: "__REFERENCIA__";
+    font: 500 6.8pt "IBM Plex Sans", sans-serif; color: #0a3d5e; vertical-align: bottom; padding-bottom: 3mm;
+    border-bottom: .6pt solid #80c2f7;
+  }
+  @bottom-left {
+    content: "Documento confidencial  ·  gerado em __GERADO__";
+    font: 400 6.5pt "IBM Plex Sans", sans-serif; color: #607d8b; vertical-align: top; padding-top: 3mm;
+  }
+  @bottom-right {
+    content: "Página " counter(page) " de " counter(pages);
+    font: 600 6.8pt "IBM Plex Sans", sans-serif; color: #021926; vertical-align: top; padding-top: 3mm;
+  }
+}
+
+/* A primeira página tem a faixa escura do próprio relatório: sem cabeçalho corrido. */
+@page :first {
+  margin-top: 12mm;
+  @top-left { content: none; border: none; }
+  @top-center { content: none; border: none; }
+  @top-right { content: none; border: none; }
+}
+
+/* Tabela com 10 colunas ou mais (o gerador marca com .deitada) vai para uma página deitada. */
+@page paisagem { size: A4 landscape; }
+
+/* ── Base ───────────────────────────────────────────────────────────── */
+html, body { background: #fff !important; }
+body {
+  font-family: "IBM Plex Sans", "Segoe UI", Arial, sans-serif !important;
+  font-size: 9pt !important;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.page { width: auto !important; min-height: 0 !important; margin: 0 !important; box-shadow: none !important;
+        overflow: visible !important; }
+p, li { orphans: 3; widows: 3; }
+a { color: inherit; text-decoration: none; }
+a[href^="http"] { color: #0068c0; text-decoration: underline; text-decoration-thickness: .5pt; }
+
+/* As margens da página já afastam o texto da borda: o recuo de tela sai. */
+.doc-header { padding: 0 18px; border-radius: 6px 6px 0 0; }
+.title-block-inner { padding: 14px 0 12px; }
+.legenda { margin: 12px 0 0; }
+.summary-wrap { margin: 16px 0; }
+.content { padding: 0; }
+
+/* ── Quebras de página ──────────────────────────────────────────────── */
+/* O sumário pode continuar na página seguinte (antes, o bloco inteiro pulava e a capa ficava vazia); cada linha
+   fica inteira. */
+.summary-table, .two-col { break-inside: auto; }
+.summary-table tr, .data-table tr, .bullet-list li, .obs-list li { break-inside: avoid; }
+.summary-table tr:has(> .obs-cell), .summary-table .obs-cell { break-inside: auto; }
+
+/* Título nunca fica sozinho no pé da página. */
+.section-heading, .sub-heading, .annex-heading { break-after: avoid; break-inside: avoid; }
+.section-heading { margin-top: 18px; }
+/* A fonte fica junto do parágrafo, da tabela ou da figura que ela cita. */
+.fonte { break-before: avoid; }
+.figura, .alert-box, .info-box, .doc-footer { break-inside: avoid; }
+
+/* Tabelas: cabeçalho repetido em cada página; sem quebrar palavra no meio. */
+.data-table thead { display: table-header-group; }
+.data-table th, .data-table td { overflow-wrap: break-word; word-break: normal; hyphens: manual; }
+.data-table.larga { font-size: 7pt; }
+.data-table.deitada { page: paisagem; }
+
+/* Itens fora do piloto aparecem, discretos: sem eles o título da seção ficava sem nada embaixo. */
+.nao-entra { display: block !important; padding: 3px 10px; margin: 4px 0; font-size: 7pt; }
+.doc-footer { margin-top: 24px; border-radius: 0 0 6px 6px; }
+
+/* As âncoras (#item-…, #secao-…) servem à tela, que rola o relatório até elas; no PDF nada aponta para elas, e a caixa
+   vazia entre o título e a figura deixava o Chrome quebrar ali, com o título sozinho no pé da página. */
+.ancora { display: none !important; }
+
+/* Parágrafo (ou figura, tabela, item) e as linhas de fonte dele: o gerador os agrupa, e o grupo não se parte. */
+.com-fonte { break-inside: avoid; }
+.com-fonte > .fonte { break-before: auto; }
+
+/* Caixa que continua na página seguinte: cada pedaço fecha a própria borda (antes a borda ficava aberta no pé de uma
+   página e no topo da outra). Tabela não aceita isso: a moldura externa sai e a borda vai para as células. */
+.bullet-list, .two-col > div, .obs-cell, .info-box, .alert-box, .legenda {
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+.summary-table, .data-table { border: none !important; border-radius: 0 !important; overflow: visible !important;
+                              border-collapse: collapse !important; }
+.summary-table td { border: 1px solid #c3d3de !important; }
+.summary-table .sum-header td { border-color: #021926 !important; }
+.data-table th { border: 1px solid #021926; }
+.data-table td { border: 1px solid #dbe4ea; }
+
+/* A fonte da tabela deitada vai com ela para a página deitada (sem isso, voltava sozinha para uma página em pé). */
+.com-fonte:has(> .data-table.deitada) { page: paisagem; }
+
+/* Sumário: em blocos, não em tabela, para a caixa de Observações fechar a borda em cada página quando continua na
+   seguinte (célula de tabela não aceita box-decoration-break). O desenho é o mesmo: rótulo à esquerda, valor à
+   direita, faixa escura no título. */
+.summary-table, .summary-table tbody { display: block; }
+.summary-table tr { display: grid; grid-template-columns: 38% 1fr; }
+.summary-table tr.sum-header, .summary-table tr:has(> .obs-cell) { display: block; }
+.summary-table td { display: block; }
+.summary-table tr + tr td { border-top: none !important; }
+.summary-table .label-cell { width: auto !important; border-right: none !important; }
+.summary-table .obs-cell { -webkit-box-decoration-break: clone; box-decoration-break: clone; }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button, IconButton, InlineLoading, InlineNotification, TextArea } from '@carbon/react'
-import { Close, Send } from '@carbon/icons-react'
+import { Chat, Close, Send } from '@carbon/icons-react'
 import { conversar } from '../../services/chatApi'
 import { registrarEdicao, versaoPublicada } from '../../services/resumosApi'
 import RespostaDoAgente from '../Chat/RespostaDoAgente.jsx'
@@ -23,7 +23,7 @@ const ESPERA_APOS_RESPOSTA_MS = 20000 // a versão é gravada antes da resposta;
 
 const esperar = ms => new Promise(resolve => { setTimeout(resolve, ms) })
 
-function EdicaoTrecho({ relatorioId, versao, referencia, onFechar, onVersaoNova, onVersaoMudou }) {
+function EdicaoTrecho({ relatorioId, versao, referencia, onFechar, onVersaoNova, onVersaoMudou, onConversar }) {
   const [dialogo, setDialogo] = useState([]) // {papel: 'usuario' | 'agente', texto}
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -171,6 +171,15 @@ function EdicaoTrecho({ relatorioId, versao, referencia, onFechar, onVersaoNova,
         )}
         {erro && <InlineNotification kind="error" lowContrast hideCloseButton title={erro} />}
       </div>
+
+      {onConversar && (
+        <p className="edicao-trecho__chat">
+          Várias alterações, ou uma conversa mais longa?{' '}
+          <Button kind="ghost" size="sm" renderIcon={Chat} onClick={onConversar} disabled={enviando}>
+            Abrir um chat dedicado a este relatório
+          </Button>
+        </p>
+      )}
 
       <footer className="edicao-trecho__envio">
         <TextArea ref={campo} labelText="Alteração" hideLabel rows={3} value={texto} disabled={enviando}

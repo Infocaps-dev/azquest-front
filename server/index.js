@@ -22,11 +22,12 @@
 //   PUBLICAR_BASELINE   "true" envia o baseline à monitor-api (etapa 1.5) ao publicar; desligado por padrão
 //   PAPEIS_PUBLICACAO   papéis do BFF que podem publicar e devolver (ex.: "gestor,admin"); vazio = qualquer um logado
 //   PORT           padrão 8080
-import { GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { randomUUID } from 'node:crypto'
 import express from 'express'
 import { baselineAtualizado, emissorCanonico } from './baseline.js'
+import { agoraEmSaoPaulo, converter, DESENHO, htmlDoPdf, referenciaDoPdf } from './pdf.js'
 import {
   TIPOS_AJUSTAVEIS, decidir, estadoDaRevisao, pedidoAtrasado, pedidoDeAjustes, publicando, recuperarPedidoAtrasado,
   revisaoVazia, validarDecisao,
@@ -42,6 +43,8 @@ const ITEM = /^[A-Za-z0-9][A-Za-z0-9-]{0,79}$/
 const MONITOR_API_URL = (process.env.MONITOR_API_URL
   || 'https://monitor-api.2fom3olxz1yh.br-sao.codeengine.appdomain.cloud').replace(/\/$/, '')
 const PUBLICAR_BASELINE = process.env.PUBLICAR_BASELINE === 'true'
+// Gotenberg (conversor de HTML em PDF, app privado no mesmo projeto do Code Engine). Sem ele, a rota do PDF responde 503.
+const GOTENBERG_URL = (process.env.GOTENBERG_URL || '').replace(/\/+$/, '')
 const PAPEIS_PUBLICACAO = (process.env.PAPEIS_PUBLICACAO || '').split(',').map(p => p.trim()).filter(Boolean)
 
 const cos = new S3Client({
@@ -492,11 +495,11 @@ app.get('/api/graficos/:pasta/:nome', emRota(async (req, res) => {
   res.json(grafico)
 }))
 
-async function listar(prefixo) {
+async function listar(prefixo, StartAfter) {
   const objetos = []
   let ContinuationToken
   do {
-    const r = await cos.send(new ListObjectsV2Command({ Bucket: BUCKET, Prefix: prefixo, ContinuationToken }))
+    const r = await cos.send(new ListObjectsV2Command({ Bucket: BUCKET, Prefix: prefixo, StartAfter, ContinuationToken }))
     objetos.push(...(r.Contents || []))
     ContinuationToken = r.IsTruncated ? r.NextContinuationToken : undefined
   } while (ContinuationToken)
@@ -570,6 +573,179 @@ app.get('/api/fontes', emRota(async (req, res) => {
     documentos: atual?.documentos ?? [],
     consultas: consultas.filter(c => c.codigo).sort((a, b) => String(b.extraido_em).localeCompare(String(a.extraido_em))),
   })
+}))
+
+// Relatórios gravados (gerados ou alterados) desde um instante, do mais recente para o mais antigo. O Orchestrate às
+// vezes responde "I have encountered an error" depois de o relatório já ter sido gravado: o chat procura aqui o que o
+// pedido produziu, em vez de mandar a pessoa pedir de novo e gerar outro.
+app.get('/api/relatorios-recentes', emRota(async (req, res) => {
+  const desde = Date.parse(req.query.desde)
+  if (Number.isNaN(desde)) throw new ErroHttp(400, 'Informe ?desde= com data e hora (ISO 8601).')
+  const estados = (await listar('relatorios/'))
+    .filter(o => o.Key.endsWith('.json') && o.LastModified.getTime() >= desde)
+    .sort((a, b) => b.LastModified - a.LastModified)
+    .slice(0, 5)
+  res.json(await Promise.all(estados.map(async o => {
+    const e = (await lerJson(o.Key)) || {}
+    return {
+      relatorio_id: e.relatorio_id || o.Key.slice('relatorios/'.length, -'.json'.length),
+      versao: e.versao || null, empresa: e.empresa || '', referencia: e.referencia || '',
+      gravado_em: o.LastModified.toISOString(),
+    }
+  })))
+}))
+
+// Pedido de relatório que uma tool ainda está rodando: andamento/<início>-<tool>-<id>.json sem "fim" (gravado por
+// gerar_relatorio_credito e atualizar_relatorio_credito). Depois de uma falha da plataforma, o chat só repete o pedido
+// se não houver relatório gravado nem pedido em andamento desde o envio. Marca com mais de 5 min é de tool que morreu.
+const LIMITE_ANDAMENTO_MS = 5 * 60 * 1000
+const carimbo = ms => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z')
+
+app.get('/api/pedidos-em-andamento', emRota(async (req, res) => {
+  const desde = Date.parse(req.query.desde)
+  if (Number.isNaN(desde)) throw new ErroHttp(400, 'Informe ?desde= com data e hora (ISO 8601).')
+  const marcas = await listar('andamento/', `andamento/${carimbo(desde)}`)
+  const lidas = await Promise.all(marcas.filter(o => o.Key.endsWith('.json')).map(o => lerJson(o.Key)))
+  res.json(lidas
+    .filter(e => e && !e.fim && Date.now() - e.inicio * 1000 < LIMITE_ANDAMENTO_MS)
+    .map(e => ({ ferramenta: e.ferramenta, detalhe: e.detalhe || '', inicio: new Date(e.inicio * 1000).toISOString() })))
+}))
+
+// Estado atual de um relatório (relatorios/<id>.json, gravado pelo agente a cada versão): o chat vinculado a ele mostra a
+// miniatura da versão atual e percebe a versão nova sem esperar o resumo do monitor.
+app.get('/api/relatorios/:id/estado', emRota(async (req, res) => {
+  const { id } = req.params
+  if (!ID.test(id)) throw new ErroHttp(400, 'Identificador de relatório inválido.')
+  const { dados: e } = await lerJsonComEtag(`relatorios/${id}.json`)
+  if (!e) throw new ErroHttp(404, 'Relatório não encontrado.')
+  res.json({
+    relatorio_id: e.relatorio_id || id, versao: e.versao || null, empresa: e.empresa || '',
+    referencia: e.referencia || '', periodo: e.periodo || '',
+  })
+}))
+
+// Objeto do bucket inteiro (Buffer), ou null se não existe.
+async function lerObjeto(chave) {
+  try {
+    const r = await cos.send(new GetObjectCommand({ Bucket: BUCKET, Key: chave }))
+    return Buffer.from(await r.Body.transformToByteArray())
+  } catch (e) {
+    if (naoExiste(e)) return null
+    throw e
+  }
+}
+
+const semAcento = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-')
+  .replace(/^-|-$/g, '')
+
+// PDF de uma versão do relatório (?versao=N; sem ela, a atual), para baixar. Cada versão é gerada uma vez no Gotenberg
+// e guardada em pdf/<id>-v<N>-<desenho>.pdf: a versão de um relatório não muda, e o desenho do PDF entra no nome para
+// a mudança do pdf.css não servir PDF velho.
+//
+// O Gotenberg desliga quando fica parado e leva até 2 min para religar. Por isso a tela não espera a conversão num pedido
+// só: POST .../pdf/preparar começa a geração em segundo plano e responde na hora; a tela pergunta de novo até o PDF ficar
+// pronto e só então baixa (GET .../pdf, que sai do bucket). Nenhum tempo limite (do nginx, do Code Engine) corta a
+// conversão no meio. A aba Análise de Crédito acorda o Gotenberg ao abrir (POST /api/pdf/acordar).
+const gerandoPdf = new Map() // chave do PDF -> { promessa, erro }
+let acordadoEm = 0
+
+async function pdfPedido(req) {
+  const { id } = req.params
+  const pedida = req.query.versao
+  if (!ID.test(id) || (pedida && !/^\d{1,4}$/.test(pedida))) throw new ErroHttp(400, 'Identificador de relatório inválido.')
+  const estado = await lerJson(`relatorios/${id}.json`)
+  if (!estado) throw new ErroHttp(404, 'Relatório não encontrado.')
+  const versao = Number(pedida || estado.versao || 1)
+  return { id, estado, versao, chave: `pdf/${id}-v${versao}-${DESENHO}.pdf` }
+}
+
+async function gerarPdf({ id, estado, versao, chave }) {
+  if (!GOTENBERG_URL) throw new ErroHttp(503, 'O serviço de PDF não está configurado.')
+  const bruto = (await lerObjeto(`relatorios/${id}-v${versao}.html`))
+    ?? (versao === Number(estado.versao || 1) ? await lerObjeto(`relatorios/${id}.html`) : null)
+  if (!bruto) throw new ErroHttp(404, `Versão ${versao} do relatório não encontrada.`)
+  const titulo = `Relatório de Crédito – ${[estado.empresa, estado.referencia].filter(Boolean).join(' – ')}`
+  const html = htmlDoPdf(bruto.toString('utf-8'), {
+    referencia: referenciaDoPdf({ empresa: estado.empresa, referencia: estado.referencia, versao }),
+    gerado: agoraEmSaoPaulo(),
+  })
+  const inicio = Date.now()
+  let pdf
+  try {
+    pdf = await converter(GOTENBERG_URL, html, { titulo })
+  } catch (e) {
+    // Religando, o Gotenberg pode recusar o primeiro pedido: uma tentativa a mais.
+    console.error(JSON.stringify({ ts: new Date().toISOString(), pdf: chave, tentativa: 1, erro: String(e) }))
+    pdf = await converter(GOTENBERG_URL, html, { titulo })
+  }
+  console.log(JSON.stringify({ ts: new Date().toISOString(), pdf: chave, bytes: pdf.length, ms: Date.now() - inicio }))
+  await cos.send(new PutObjectCommand({ Bucket: BUCKET, Key: chave, Body: pdf, ContentType: 'application/pdf' }))
+  return pdf
+}
+
+// Uma geração por PDF, mesmo com vários pedidos ao mesmo tempo. Se falhar, o erro fica até alguém perguntar por ele.
+function prepararPdf(alvo) {
+  let g = gerandoPdf.get(alvo.chave)
+  if (!g) {
+    g = { erro: null }
+    g.promessa = gerarPdf(alvo).then(pdf => { gerandoPdf.delete(alvo.chave); return pdf }, e => {
+      g.erro = e
+      console.error(JSON.stringify({ ts: new Date().toISOString(), pdf: alvo.chave, erro: String(e) }))
+      return null
+    })
+    gerandoPdf.set(alvo.chave, g)
+  }
+  return g
+}
+
+function erroDoPdf(alvo, g) {
+  gerandoPdf.delete(alvo.chave)
+  return g.erro instanceof ErroHttp ? g.erro
+    : new ErroHttp(502, 'O serviço de PDF não conseguiu gerar este relatório. Tente de novo em alguns instantes.')
+}
+
+async function existeObjeto(chave) {
+  try {
+    await cos.send(new HeadObjectCommand({ Bucket: BUCKET, Key: chave }))
+    return true
+  } catch (e) {
+    if (naoExiste(e) || e.name === 'NotFound') return false
+    throw e
+  }
+}
+
+app.post('/api/pdf/acordar', (req, res) => {
+  if (GOTENBERG_URL && Date.now() - acordadoEm > 60 * 1000) {
+    acordadoEm = Date.now()
+    fetch(`${GOTENBERG_URL}/health`, { signal: AbortSignal.timeout(240000) }).catch(() => {})
+  }
+  res.status(202).json({ ok: true })
+})
+
+// {pronto, versao}: pronto, o GET baixa na hora; senão, a geração está em andamento e a tela pergunta de novo.
+app.post('/api/relatorios/:id/pdf/preparar', emRota(async (req, res) => {
+  const alvo = await pdfPedido(req)
+  const g = gerandoPdf.get(alvo.chave)
+  if (g?.erro) throw erroDoPdf(alvo, g)
+  if (!g && await existeObjeto(alvo.chave)) return res.json({ pronto: true, versao: alvo.versao })
+  prepararPdf(alvo)
+  res.status(202).json({ pronto: false, versao: alvo.versao })
+}))
+
+app.get('/api/relatorios/:id/pdf', emRota(async (req, res) => {
+  const alvo = await pdfPedido(req)
+  let pdf = await lerObjeto(alvo.chave)
+  if (!pdf) {
+    const g = prepararPdf(alvo)
+    pdf = await g.promessa
+    if (!pdf) throw erroDoPdf(alvo, g)
+  }
+  const { estado, versao } = alvo
+  const arquivo = `Relatorio-Credito-${semAcento(estado.empresa) || 'Emissor'}-${semAcento(estado.periodo || '')}-v${versao}.pdf`
+    .replace(/--+/g, '-')
+  res.set('Content-Type', 'application/pdf')
+  res.set('Content-Disposition', `${req.query.ver ? 'inline' : 'attachment'}; filename="${arquivo}"`)
+  res.send(pdf)
 }))
 
 // Abre o HTML do relatório (versão atual, ou ?versao=N) num link assinado.

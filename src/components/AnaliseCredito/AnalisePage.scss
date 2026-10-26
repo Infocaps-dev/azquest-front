@@ -437,6 +437,82 @@
 }
 
 // ── Kit de Fontes ───────────────────────────────────────────────────────
+// ── Anexar documentos ───────────────────────────────────────────────────
+.ana-anexos {
+  padding: $spacing-06;
+  margin-bottom: $spacing-06;
+  background: $layer-01;
+
+  // O drop container do Carbon nasce com 100% de nada; sem largura explícita
+  // ele encolhe para o texto e vira um alvo minúsculo de arrastar.
+  .cds--file-browse-btn,
+  .cds--file__drop-container { max-width: 100%; }
+
+  .cds--inline-notification { max-width: 100%; margin: $spacing-03 0; }
+}
+
+.ana-anexos__ajuda {
+  @include type-style('body-compact-01');
+  margin-bottom: $spacing-05;
+  color: $text-secondary;
+}
+
+.ana-anexos__lista {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-05;
+  margin: $spacing-05 0;
+}
+
+.ana-anexos__item {
+  padding: $spacing-05;
+  border-left: 2px solid $border-subtle-01;
+  background: $layer-02;
+}
+
+.ana-anexos__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03;
+  align-items: center;
+}
+
+.ana-anexos__arquivo {
+  @include type-style('heading-compact-01');
+  word-break: break-all;
+}
+
+.ana-anexos__motivo {
+  @include type-style('label-01');
+  margin: $spacing-02 0 $spacing-04;
+  color: $text-secondary;
+}
+
+.ana-anexos__acoes {
+  display: flex;
+  gap: $spacing-05;
+  align-items: flex-end;
+
+  // Na linha, e não no .cds--select: ele fica dentro de um form-item em
+  // coluna, onde os 18rem virariam altura.
+  > .cds--form-item { flex: 1 1 18rem; }
+  > .ana-anexos__periodo { flex: 0 0 8rem; }
+}
+
+.ana-anexos__pendencia {
+  @include type-style('label-01');
+  margin-top: $spacing-03;
+  color: $text-error;
+}
+
+// O nome final: é por ele que as tools do acervo reconhecem o documento.
+.ana-anexos__destino {
+  @include type-style('code-01');
+  margin-top: $spacing-03;
+  color: $text-secondary;
+  word-break: break-all;
+}
+
 .ana-fontes {
   padding: $spacing-06;
   background: $layer-01;

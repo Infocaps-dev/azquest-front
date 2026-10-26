@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ComposedModal, InlineNotification, Loading, ModalBody, ModalHeader } from '@carbon/react'
-import { Launch } from '@carbon/icons-react'
+import { ComposedModal, InlineLoading, InlineNotification, Loading, ModalBody, ModalHeader } from '@carbon/react'
+import { Chat, DocumentPdf, Launch } from '@carbon/icons-react'
 import { enderecoHtml, enderecoRelatorio, versaoPublicada } from '../../services/resumosApi'
+import { AVISO_LIGANDO_PDF, rotuloGerandoPdf, useBaixarPdf } from '../../hooks/useBaixarPdf'
 import EdicaoTrecho from './EdicaoTrecho.jsx'
 import { PREFIXO_EDICAO, referenciaDoTrecho, textoVisivel } from './edicaoTrecho'
 import './RelatorioCompleto.scss'
@@ -64,7 +65,7 @@ function porBotoes(doc) {
 }
 
 function RelatorioCompleto({
-  aberto, onFechar, relatorioId, versao, titulo, ancora, itens, indice, versaoResumo, onVersaoNova,
+  aberto, onFechar, relatorioId, versao, titulo, ancora, itens, indice, versaoResumo, onVersaoNova, onConversar,
 }) {
   const quadro = useRef(null)
   const [carregado, setCarregado] = useState(false)
@@ -75,6 +76,7 @@ function RelatorioCompleto({
   const [foco, setFoco] = useState(null) // âncoras onde a versão nova se posiciona: o item, senão a seção
   const [edicao, setEdicao] = useState(null)
   const [concluida, setConcluida] = useState(null)
+  const pdf = useBaixarPdf()
 
   useEffect(() => {
     setVersaoTela(versao || null)
@@ -169,8 +171,28 @@ function RelatorioCompleto({
         <a className="rel-modal__abrir" href={enderecoRelatorio(relatorioId, versaoTela)} target="_blank" rel="noreferrer">
           Abrir em nova aba <Launch size={14} />
         </a>
+        <button type="button" className="rel-modal__abrir rel-modal__conversar" disabled={pdf.gerando !== null}
+          onClick={() => pdf.baixar(relatorioId, versaoTela)}>
+          {pdf.gerando === null ? 'Baixar PDF' : rotuloGerandoPdf(pdf.gerando)}
+          {pdf.gerando === null ? <DocumentPdf size={14} /> : <InlineLoading className="rel-modal__carregando" />}
+        </button>
+        {/* Conversa dedicada a este relatório: cada pedido no chat vira uma versão nova dele, com a miniatura ao lado. */}
+        {onConversar && (
+          <button type="button" className="rel-modal__abrir rel-modal__conversar"
+            onClick={() => { onFechar(); onConversar(relatorioId) }}>
+            Conversar no chat sobre este relatório <Chat size={14} />
+          </button>
+        )}
       </ModalHeader>
       <ModalBody className="rel-modal__corpo">
+        {pdf.ligando && (
+          <InlineNotification kind="info" lowContrast hideCloseButton className="rel-modal__aviso"
+            title="Gerando o PDF" subtitle={AVISO_LIGANDO_PDF} />
+        )}
+        {pdf.erro && (
+          <InlineNotification kind="error" lowContrast className="rel-modal__aviso" title="O PDF não foi gerado"
+            subtitle={pdf.erro} onClose={pdf.limparErro} />
+        )}
         {semAncora && (
           <InlineNotification kind="info" lowContrast hideCloseButton className="rel-modal__aviso"
             title="Posição não encontrada"
@@ -208,6 +230,7 @@ function RelatorioCompleto({
               onFechar={() => setEdicao(null)}
               onVersaoNova={versaoGerada}
               onVersaoMudou={irParaMaisNova}
+              onConversar={onConversar && (() => { onFechar(); onConversar(relatorioId) })}
             />
           )}
         </div>

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button, InlineNotification, Loading, Tag } from '@carbon/react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Button, InlineNotification, Loading, Select, SelectItem, Tag } from '@carbon/react'
 import { Renew, Warning } from '@carbon/icons-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useExecucao } from '../../hooks/useExecucao'
@@ -10,6 +10,7 @@ import {
   historicoDeAprovacoes,
   historicoDeCiclos,
   listarAlertas,
+  listarEmissores,
   listarExecucoes,
   obterBaseline,
   obterComparacao,
@@ -32,7 +33,9 @@ import './MonitoramentoPage.scss'
 // edita ou rejeita a análise. O chat do Orchestrate continua disponível na aba
 // Início, mas não é a tela principal do processo.
 
-const EMISSOR = 'Ecorodovias'
+// Emissor que abre a aba. A lista vem da monitor-api (/api/emissores): hoje
+// Ecorodovias, do Piloto, e Motiva, da contraprova.
+const EMISSOR_INICIAL = 'Ecorodovias'
 
 // O alerta da rodada atual, não o primeiro pendente da lista.
 //
@@ -44,9 +47,13 @@ const EMISSOR = 'Ecorodovias'
 //
 // A API devolve do mais recente para o mais antigo, então o primeiro alerta do
 // período é o da rodada corrente, decidido ou não.
-function alertaDoCiclo(alertas, periodo) {
-  const doPeriodo = alertas.filter(a => !periodo || a.periodo === periodo)
-  return doPeriodo[0] || alertas[0] || null
+//
+// O emissor tambem filtra: Ecorodovias e Motiva tem o mesmo 2T26, e sem isso o
+// alerta de uma aparecia para aprovacao na outra.
+function alertaDoCiclo(alertas, periodo, emissor) {
+  const doEmissor = alertas.filter(a => !emissor || !a.emissor || a.emissor === emissor)
+  const doPeriodo = doEmissor.filter(a => !periodo || a.periodo === periodo)
+  return doPeriodo[0] || doEmissor[0] || null
 }
 
 function MonitoramentoPage() {
@@ -69,22 +76,43 @@ function MonitoramentoPage() {
   const [rodando, setRodando] = useState(false)
   const [erroCiclo, setErroCiclo] = useState('')
   const [baseline, setBaseline] = useState(null)
+  const [emissor, setEmissor] = useState(EMISSOR_INICIAL)
+  const [emissores, setEmissores] = useState([])
+  // Período escolhido para rodar. Vazio: o do ciclo aberto.
+  const [periodoEscolhido, setPeriodoEscolhido] = useState('')
+  // Emissor sem nenhum ciclo ainda (a Motiva, na primeira vez): a tela mostra
+  // o processo zerado e o botão para rodar o primeiro, em vez de travar.
+  const [semCiclo, setSemCiclo] = useState(false)
 
-  const { execucao, etapas, aguardandoAprovacao, erro } =
-    useExecucao(execucaoId, { decisao, acompanhar: rodando })
+  const acompanhamento = useExecucao(execucaoId, { decisao, acompanhar: rodando })
+  // O hook guarda a última execução que carregou. Logo depois de trocar de
+  // emissor ela ainda é a do anterior, e as etapas dele apareceriam sob o nome
+  // do novo: só vale a execução do emissor escolhido.
+  const doEmissor = !acompanhamento.execucao?.emissor || acompanhamento.execucao.emissor === emissor
+  const execucao = doEmissor ? acompanhamento.execucao : null
+  const etapas = useMemo(() => (doEmissor ? acompanhamento.etapas : []), [doEmissor, acompanhamento.etapas])
+  const aguardandoAprovacao = doEmissor && acompanhamento.aguardandoAprovacao
+  const { erro } = acompanhamento
   // Só conta como terminado depois de ter visto o ciclo andando: a primeira
   // consulta pode trazer ainda o estado anterior ao clique.
   const vistoAndando = useRef(false)
 
   // Carrega o ciclo mais recente do emissor, a comparação e o alerta pendente.
   useEffect(() => {
+    listarEmissores().then(setEmissores).catch(() => setEmissores([]))
+  }, [])
+
+  useEffect(() => {
     let ativo = true
     async function carregar() {
       try {
-        const execucoes = await listarExecucoes(EMISSOR)
+        const execucoes = await listarExecucoes(emissor)
         if (!ativo) return
         if (!execucoes.length) {
-          setErroCarga('Nenhum ciclo de monitoramento foi executado ainda.')
+          const vigente = await obterBaseline(emissor).catch(() => null)
+          if (!ativo) return
+          setBaseline(vigente?.baseline ?? vigente)
+          setSemCiclo(true)
           return
         }
         const ciclo = execucoes[0]
@@ -92,20 +120,20 @@ function MonitoramentoPage() {
 
         const alertas = await listarAlertas()
         if (!ativo) return
-        const pendente = alertaDoCiclo(alertas, ciclo.periodo)
+        const pendente = alertaDoCiclo(alertas, ciclo.periodo, emissor)
         setAlerta(pendente)
 
         // A comparação vem pelo período do ciclo, não pelo alerta: ciclo sem
         // impacto material não gera alerta e mesmo assim tem comparação.
         const comp =
-          (await comparacaoDoPeriodo(EMISSOR, ciclo.periodo)) ||
+          (await comparacaoDoPeriodo(emissor, ciclo.periodo)) ||
           (pendente?.comparacao_id ? await obterComparacao(pendente.comparacao_id) : null)
         if (ativo) setComparacao(comp)
 
         const [ciclos, decididas, vigente] = await Promise.all([
-          historicoDeCiclos(EMISSOR),
-          historicoDeAprovacoes(EMISSOR).catch(() => []),
-          obterBaseline(EMISSOR).catch(() => null),
+          historicoDeCiclos(emissor),
+          historicoDeAprovacoes(emissor).catch(() => []),
+          obterBaseline(emissor).catch(() => null),
         ])
         if (!ativo) return
         setHistorico(ciclos)
@@ -121,7 +149,25 @@ function MonitoramentoPage() {
     return () => {
       ativo = false
     }
-  }, [])
+  }, [emissor])
+
+  // Trocar de emissor zera a tela antes de carregar o outro: comparação,
+  // alerta e histórico de um emissor não podem aparecer sob o nome do outro.
+  function trocarEmissor(novo) {
+    if (novo === emissor) return
+    setCarregando(true)
+    setErroCarga('')
+    setSemCiclo(false)
+    setExecucaoId(null)
+    setComparacao(null)
+    setAlerta(null)
+    setHistorico([])
+    setDecisoes([])
+    setBaseline(null)
+    setPeriodoEscolhido('')
+    setAprovacaoAberta(false)
+    setEmissor(novo)
+  }
 
   const abrirFonte = useCallback(fonte => setFonteAberta(fonte), [])
 
@@ -136,14 +182,23 @@ function MonitoramentoPage() {
   // Roda o ciclo do início, mesmo que o período já tenha passado por todas as
   // etapas: a API zera as oito, devolve na hora e segue em segundo plano. A
   // tela acompanha B1 a B6 andando pelo `acompanhar` do useExecucao.
+  const periodosDoEmissor = emissores.find(e => e.emissor === emissor)?.periodos || []
+  const periodoAlvo = periodoEscolhido || execucao?.periodo || periodosDoEmissor[0] || ''
+
   async function rodarCiclo() {
-    if (!execucao?.periodo) return
+    if (!periodoAlvo) return
     setErroCiclo('')
     setAprovacaoAberta(false)
     vistoAndando.current = false
     setRodando(true)
     try {
-      await executarCiclo(EMISSOR, execucao.periodo)
+      // O ciclo de outro período (ou o primeiro do emissor) tem outro id: a
+      // tela passa a acompanhar o que a API acabou de semear.
+      const semeada = await executarCiclo(emissor, periodoAlvo)
+      if (semeada?.id) {
+        setExecucaoId(semeada.id)
+        setSemCiclo(false)
+      }
     } catch (e) {
       setErroCiclo(e.message)
       setRodando(false)
@@ -164,16 +219,16 @@ function MonitoramentoPage() {
     const parouNaDecisao = etapas.some(e => e.status === 'aguardando_aprovacao')
     let ativo = true
     Promise.all([
-      comparacaoDoPeriodo(EMISSOR, periodo),
-      historicoDeCiclos(EMISSOR),
-      historicoDeAprovacoes(EMISSOR).catch(() => []),
+      comparacaoDoPeriodo(emissor, periodo),
+      historicoDeCiclos(emissor),
+      historicoDeAprovacoes(emissor).catch(() => []),
       listarAlertas(),
     ]).then(([comp, ciclos, decididas, alertas]) => {
       if (!ativo) return
       if (comp) setComparacao(comp)
       setHistorico(ciclos)
       setDecisoes(decididas)
-      const pendente = alertaDoCiclo(alertas, periodo)
+      const pendente = alertaDoCiclo(alertas, periodo, emissor)
       setAlerta(pendente)
       if (falhou) setErroCiclo(`${falhou.etapa}: ${falhou.mensagem || 'falhou'}`)
       else if (parouNaDecisao && pendente) setAprovacaoAberta(true)
@@ -183,7 +238,7 @@ function MonitoramentoPage() {
       if (ativo) setRodando(false)
     })
     return () => { ativo = false }
-  }, [rodando, etapas, cicloEmAndamento, execucao?.periodo])
+  }, [rodando, etapas, cicloEmAndamento, execucao?.periodo, emissor])
 
   // Desvio de roteamento: o ciclo esta parado numa etapa que nao vai rodar.
   //
@@ -236,16 +291,32 @@ function MonitoramentoPage() {
           reaprender onde ficam as coisas. */}
       <header className="mon-cabecalho">
         <div className="mon-cabecalho__identidade">
-          <h1 className="mon-cabecalho__emissor">{EMISSOR}</h1>
+          <h1 className="mon-cabecalho__emissor">{emissor}</h1>
           <span className="mon-cabecalho__evento">
-            {execucao?.evento || `Ciclo ${execucao?.periodo || ''}`}
+            {semCiclo ? 'Nenhum ciclo rodado ainda' : (execucao?.evento || `Ciclo ${execucao?.periodo || ''}`)}
           </span>
-          <Tag type={nivel.tag} size="sm">{nivel.rotulo}</Tag>
+          {!semCiclo && <Tag type={nivel.tag} size="sm">{nivel.rotulo}</Tag>}
           {aguardandoAprovacao && (
             <span className="mon-cabecalho__estado">aguardando sua decisão</span>
           )}
         </div>
         <div className="mon-cabecalho__acoes">
+          {/* Emissor e período do ciclo a rodar. Trocar o emissor recarrega a
+              tela inteira; o período só vale para o próximo "Rodar". */}
+          {emissores.length > 1 && (
+            <Select id="mon-emissor" size="sm" labelText="Emissor" hideLabel inline
+              value={emissor} disabled={rodando || cicloEmAndamento}
+              onChange={e => trocarEmissor(e.target.value)}>
+              {emissores.map(e => <SelectItem key={e.emissor} value={e.emissor} text={e.emissor} />)}
+            </Select>
+          )}
+          {periodosDoEmissor.length > 0 && (
+            <Select id="mon-periodo" size="sm" labelText="Período" hideLabel inline
+              value={periodoAlvo} disabled={rodando || cicloEmAndamento}
+              onChange={e => setPeriodoEscolhido(e.target.value)}>
+              {periodosDoEmissor.map(p => <SelectItem key={p} value={p} text={p} />)}
+            </Select>
+          )}
           {/* "Analisar o impacto" aparece quando o ciclo chega nessa etapa, e
               some quando passa dela. Antes só existia como caminho de volta,
               depois de o modal ser fechado: quem fechasse e rolasse a tela não
@@ -260,10 +331,11 @@ function MonitoramentoPage() {
             kind="tertiary"
             size="sm"
             renderIcon={Renew}
-            disabled={rodando || cicloEmAndamento}
+            disabled={rodando || cicloEmAndamento || !periodoAlvo}
             onClick={rodarCiclo}
           >
-            {rodando ? 'Rodando…' : 'Rodar ciclo do início'}
+            {rodando ? 'Rodando…'
+              : periodoAlvo && periodoAlvo !== execucao?.periodo ? `Rodar ciclo do ${periodoAlvo}` : 'Rodar ciclo do início'}
           </Button>
         </div>
       </header>
@@ -282,7 +354,17 @@ function MonitoramentoPage() {
             && ` · ${baseline.herdados_da_referencia.length} item(ns) ainda do relatório de referência anterior`}
           {baseline.publicado_em && execucao?.inicio && baseline.publicado_em > execucao.inicio
             && ' · publicado depois deste ciclo: reprocesse para comparar com ele'}
+          {baseline.a_validar_pelo_analista
+            && ' · montado de documentos públicos, sem relatório interno: a validar pelo analista'}
         </p>
+      )}
+
+      {semCiclo && !rodando && (
+        <InlineNotification kind="info" lowContrast hideCloseButton className="mon-pagina__aviso"
+          title={`${emissor} ainda não tem ciclo de monitoramento.`}
+          subtitle={periodosDoEmissor.length
+            ? `Escolha o período e clique em "Rodar ciclo" para começar pela captura dos documentos (${periodosDoEmissor.join(', ')} disponíveis no acervo).`
+            : 'Nenhum período com documento extraído no acervo deste emissor.'} />
       )}
 
       <LinhaProcesso
@@ -339,14 +421,14 @@ function MonitoramentoPage() {
             setDecisao(tomada)
             // A decisão que acabou de ser assinada entra no histórico sem
             // precisar recarregar a aba.
-            setDecisoes(await historicoDeAprovacoes(EMISSOR).catch(() => []))
+            setDecisoes(await historicoDeAprovacoes(emissor).catch(() => []))
           }}
         />
       )}
 
       {temDesvio && (
         <ModalDesvio
-          emissor={EMISSOR}
+          emissor={emissor}
           periodo={execucao?.periodo}
           comparacao={comparacao}
           etapaApontada={etapaApontada}

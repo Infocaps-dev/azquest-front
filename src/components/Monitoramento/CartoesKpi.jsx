@@ -2,8 +2,10 @@ import { Tag } from '@carbon/react'
 import { formatar, nivelDe, nomeDaEtapa } from './niveis'
 
 // Cartões de KPI, item 4 da seção 11: nível máximo, itens por nível, folga do
-// covenant, distância ao gatilho de rating, alavancagem contra baseline e
-// projeção, e tempo do ciclo contra o prazo.
+// covenant, distância ao gatilho de rating e alavancagem contra baseline e
+// projeção. O início do ciclo vai no pé do primeiro cartão; o cartão de tempo
+// decorrido saiu, porque contava desde a criação do ciclo e virava milhares
+// de minutos sem dizer nada útil.
 
 function Cartao({ titulo, valor, detalhe, rodape, tom }) {
   // O valor e um `div`, nao um `p`: em alguns cartoes ele e uma Tag do Carbon,
@@ -19,12 +21,6 @@ function Cartao({ titulo, valor, detalhe, rodape, tom }) {
   )
 }
 
-function minutosDesde(iso) {
-  if (!iso) return null
-  const minutos = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
-  return Number.isFinite(minutos) ? minutos : null
-}
-
 function CartoesKpi({ comparacao, execucao }) {
   if (!comparacao) return null
 
@@ -37,14 +33,15 @@ function CartoesKpi({ comparacao, execucao }) {
   const alavancagem = linhas.find(l => l.metrica === 'dl_ebitda_consolidado')
   const projecao = linhas.find(l => l.metrica === 'dl_ebitda_consolidado_projecao')
 
-  const decorrido = minutosDesde(execucao?.inicio)
-
   return (
     <section className="mon-kpis" aria-label="Indicadores do ciclo">
       <Cartao
         titulo="Nível máximo do ciclo"
         valor={<Tag type={nivel.tag} size="md">{nivel.rotulo}</Tag>}
         detalhe={`Destino: ${nomeDaEtapa(comparacao.roteamento?.destino) || '—'}`}
+        rodape={execucao?.inicio
+          ? `Início ${new Date(execucao.inicio).toLocaleString('pt-BR')}`
+          : null}
         tom={comparacao.nivel_maximo}
       />
       <Cartao
@@ -79,16 +76,6 @@ function CartoesKpi({ comparacao, execucao }) {
           tom={alavancagem.nivel}
         />
       )}
-      <Cartao
-        titulo="Tempo do ciclo"
-        valor={decorrido !== null ? `${decorrido} min` : '—'}
-        detalhe={`Prazo: ${execucao?.prazo || 'D+1 útil'}`}
-        // O inicio fica aqui, no pe do cartao: e a referencia do tempo
-        // decorrido logo acima, e e nesse cartao que ela tem sentido.
-        rodape={execucao?.inicio
-          ? `Início ${new Date(execucao.inicio).toLocaleString('pt-BR')}`
-          : null}
-      />
     </section>
   )
 }

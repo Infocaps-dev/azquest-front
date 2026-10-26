@@ -11,6 +11,9 @@
 // A confirmação no meio existe porque errar a pasta custa uma extração inteira
 // — até 10 minutos de 2 vCPU — e o erro só apareceria no JSON de saída.
 //
+// O emissor vai nas três chamadas: o anexo entra no bucket de entrada dele (o
+// mesmo da aba Coleta), e a confirmação e o descarte procuram o recebimento lá.
+//
 // Não há `Content-Type` nas chamadas de upload de propósito: com FormData o
 // navegador precisa montar o cabeçalho sozinho, porque é ele que escolhe o
 // `boundary`. Defini-lo à mão quebra o parse no servidor.
@@ -42,27 +45,29 @@ export async function listarTiposDeDocumento() {
  * Sobe os anexos e devolve o palpite de tipo de cada um.
  * Nenhum documento entra na pasta definitiva nesta chamada.
  */
-export async function enviarParaIdentificacao(arquivos) {
+export async function enviarParaIdentificacao(arquivos, emissor) {
   const corpo = new FormData()
   for (const arquivo of arquivos) corpo.append('arquivos', arquivo)
+  // Sem emissor, a analise-api grava no bucket de sempre (o da Ecorodovias).
+  if (emissor) corpo.append('emissor', emissor)
   return pedir('/api/documentos', { method: 'POST', body: corpo })
 }
 
 /** Grava cada documento na pasta confirmada e dispara a extração. */
-export async function confirmarDocumentos(documentos) {
+export async function confirmarDocumentos(documentos, emissor) {
   return pedir('/api/documentos/confirmar', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ documentos }),
+    body: JSON.stringify({ documentos, emissor }),
   })
 }
 
 /** Apaga recebimentos que o analista anexou e decidiu não enviar. */
-export async function descartarDocumentos(chaves) {
+export async function descartarDocumentos(chaves, emissor) {
   if (!chaves.length) return { descartados: [] }
   return pedir('/api/documentos/descartar', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chaves }),
+    body: JSON.stringify({ chaves, emissor }),
   })
 }

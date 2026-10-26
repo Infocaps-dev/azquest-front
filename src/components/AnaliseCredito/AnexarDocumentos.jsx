@@ -15,6 +15,7 @@ import {
   enviarParaIdentificacao,
   listarTiposDeDocumento,
 } from '../../services/documentosApi'
+import { listarEmissores } from '../../services/coletaApi'
 import {
   formatoDoPeriodo,
   nomePadronizado,
@@ -52,22 +53,28 @@ import {
 // envio sobe o arquivo de novo já com o nome certo e descarta o recebimento
 // antigo. Quem anexa no padrão (ITR-3T26-ECORODOVIAS.pdf) não paga esse
 // segundo envio.
+//
+// O emissor
+// ---------
+// A lista é a da aba Coleta (coleta-api /api/emissores), e o documento entra no
+// bucket de entrada do emissor escolhido: um documento da Motiva no bucket da
+// Ecorodovias seria extraído para o acervo dela. Com mais de um emissor, nada
+// vem escolhido; com documentos esperando confirmação, o emissor não muda (os
+// recebimentos já estão no bucket dele).
 
 const CORES_DA_CONFIANCA = { alta: 'green', media: 'teal', baixa: 'gray' }
-
-const EMISSOR = 'Ecorodovias'
 
 // O tipo do nome: release/ guarda o release (RR-) e a apresentação (AR-).
 function tipoDoNome(documento) {
   return documento.tipo === 'release' ? documento.subtipo : documento.tipo
 }
 
-function nomeNoAcervo(documento) {
+function nomeNoAcervo(documento, emissor) {
   return nomePadronizado({
     arquivo: documento.arquivo,
     tipo: tipoDoNome(documento),
     periodo: documento.periodo,
-    emissor: EMISSOR,
+    emissor,
   })
 }
 
@@ -84,6 +91,8 @@ function pendenciaDe(documento) {
 
 function AnexarDocumentos({ aoEnviar }) {
   const [tipos, setTipos] = useState([])
+  const [emissores, setEmissores] = useState(null)
+  const [emissor, setEmissor] = useState('')
   const [documentos, setDocumentos] = useState([])
   // O arquivo de cada recebimento, para subir de novo com o nome do acervo.
   const locais = useRef(new Map())
@@ -95,6 +104,13 @@ function AnexarDocumentos({ aoEnviar }) {
 
   useEffect(() => {
     listarTiposDeDocumento().then(setTipos).catch(() => setTipos([]))
+    listarEmissores().then(lista => {
+      setEmissores(lista)
+      if (lista.length === 1) setEmissor(lista[0].emissor)
+    }).catch(falha => {
+      setEmissores([])
+      setErro(`Não foi possível carregar os emissores: ${falha.message}`)
+    })
   }, [])
 
   async function aoAnexar(_evento, { addedFiles }) {
@@ -103,7 +119,7 @@ function AnexarDocumentos({ aoEnviar }) {
     setResultado(null)
     setIdentificando(true)
     try {
-      const resposta = await enviarParaIdentificacao(addedFiles)
+      const resposta = await enviarParaIdentificacao(addedFiles, emissor)
       const novos = resposta.documentos.map(documento => {
         const local = addedFiles.find(a => a.name === documento.arquivo_original)
         if (local) locais.current.set(documento.chave_recebida, local)
@@ -146,24 +162,24 @@ function AnexarDocumentos({ aoEnviar }) {
     locais.current.delete(chave)
     // O recebimento é apagado no bucket também: sem isso a área acumularia
     // para sempre todo PDF que alguém abriu por engano.
-    descartarDocumentos([chave]).catch(() => {})
+    descartarDocumentos([chave], emissor).catch(() => {})
   }
 
   // Sobe o arquivo de novo com o nome do acervo, quando o recebido é outro.
   async function comNomeDoAcervo(documento) {
-    const nome = nomeNoAcervo(documento)
+    const nome = nomeNoAcervo(documento, emissor)
     const local = locais.current.get(documento.chave_recebida)
     if (nome === documento.arquivo || !local) return documento
     const resposta = await enviarParaIdentificacao([
       new File([local], nome, { type: local.type }),
-    ])
+    ], emissor)
     const novo = resposta.documentos[0]
     if (!novo) {
       throw new Error(resposta.recusados[0]?.motivo || `${nome}: o reenvio foi recusado.`)
     }
     locais.current.delete(documento.chave_recebida)
     locais.current.set(novo.chave_recebida, local)
-    descartarDocumentos([documento.chave_recebida]).catch(() => {})
+    descartarDocumentos([documento.chave_recebida], emissor).catch(() => {})
     // Tipo, período e alertas continuam os da primeira leitura: o nome novo
     // foi montado a partir deles.
     return { ...documento, arquivo: novo.arquivo, chave_recebida: novo.chave_recebida }
@@ -185,6 +201,7 @@ function AnexarDocumentos({ aoEnviar }) {
       }
       const resposta = await confirmarDocumentos(
         atuais.map(d => ({ chave_recebida: d.chave_recebida, tipo: d.tipo })),
+        emissor,
       )
       setResultado(resposta)
       setDocumentos(resposta.falhas.length
@@ -215,11 +232,30 @@ function AnexarDocumentos({ aoEnviar }) {
         antes de enviar.
       </p>
 
+      {emissores === null && <InlineLoading description="Carregando emissores…" />}
+      {emissores?.length > 0 && (
+        <Select
+          id="anexos-emissor"
+          labelText="Emissor"
+          value={emissor}
+          onChange={e => setEmissor(e.target.value)}
+          disabled={documentos.length > 0 || identificando || enviando}
+          helperText={documentos.length > 0
+            ? 'Envie ou remova os documentos anexados para trocar o emissor.'
+            : 'Os documentos entram no acervo deste emissor.'}
+        >
+          {emissores.length > 1 && <SelectItem value="" text="Selecione…" />}
+          {emissores.map(e => <SelectItem key={e.emissor} value={e.emissor} text={e.razao_social} />)}
+        </Select>
+      )}
+
       <FileUploaderDropContainer
         accept={extensoes}
-        labelText="Arraste os documentos ou clique para selecionar"
+        labelText={emissor
+          ? 'Arraste os documentos ou clique para selecionar'
+          : 'Escolha o emissor para anexar documentos'}
         multiple
-        disabled={identificando || enviando}
+        disabled={!emissor || identificando || enviando}
         onAddFiles={aoAnexar}
       />
 
@@ -329,7 +365,7 @@ function AnexarDocumentos({ aoEnviar }) {
 
                 {!pendencia && (
                   <p className="ana-anexos__destino">
-                    Entra no acervo como {documento.tipo}/{nomeNoAcervo(documento)}
+                    Entra no acervo como {documento.tipo}/{nomeNoAcervo(documento, emissor)}
                   </p>
                 )}
               </li>

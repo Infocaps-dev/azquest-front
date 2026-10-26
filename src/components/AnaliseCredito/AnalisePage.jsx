@@ -421,23 +421,7 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
       <SecoesRelatorio itens={resumo?.itens} revisao={revisao} rotulos={rotulos}
         onRevisar={secao => abrirRevisao({ secao })} onVerNoRelatorio={abrirRelatorio} />
 
-      {resumo?.documentos?.length > 0 && (
-        <section className="ana-fontes" aria-label="Documentos citados">
-          <h2 className="ana-secao__titulo">Documentos citados</h2>
-          <ul className="ana-fontes__lista">
-            {resumo.documentos.map(d => (
-              <li key={d.codigo}>
-                <span className="ana-fontes__documento">{d.arquivo}</span>
-                <span className="ana-fontes__origem">{d.tipo}</span>
-                <span className="ana-fontes__referencias">
-                  data-base {d.data_base || '—'}
-                  {d.entidade === 'divergente' && ' · documento de outra entidade'}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {/* A lista "Documentos citados" saiu daqui: o acervo de cada empresa fica na aba Documentos. */}
 
       <PainelRevisao
         aberto={painel.aberto}

@@ -46,7 +46,8 @@ function loadFromStorage(key, fallback) {
   }
 }
 
-function ContextPanel() {
+// `topo`: o relatório desta conversa, quando há um (miniatura acima da agenda).
+function ContextPanel({ topo = null }) {
   const { logout } = useAuth()
   const realToday = new Date()
   const [cursor, setCursor] = useState({ year: realToday.getFullYear(), month: realToday.getMonth() })
@@ -125,6 +126,7 @@ function ContextPanel() {
   return (
     <aside className="chat-context">
       <div className="chat-context__body">
+        {topo}
 
         {/* Calendário */}
         <div className="ctx-calendar">

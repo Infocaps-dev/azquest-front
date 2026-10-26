@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import { Button, InlineLoading, InlineNotification, Modal, Select, SelectItem } from '@carbon/react'
 import { DocumentAdd } from '@carbon/icons-react'
 import { itemDaConsulta, listarResumos } from '../../services/resumosApi'
 import { dataHora } from '../AnaliseCredito/vocabulario'
+import { RelatorioDaConversa } from './contextoChat'
 
 // Botão "Inserir no relatório", embaixo de um gráfico do modelo do EBITDA ou ao lado de uma notícia na conversa.
 //
@@ -19,6 +20,7 @@ const DESTINOS = {
 
 function InserirNoRelatorio({ grafico, link, onEnviar, compacto = false }) {
   const tipo = grafico ? 'grafico' : 'noticia'
+  const daConversa = useContext(RelatorioDaConversa)
   const [aberto, setAberto] = useState(false)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
@@ -35,7 +37,8 @@ function InserirNoRelatorio({ grafico, link, onEnviar, compacto = false }) {
       const [achado, indice] = await Promise.all([itemDaConsulta({ grafico, link }), listarResumos()])
       setItem(achado)
       setRelatorios(indice.relatorios || [])
-      setRelatorioId(indice.relatorios?.[0]?.relatorio_id || '')
+      const lista = indice.relatorios || []
+      setRelatorioId(lista.some(r => r.relatorio_id === daConversa) ? daConversa : lista[0]?.relatorio_id || '')
     } catch (e) {
       setErro(e.message)
     } finally {

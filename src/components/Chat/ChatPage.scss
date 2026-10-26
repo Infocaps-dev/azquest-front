@@ -992,3 +992,95 @@ button.ctx-quotes__tab {
     grid-template-columns: 1fr;
   }
 }
+
+// Relatório desta conversa: linha acima do campo de mensagem e miniatura no alto do painel direito.
+.chat-composer__vinculo {
+  @include type-style('label-01');
+  display: flex;
+  gap: $spacing-03;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-02;
+  color: $text-secondary;
+
+  strong {
+    color: $text-primary;
+    font-weight: 600;
+  }
+}
+
+.chat-relatorio {
+  margin-bottom: $spacing-07;
+  padding-bottom: $spacing-06;
+  border-bottom: 1px solid $border-subtle-01;
+}
+
+.chat-relatorio__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chat-relatorio__rotulo {
+  @include type-style('label-01');
+  color: $accent;
+  font-weight: 600;
+  letter-spacing: .32px;
+  text-transform: uppercase;
+}
+
+.chat-relatorio__titulo {
+  @include type-style('heading-compact-01');
+  margin: $spacing-02 0 $spacing-04;
+  color: $text-primary;
+}
+
+// A página inteira do relatório reduzida à largura do painel; o clique amplia.
+.chat-relatorio__mini {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 400px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid $border-subtle-01;
+  background: #dce8f0;
+  cursor: zoom-in;
+  transition: box-shadow .3s, border-color .3s;
+
+  iframe {
+    display: block;
+    border: 0;
+    transform-origin: 0 0;
+    pointer-events: none;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: $accent;
+  }
+
+  &--novo {
+    border-color: colors.$green-50;
+    box-shadow: 0 0 0 3px rgba(36, 161, 72, .25);
+  }
+}
+
+.chat-relatorio__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-02;
+  margin-top: $spacing-04;
+}
+
+.chat-relatorio__dica {
+  @include type-style('helper-text-01');
+  margin-top: $spacing-03;
+  color: $text-secondary;
+}
+
+.chat-vincular__texto {
+  @include type-style('body-compact-01');
+  margin-bottom: $spacing-05;
+  color: $text-secondary;
+}

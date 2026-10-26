@@ -25,6 +25,12 @@ function Gate() {
     setAlvo(atual => ({ id: relatorioId, n: (atual?.n || 0) + 1 }))
     setAba('analise')
   }
+  // "Conversar no chat" do relatório: conversa nova, já ligada a ele.
+  const [pedidoChat, setPedidoChat] = useState(null)
+  function conversarSobre(relatorioId) {
+    setPedidoChat(atual => ({ id: relatorioId, n: (atual?.n || 0) + 1 }))
+    setAba('inicio')
+  }
   if (checking) {
     return (
       <div className="login-loading">
@@ -40,11 +46,11 @@ function Gate() {
       {/* O chat fica montado nas outras abas: a conversa aberta, a lista de conversas e uma resposta em andamento
           sobrevivem à troca de aba, em vez de recarregar tudo na volta (e de abortar a geração de um relatório). */}
       <div hidden={aba !== 'inicio'}>
-        <ChatPage onTrocarAba={setAba} />
+        <ChatPage onTrocarAba={setAba} onAbrirAnalise={abrirRelatorio} pedidoDeVinculo={pedidoChat} />
       </div>
       {aba === 'monitoramento' ? <MonitoramentoPage />
         : aba === 'analise' ? (
-          <AnalisePage onTrocarAba={setAba} relatorioAlvo={alvo} sinalIndice={sinal}
+          <AnalisePage onTrocarAba={setAba} relatorioAlvo={alvo} sinalIndice={sinal} onConversar={conversarSobre}
             onAlvoConsumido={() => setAlvo(null)} onVersaoPropria={ignorar} />
         )
           : aba === 'desempenho' ? <DesempenhoPage sinalIndice={sinal} />

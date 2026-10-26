@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button, ClickableTile, InlineLoading, TextArea } from '@carbon/react'
-import { Send, WarningAlt } from '@carbon/icons-react'
+import { Link as IconeVinculo, Send, WarningAlt } from '@carbon/icons-react'
 import RespostaDoAgente from './RespostaDoAgente.jsx'
 import { MODO_SIMULADO } from '../../services/chatApi'
+import { RelatorioDaConversa } from './contextoChat'
 
 const suggestions = [
   'Gerar relatório de crédito de uma nova empresa',
@@ -23,6 +24,8 @@ function ChatMain({
   enviando = false,
   erro = '',
   segundos = 0,
+  vinculo = null,
+  onEscolherRelatorio,
   onEnviar,
   onTrocarAba,
 }) {
@@ -89,6 +92,7 @@ function ChatMain({
         )}
 
         {conversando && (
+          <RelatorioDaConversa.Provider value={vinculo?.relatorio_id || null}>
           <div className="chat-conversa">
             {mensagens.map(m => (
               <article
@@ -131,10 +135,26 @@ function ChatMain({
 
             <div ref={fim} />
           </div>
+          </RelatorioDaConversa.Provider>
         )}
       </div>
 
       <div className="chat-composer">
+        {/* Relatório desta conversa: os pedidos de alteração viram versões novas dele. */}
+        <div className="chat-composer__vinculo">
+          {vinculo ? (
+            <span>
+              Alterações pedidas aqui vão para{' '}
+              <strong>{[vinculo.empresa, vinculo.referencia].filter(Boolean).join(' · ') || vinculo.relatorio_id}</strong>
+              {vinculo.versao ? ` (versão ${vinculo.versao})` : ''}.
+            </span>
+          ) : (
+            <span>Nenhum relatório ligado a esta conversa.</span>
+          )}
+          <Button kind="ghost" size="sm" renderIcon={IconeVinculo} onClick={onEscolherRelatorio} disabled={enviando}>
+            {vinculo ? 'Trocar' : 'Usar um relatório pronto'}
+          </Button>
+        </div>
         <div className="chat-composer__row">
           <TextArea
             id="chat-input"

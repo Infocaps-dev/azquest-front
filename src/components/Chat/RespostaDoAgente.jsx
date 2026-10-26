@@ -34,6 +34,10 @@ const IMAGEM = /^!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)$/
 // link: carregar uma URL qualquer que o modelo escreveu entregaria a visita de quem está logado a terceiros.
 const IMAGEM_NOSSA = /^https:\/\/s3\.br-sao\.cloud-object-storage\.appdomain\.cloud\/ecovias-itr-docs\/ebitda\//
 const NEGRITO = /\*\*([^*]+)\*\*/g
+// Erro da plataforma que o Orchestrate grava como resposta: numa conversa reaberta ele volta do histórico, em inglês.
+const ERRO_DA_PLATAFORMA = /^\s*I have encountered an error\. Please try again\.\s*$/i
+const ERRO_TRADUZIDO = 'O Orchestrate teve uma falha técnica nesta resposta. Pergunte de novo, ou confira a aba Análise '
+  + 'de Crédito se o pedido era de relatório.'
 
 // O relatório é publicado como HTML no Cloud Object Storage, com URL assinada
 // que vale 7 dias. É o que distingue o link do relatório de um link qualquer
@@ -285,6 +289,7 @@ function CartaoRelatorio({ url, onTrocarAba }) {
 
 function RespostaDoAgente({ texto, onTrocarAba, onEnviar }) {
   if (!texto) return null
+  if (ERRO_DA_PLATAFORMA.test(texto)) texto = ERRO_TRADUZIDO
   const relatorio = [...texto.matchAll(LINK)].find(a => eRelatorio(a[2]))
   return (
     <>

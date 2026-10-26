@@ -436,7 +436,6 @@
   color: $text-secondary;
 }
 
-// ── Kit de Fontes ───────────────────────────────────────────────────────
 // ── Anexar documentos ───────────────────────────────────────────────────
 .ana-anexos {
   padding: $spacing-06;
@@ -513,30 +512,3 @@
   word-break: break-all;
 }
 
-.ana-fontes {
-  padding: $spacing-06;
-  background: $layer-01;
-}
-
-.ana-fontes__lista {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-03;
-
-  li {
-    display: flex;
-    flex-wrap: wrap;
-    gap: $spacing-03 $spacing-05;
-    align-items: baseline;
-  }
-}
-
-.ana-fontes__documento { @include type-style('body-compact-01'); }
-
-.ana-fontes__origem,
-.ana-fontes__referencias {
-  @include type-style('label-01');
-  color: $text-secondary;
-}
-
-.ana-fontes__referencias { margin-left: auto; }

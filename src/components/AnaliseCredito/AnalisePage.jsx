@@ -441,28 +441,9 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
       <SecoesRelatorio itens={resumo?.itens} revisao={revisao} rotulos={rotulos}
         onRevisar={secao => abrirRevisao({ secao })} onVerNoRelatorio={abrirRelatorio} />
 
-      {/* Antes dos documentos citados de propósito: é daqui que saem as
-          fontes. A lista abaixo é a do relatório aberto, e a extração leva
-          minutos — o documento novo entra nos relatórios gerados depois. */}
+      {/* É daqui que saem as fontes: a extração leva minutos, e o documento novo entra nos relatórios gerados
+          depois. A lista "Documentos citados" saiu desta página: o acervo de cada empresa fica na aba Documentos. */}
       <AnexarDocumentos />
-
-      {resumo?.documentos?.length > 0 && (
-        <section className="ana-fontes" aria-label="Documentos citados">
-          <h2 className="ana-secao__titulo">Documentos citados</h2>
-          <ul className="ana-fontes__lista">
-            {resumo.documentos.map(d => (
-              <li key={d.codigo}>
-                <span className="ana-fontes__documento">{d.arquivo}</span>
-                <span className="ana-fontes__origem">{d.tipo}</span>
-                <span className="ana-fontes__referencias">
-                  data-base {d.data_base || '—'}
-                  {d.entidade === 'divergente' && ' · documento de outra entidade'}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       <PainelRevisao
         aberto={painel.aberto}

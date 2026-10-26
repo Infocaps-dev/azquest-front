@@ -20,7 +20,12 @@ const ETAPA_DE_APROVACAO = 5 // índice de B6
 // que a API fecha as etapas. Antes entrava so um booleano `aprovado`, e a
 // rejeicao, que tambem muda o fluxo (B8 fica bloqueado), nao disparava
 // recarga: o analista rejeitava e a tela seguia pedindo a decisao.
-export function useExecucao(execucaoId, { decisao = null } = {}) {
+// `acompanhar`: enquanto a tela roda um ciclo, pergunta o estado a cada 1,5 s.
+// O EventSource continua aberto, mas no Code Engine o stream chega bufferizado,
+// todo no fim (README do front); sem a consulta, as etapas não se moveriam.
+const INTERVALO_ACOMPANHAMENTO_MS = 1500
+
+export function useExecucao(execucaoId, { decisao = null, acompanhar = false } = {}) {
   const aprovado = Boolean(decisao) && decisao !== 'rejeitado'
   const [execucao, setExecucao] = useState(null)
   const [erro, setErro] = useState('')
@@ -99,6 +104,14 @@ export function useExecucao(execucaoId, { decisao = null } = {}) {
 
     return () => fonte?.close()
   }, [execucaoId, decisao, aprovado])
+
+  useEffect(() => {
+    if (!acompanhar || !execucaoId || MODO_SIMULADO) return undefined
+    const timer = setInterval(() => {
+      obterExecucao(execucaoId).then(setExecucao).catch(() => {})
+    }, INTERVALO_ACOMPANHAMENTO_MS)
+    return () => clearInterval(timer)
+  }, [acompanhar, execucaoId])
 
   const etapas = execucao?.etapas || []
   const concluidas = etapas.filter(e => e.status === 'concluido').length

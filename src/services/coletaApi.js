@@ -40,6 +40,10 @@ export const urlArquivoExtracao = (emissor, chave) =>
 // Acervo dos buckets de entrada (aba Documentos), por empresa e tipo.
 export const listarDocumentos = () => pedir('/api/documentos')
 
+// Termo no conteúdo dos documentos, pelo texto que o extrator gravou (buckets de saída). Devolve páginas e trechos.
+export const buscarConteudo = (termo, empresa) =>
+  pedir(`/api/documentos/busca?q=${encodeURIComponent(termo)}${empresa ? `&empresa=${encodeURIComponent(empresa)}` : ''}`)
+
 export const urlDocumento = (empresa, chave, { baixar = false } = {}) =>
   `${BASE}/api/documentos/arquivo?empresa=${encodeURIComponent(empresa)}&chave=${encodeURIComponent(chave)}`
   + (baixar ? '&baixar=true' : '')

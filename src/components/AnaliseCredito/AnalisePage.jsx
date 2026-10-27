@@ -433,7 +433,7 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
           title="Publicação bloqueada" subtitle={bloqueios.join('; ')} />
       )}
 
-      <NumerosChave numeros={resumo?.numeros_chave} onAbrir={abrirRelatorio} />
+      <NumerosChave numeros={resumo?.numeros_chave} empresa={resumo?.empresa} onAbrir={abrirRelatorio} />
 
       <SumarioTese resumo={resumo} onAbrirRelatorio={abrirRelatorio}
         onAbrirItem={itemId => abrirRevisao(itemId ? { itemId } : null)} />

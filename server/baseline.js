@@ -36,6 +36,8 @@ export function emissorCanonico(empresa) {
 }
 
 // Fonte de um dado do baseline: o relatório publicado (com a âncora do item) e o documento de onde ele veio.
+// A âncora do número é a do cartão do resumo (o trecho que cita a mesma fonte), nunca uma seção fixa: a seção do
+// piloto não contém o número em relatório de outra empresa. Sem trecho, fica null e vale a fonte original.
 function fonteDoRelatorio(resumo, ancora, original) {
   return {
     documento: `Relatório de crédito ${resumo.empresa} ${resumo.periodo}, versão ${resumo.versao} (publicada)`,
@@ -92,23 +94,23 @@ export function baselineAtualizado(anterior, resumo, usuario, agora) {
   if (alav.consolidada?.valor != null) {
     substituir(base.metricas, { id: 'dl_ebitda_consolidado', origem,
       descricao: 'Alavancagem consolidada, Divida Liquida sobre EBITDA ajustado', valor: alav.consolidada.valor,
-      unidade: 'x', periodo: resumo.periodo, fonte: fonteDoRelatorio(resumo, 'secao-10-b', alav.consolidada.fonte) })
+      unidade: 'x', periodo: resumo.periodo, fonte: fonteDoRelatorio(resumo, cartao('alavancagem_consolidada')?.ancora, alav.consolidada.fonte) })
   }
   const ebitda = cartao('ebitda_ajustado_ltm')
   if (ebitda) {
     substituir(base.metricas, { id: 'ebitda_ajustado', origem, descricao: 'EBITDA ajustado dos ultimos 12 meses',
       valor: ebitda.valor, unidade: 'R$ mi', periodo: ebitda.periodo,
-      fonte: fonteDoRelatorio(resumo, 'secao-9-a', ebitda.fonte) })
+      fonte: fonteDoRelatorio(resumo, ebitda.ancora, ebitda.fonte) })
     const margem = /margem ([\d,]+)%/.exec(ebitda.contexto || '')
     if (margem) {
       substituir(base.metricas, { id: 'margem_ebitda_ajustada', origem,
         descricao: 'Margem EBITDA ajustada dos ultimos 12 meses', valor: numeroBr(margem[1]), unidade: '%',
-        periodo: ebitda.periodo, fonte: fonteDoRelatorio(resumo, 'secao-9-a', ebitda.fonte) })
+        periodo: ebitda.periodo, fonte: fonteDoRelatorio(resumo, ebitda.ancora, ebitda.fonte) })
     }
   }
   if (ind.divida_liquida?.valor != null) {
     substituir(base.metricas, { id: 'divida_liquida', origem, descricao: 'Divida liquida', valor: ind.divida_liquida.valor,
-      unidade: 'R$ mi', periodo: resumo.periodo, fonte: fonteDoRelatorio(resumo, 'secao-10-b', ind.divida_liquida.fonte) })
+      unidade: 'R$ mi', periodo: resumo.periodo, fonte: fonteDoRelatorio(resumo, cartao('divida_liquida')?.ancora, ind.divida_liquida.fonte) })
   }
   // Número que o relatório traz no texto aprovado do sumário: capex a realizar. (O do BNDES não entra: o texto diz
   // "já contratados" e a fonte diz "a desembolsar"; fica herdado até o texto ser revisto.)

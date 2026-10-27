@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Launch } from '@carbon/icons-react'
-import { listarDocumentos, urlDocumento } from '../../services/coletaApi'
+import { useDocumentosDoAcervo } from './useDocumentosDoAcervo'
 
 // Referências do relatório: os documentos que ESTE relatório usou, como uma bibliografia. Cada documento com o tipo,
 // a data-base, as páginas (ou abas e linhas da planilha) citadas e quantas vezes, e o link para abrir o arquivo no
@@ -41,31 +41,9 @@ function referenciasDoResumo(resumo) {
     .sort((a, b) => posicao(a.tipo) - posicao(b.tipo) || a.arquivo.localeCompare(b.arquivo))
 }
 
-const semAcento = texto => (texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-
 function ReferenciasRelatorio({ resumo }) {
-  const [acervo, setAcervo] = useState(null)
-  useEffect(() => {
-    let ativo = true
-    listarDocumentos().then(r => { if (ativo) setAcervo(r.empresas || []) }).catch(() => { if (ativo) setAcervo([]) })
-    return () => { ativo = false }
-  }, [])
-
+  const linkDoArquivo = useDocumentosDoAcervo(resumo?.empresa)
   const referencias = useMemo(() => referenciasDoResumo(resumo), [resumo])
-
-  // nome do arquivo -> {empresa, chave} no acervo; a empresa do relatório primeiro, se o nome repetir.
-  const noAcervo = useMemo(() => {
-    const mapa = new Map()
-    const daEmpresa = e => semAcento(e.empresa) === semAcento(resumo?.empresa)
-    for (const e of [...(acervo || [])].sort((a, b) => daEmpresa(b) - daEmpresa(a))) {
-      for (const t of e.tipos || []) {
-        for (const d of t.documentos || []) {
-          if (!mapa.has(d.nome)) mapa.set(d.nome, { empresa: e.empresa, chave: d.chave })
-        }
-      }
-    }
-    return mapa
-  }, [acervo, resumo?.empresa])
 
   if (!referencias.length) return null
   return (
@@ -76,7 +54,7 @@ function ReferenciasRelatorio({ resumo }) {
       </p>
       <ol className="ana-fontes__lista">
         {referencias.map(r => {
-          const doc = noAcervo.get(r.arquivo)
+          const link = linkDoArquivo(r.arquivo, r.paginas[0])
           const local = [
             r.paginas.length ? `${r.paginas.length === 1 ? 'p.' : 'pp.'} ${r.paginas.join(', ')}` : '',
             r.linhas.join('; '),
@@ -92,9 +70,8 @@ function ReferenciasRelatorio({ resumo }) {
                 {local || 'sem página citada'}
                 {r.citacoes ? ` · ${r.citacoes} ${r.citacoes === 1 ? 'citação' : 'citações'}` : ''}
               </span>
-              {doc && (
-                <a className="ana-fontes__abrir" target="_blank" rel="noreferrer"
-                  href={`${urlDocumento(doc.empresa, doc.chave)}${r.paginas[0] ? `#page=${r.paginas[0]}` : ''}`}>
+              {link && (
+                <a className="ana-fontes__abrir" target="_blank" rel="noreferrer" href={link}>
                   Abrir <Launch size={12} />
                 </a>
               )}

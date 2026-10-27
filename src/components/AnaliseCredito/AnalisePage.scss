@@ -218,8 +218,18 @@
   background: none;
   border: none;
 
+  color: inherit;
+  text-decoration: none;
+
   &:hover { background: $layer-hover-01; }
   &:focus-visible { outline: 2px solid $focus; outline-offset: -2px; }
+}
+
+// Sem trecho no relatório e sem o documento no acervo: o cartão só informa.
+.ana-kpi__gatilho--estatico {
+  cursor: default;
+
+  &:hover { background: none; }
 }
 
 .ana-kpi__titulo {

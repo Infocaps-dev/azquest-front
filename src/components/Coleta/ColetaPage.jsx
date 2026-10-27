@@ -81,6 +81,21 @@ function descreverEvento(e) {
   }
 }
 
+// Os últimos trimestres fechados ("3T26", "2T26"...), do mais recente para o mais antigo, mais o da configuração do
+// emissor se ele não estiver entre eles.
+function trimestres(padrao, quantos = 8) {
+  const hoje = new Date()
+  let ano = hoje.getFullYear()
+  let tri = Math.floor(hoje.getMonth() / 3) // o trimestre em curso ainda não fechou
+  const lista = []
+  while (lista.length < quantos) {
+    if (tri === 0) { ano -= 1; tri = 4 }
+    lista.push(`${tri}T${String(ano).slice(-2)}`)
+    tri -= 1
+  }
+  return padrao && !lista.includes(padrao) ? [padrao, ...lista] : lista
+}
+
 function ColetaPage() {
   const { user } = useAuth()
   const podeDisparar = user?.role !== 'leitor'
@@ -89,6 +104,7 @@ function ColetaPage() {
   const [emissor, setEmissor] = useState('')
   const [fontes, setFontes] = useState([])
   const [upload, setUpload] = useState(true)
+  const [periodo, setPeriodo] = useState('')
   const [disparando, setDisparando] = useState(false)
   const [erroDisparo, setErroDisparo] = useState('')
   const [historico, setHistorico] = useState([])
@@ -115,6 +131,7 @@ function ColetaPage() {
         setEmissor(padrao.emissor)
         setFontes(padrao.fontes)
         setUpload(padrao.upload_permitido)
+        setPeriodo(padrao.periodo || '')
       }
     }).catch(e => setErroServico(e.message))
     recarregarHistorico()
@@ -125,6 +142,7 @@ function ColetaPage() {
     const cfg = emissores.find(e => e.emissor === nome)
     setFontes(cfg?.fontes || [])
     setUpload(Boolean(cfg?.upload_permitido))
+    setPeriodo(cfg?.periodo || '')
   }
 
   // Polling da execução selecionada.
@@ -156,7 +174,7 @@ function ColetaPage() {
     setErroDisparo('')
     setDisparando(true)
     try {
-      const nova = await dispararColeta({ emissor, fontes, upload })
+      const nova = await dispararColeta({ emissor, fontes, upload, periodo })
       setExecucao(null)
       setExecucaoId(nova.id)
       recarregarHistorico()
@@ -217,6 +235,15 @@ function ColetaPage() {
               {emissores.map(e => <SelectItem key={e.emissor} value={e.emissor} text={e.razao_social} />)}
             </Select>
 
+            <Select id="col-periodo" labelText="Período" value={periodo} onChange={e => setPeriodo(e.target.value)}
+              disabled={emAndamento}
+              helperText={'ITR do trimestre e do anterior, DFP do último exercício fechado, release e apresentação de '
+                + 'resultados do trimestre. Planilha de RI, apresentação institucional e ratings vêm sempre os mais recentes.'}>
+              {trimestres(config?.periodo).map(p => (
+                <SelectItem key={p} value={p} text={p === config?.periodo ? `${p} (padrão do emissor)` : p} />
+              ))}
+            </Select>
+
             <fieldset className="col-fontes">
               <legend className="cds--label">Fontes</legend>
               {(config?.fontes || []).map(f => (
@@ -260,7 +287,7 @@ function ColetaPage() {
               </Tag>
             </div>
             <p className="cfg-texto col-texto">
-              {execucao.emissor.toUpperCase()} · iniciada {dataHora(execucao.iniciada_em)} por {execucao.usuario}
+              {execucao.emissor.toUpperCase()}{execucao.periodo ? ` · ${execucao.periodo}` : ''} · iniciada {dataHora(execucao.iniciada_em)} por {execucao.usuario}
               {execucao.finalizada_em ? ` · encerrada ${dataHora(execucao.finalizada_em)}` : ''}
               {execucao.upload ? ` · envio para ${execucao.bucket_entrada}` : ' · sem envio ao COS'}
             </p>
@@ -386,7 +413,7 @@ function ColetaPage() {
             <li key={c.id}>
               <button type="button" className={`col-historico__item ${c.id === execucaoId ? 'col-historico__item--ativo' : ''}`}
                 onClick={() => { setExecucao(null); setExecucaoId(c.id) }}>
-                <span>{c.emissor.toUpperCase()} · {dataHora(c.iniciada_em)} · {c.usuario}</span>
+                <span>{c.emissor.toUpperCase()}{c.periodo ? ` · ${c.periodo}` : ''} · {dataHora(c.iniciada_em)} · {c.usuario}</span>
                 <span className="col-historico__tags">
                   <Tag size="sm" type={STATUS_COLETA[c.status]?.cor || 'gray'}>{STATUS_COLETA[c.status]?.rotulo || c.status}</Tag>
                   {c.contagem?.baixado ? <Tag size="sm" type="green">{c.contagem.baixado} baixados</Tag> : null}

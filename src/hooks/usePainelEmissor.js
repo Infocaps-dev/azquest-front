@@ -17,8 +17,12 @@ import { listarResumos, obterBaselineVigente, obterResumo } from '../services/re
 // A carga manual continua sendo a base: o que nenhuma fonte nova traz (títulos,
 // regras, notas, condições das emissões) fica como estava, e se as APIs não
 // responderem o painel mostra a carga manual inteira. Nada some do painel.
+//
+// A carga manual é só da Ecorodovias. Outra empresa (Motiva, desde 27/10/2026)
+// sai só do que as fontes trazem (montarPainelOutra): sem resumo nem baseline,
+// o painel fica vazio, e não com números da Ecorodovias.
 
-const EMISSOR = 'Ecorodovias'
+const PILOTO = 'Ecorodovias'
 const MESES = { jan: 1, fev: 2, feb: 2, mar: 3, abr: 4, apr: 4, mai: 5, may: 5, jun: 6, jul: 7, ago: 8, aug: 8,
   set: 9, sep: 9, out: 10, oct: 10, nov: 11, dez: 12, dec: 12 }
 const ABREV = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
@@ -117,6 +121,7 @@ export function montarPainel(baseline, resumo) {
     : amostra.FONTES_ATIVOS
 
   return {
+    empresa: PILOTO,
     emissor: { ...amostra.EMISSOR, baseline: rotuloBaseline(baseline) },
     covenants,
     gatilhos,
@@ -125,24 +130,109 @@ export function montarPainel(baseline, resumo) {
   }
 }
 
-export function usePainelEmissor() {
+// Gatilhos de rating do baseline vigente contra a alavancagem mais recente (sem baseline publicado, nenhum).
+function gatilhosDoBaseline(baseline, alav, periodo) {
+  return (baseline?.gatilhos_rating || []).filter(g => g.limite != null && alav?.valor != null).map((g, i) => {
+    const sobe = g.comparacao === 'acima'
+    return {
+      id: `gatilho-${i}`,
+      titulo: `${g.agencia || 'Agência'}, ${sobe ? 'rebaixamento' : 'elevação'}`,
+      regra: `${sobe ? 'acima de' : 'abaixo de'} ${x(g.limite)}`,
+      apurado: alav.valor,
+      limite: g.limite,
+      tipo: sobe ? 'max' : 'min',
+      referencia: mesAno(periodo),
+      fonte: `${rotuloBaseline(baseline)}, sensibilidade ${g.agencia || ''}`.trim(),
+      nota: g.condicao || '',
+    }
+  })
+}
+
+// Empresa sem carga manual: só o que o resumo do relatório mais novo e o baseline vigente trazem.
+export function montarPainelOutra(empresa, baseline, resumo) {
+  const alav = resumo?.indicadores?.alavancagem?.consolidada
+  const periodo = resumo?.periodo
+  const limite = (baseline?.limites || []).find(l => /dl_ebitda|d[íi]vida.*ebitda/i.test(`${l.id} ${l.nome || ''}`))?.limite
+    ?? (resumo?.covenants?.limites_escritura || []).find(l => !l.condicionado && l.limite != null)?.limite
+  const consolidado = alav?.valor != null && limite != null
+    ? [{ id: 'cov-consolidado', titulo: 'Alavancagem consolidada', regra: `covenant até ${x(limite)}`, apurado: alav.valor,
+      limite, tipo: 'max', referencia: `${mesAno(periodo)}, UDM`, fonte: documentoDaFonte(alav.fonte), nota: '' }]
+    : []
+  const apurados = (resumo?.covenants?.apurados_agente_fiduciario || [])
+    .filter(a => a.apurado != null && a.limite != null && /d[íi]vida.*l[íi]quida/i.test(a.indice || '')
+      && (a.operador || '<=').includes('<'))
+    .map(a => ({
+      id: `cov-${(a.emissao || '').toLowerCase()}`,
+      titulo: `Covenant ${a.emissao}`,
+      regra: `limite ${x(a.limite)}`,
+      apurado: a.apurado,
+      limite: a.limite,
+      tipo: 'max',
+      referencia: a.ano ? `dez/${String(a.ano).slice(-2)}` : '',
+      fonte: documentoDaFonte(a.fonte),
+      nota: a.status ? `${a.status}.` : '',
+    }))
+  const ratings = (resumo?.ratings || []).filter(r => r.nota)
+  const datas = ratings.filter(r => r.data).map(r => `${r.agencia} (${dataCurta(r.data)})`)
+  const anoAf = (resumo?.covenants?.apurados_agente_fiduciario || []).find(a => a.ano)?.ano
+  return {
+    empresa,
+    emissor: {
+      nome: empresa,
+      baseline: baseline?.relatorio_id ? rotuloBaseline(baseline) : 'nenhuma versão do relatório publicada',
+    },
+    covenants: [...consolidado, ...apurados],
+    gatilhos: gatilhosDoBaseline(baseline, alav, periodo),
+    ativos: ratings.map((r, i) => ({
+      ticker: r.emissao || r.entidade || empresa,
+      emissao: r.emissao ? `${r.entidade || empresa}, ${r.emissao}` : (r.entidade || empresa),
+      condicoes: r.perspectiva ? `Perspectiva ${r.perspectiva.toLowerCase()}` : '',
+      rating: `${r.nota} (${r.agencia})`,
+      chave: `${r.agencia}-${i}`,
+    })),
+    fontesAtivos: datas.length
+      ? `${datas.join(', ')}${anoAf ? ` e relatórios do agente fiduciário ${anoAf}` : ''}`
+      : (anoAf ? `relatórios do agente fiduciário ${anoAf}` : 'nenhum documento de rating no acervo'),
+  }
+}
+
+const doPiloto = empresa => !empresa || empresa.toLowerCase() === PILOTO.toLowerCase()
+
+// `empresa`: a do relatório vinculado à conversa (sem vínculo, a Ecorodovias). A pessoa pode trocar no seletor do
+// painel; a escolha vale até o vínculo mudar. `empresas`: as que têm relatório, a Ecorodovias primeiro.
+export function usePainelEmissor(empresaDaConversa = '') {
+  // A escolha guarda a empresa da conversa em que foi feita: mudou o vínculo, ela deixa de valer.
+  const [escolha, setEscolha] = useState({ conversa: empresaDaConversa, empresa: null })
+  const escolhida = escolha.conversa === empresaDaConversa ? escolha.empresa : null
+  const empresa = escolhida || empresaDaConversa || PILOTO
+  const [indice, setIndice] = useState(null)
   const [painel, setPainel] = useState(() => montarPainel(null, null))
 
   useEffect(() => {
     let ativo = true
-    async function carregar() {
-      const [baseline, resumo] = await Promise.all([
-        obterBaselineVigente(EMISSOR).catch(() => null),
-        listarResumos()
-          .then(i => (i.relatorios || []).find(r => /ecorodovias/i.test(r.empresa)))
-          .then(r => (r ? obterResumo(r.relatorio_id) : null))
-          .catch(() => null),
-      ])
-      if (ativo) setPainel(montarPainel(baseline, resumo))
-    }
-    carregar()
+    listarResumos().then(i => { if (ativo) setIndice(i.relatorios || []) }).catch(() => { if (ativo) setIndice([]) })
     return () => { ativo = false }
   }, [])
 
-  return painel
+  useEffect(() => {
+    if (indice === null) return undefined
+    let ativo = true
+    async function carregar() {
+      const ultimo = indice.find(r => r.empresa?.toLowerCase() === empresa.toLowerCase())
+      const [baseline, resumo] = await Promise.all([
+        obterBaselineVigente(empresa).catch(() => null),
+        ultimo ? obterResumo(ultimo.relatorio_id).catch(() => null) : null,
+      ])
+      if (ativo) setPainel(doPiloto(empresa) ? montarPainel(baseline, resumo) : montarPainelOutra(empresa, baseline, resumo))
+    }
+    carregar()
+    return () => { ativo = false }
+  }, [indice, empresa])
+
+  const nomes = [...new Set([PILOTO, ...(indice || []).map(r => r.empresa).filter(Boolean)])]
+  const empresas = [PILOTO, ...nomes.filter(n => !doPiloto(n)).sort((a, b) => a.localeCompare(b))]
+  // Até o painel da empresa escolhida chegar, a tela mostra que está carregando, e não o painel da anterior.
+  const carregando = painel.empresa.toLowerCase() !== empresa.toLowerCase()
+  const escolher = e => setEscolha({ conversa: empresaDaConversa, empresa: e })
+  return { ...painel, empresa, empresas, carregando, escolher }
 }

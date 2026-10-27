@@ -564,14 +564,46 @@ app.get('/api/consultas/item', emRota(async (req, res) => {
     : 'Esta notícia não está salva no acervo: só as trazidas pela busca de notícias do chat podem ir para o relatório.')
 }))
 
-// Fontes disponíveis para o relatório: os documentos extraídos do acervo atual (acervo/atual.json, que as tools
-// gravam quando montam o acervo) e as consultas salvas (notícias da internet, modelo do EBITDA).
+// O acervo de cada empresa (acervo/atual/<empresa>.json, que as tools gravam quando montam o acervo dela), a
+// Ecorodovias primeiro. A da Ecorodovias também está em acervo/atual.json, de antes de haver outras empresas: vale
+// enquanto o arquivo dela na pasta nova não existir.
+const PRINCIPAL = 'Ecorodovias'
+const chaveDeNome = s => semAcento(s).toLowerCase()
+
+async function acervosPorEmpresa() {
+  const objetos = (await listar('acervo/atual/')).filter(o => o.Key.endsWith('.json'))
+  const acervos = (await Promise.all(objetos.map(o => lerJson(o.Key)))).filter(a => a?.empresa)
+  if (!acervos.some(a => chaveDeNome(a.empresa) === chaveDeNome(PRINCIPAL))) {
+    const antigo = await lerJson('acervo/atual.json')
+    if (antigo) acervos.push({ ...antigo, empresa: PRINCIPAL })
+  }
+  return acervos.sort((a, b) => (a.empresa === PRINCIPAL ? -1 : b.empresa === PRINCIPAL ? 1 : a.empresa.localeCompare(b.empresa)))
+}
+
+// Consulta salva da empresa: a que cita o nome dela. A que não cita nenhuma das empresas (notícias do setor) fica com a
+// Ecorodovias, como nas tools (acervo_core._da_empresa_do_acervo).
+function daEmpresa(consulta, empresa, empresas) {
+  const nome = chaveDeNome(consulta.empresa)
+  const citada = empresas.find(e => nome.includes(chaveDeNome(e))) || PRINCIPAL
+  return chaveDeNome(citada) === chaveDeNome(empresa)
+}
+
+// Fontes disponíveis para o relatório da empresa (?empresa=; sem ela, a Ecorodovias): os documentos extraídos do
+// acervo dela e as consultas salvas dela (notícias da internet, modelo do EBITDA). `empresas`: as que têm acervo, para
+// o seletor da tela.
 app.get('/api/fontes', emRota(async (req, res) => {
-  const [atual, consultas] = await Promise.all([lerJson('acervo/atual.json'), consultasSalvas()])
+  const [acervos, consultas] = await Promise.all([acervosPorEmpresa(), consultasSalvas()])
+  const empresas = acervos.map(a => a.empresa)
+  const pedida = String(req.query.empresa || PRINCIPAL)
+  const atual = acervos.find(a => chaveDeNome(a.empresa) === chaveDeNome(pedida))
+  const empresa = atual?.empresa || pedida
   res.json({
+    empresa,
+    empresas,
     atualizado_em: atual?.gerado_em ?? null,
     documentos: atual?.documentos ?? [],
-    consultas: consultas.filter(c => c.codigo).sort((a, b) => String(b.extraido_em).localeCompare(String(a.extraido_em))),
+    consultas: consultas.filter(c => c.codigo && daEmpresa(c, empresa, empresas))
+      .sort((a, b) => String(b.extraido_em).localeCompare(String(a.extraido_em))),
   })
 }))
 

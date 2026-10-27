@@ -41,22 +41,39 @@ function Indicador({ item }) {
   )
 }
 
+function Lista({ itens, vazio }) {
+  return itens.length
+    ? <ul className="ctx-cov__list">{itens.map(c => <Indicador key={c.id} item={c} />)}</ul>
+    : <p className="ctx-cov__vazio">{vazio}</p>
+}
+
 // Os números vêm do baseline vigente (última versão publicada na Análise de
 // Crédito) e dos documentos extraídos mais recentes; a carga manual do piloto
-// completa o que nenhuma fonte nova traz. Ver hooks/usePainelEmissor.js.
-function CovenantsPanel() {
-  const { emissor: EMISSOR, covenants: COVENANTS, gatilhos: GATILHOS, ativos: ATIVOS, fontesAtivos: FONTES_ATIVOS } =
-    usePainelEmissor()
+// completa o que nenhuma fonte nova traz, só na Ecorodovias. A empresa é a do
+// relatório vinculado à conversa, trocável no seletor. Ver hooks/usePainelEmissor.js.
+function CovenantsPanel({ empresa: empresaDaConversa = '' }) {
+  const {
+    empresa, empresas, escolher, carregando,
+    emissor: EMISSOR, covenants: COVENANTS, gatilhos: GATILHOS, ativos: ATIVOS, fontesAtivos: FONTES_ATIVOS,
+  } = usePainelEmissor(empresaDaConversa)
   const [tab, setTab] = useState('covenants')
   const tabs = [
     { id: 'covenants', label: 'Covenants e gatilhos' },
     { id: 'ativos', label: 'Ativos' },
   ]
   return (
-    <section className="ctx-quotes ctx-cov" aria-label="Covenants e gatilhos da Ecorodovias">
+    <section className="ctx-quotes ctx-cov" aria-label={`Covenants e gatilhos da ${empresa}`}>
       <div className="ctx-quotes__header">
-        <h3 className="ctx-quotes__title">Ecorodovias, piloto Rodovias</h3>
+        {empresas.length > 1 ? (
+          <select className="ctx-cov__empresa" aria-label="Empresa do painel" value={empresa}
+            onChange={e => escolher(e.target.value)}>
+            {empresas.map(e => <option key={e} value={e}>{e}</option>)}
+          </select>
+        ) : <h3 className="ctx-quotes__title">{empresa}</h3>}
       </div>
+      {carregando ? (
+        <p className="ctx-cov__subtitle">Carregando o painel da {empresa}…</p>
+      ) : (<>
       <p className="ctx-cov__subtitle">
         {EMISSOR.nome}. Baseline: {EMISSOR.baseline}
       </p>
@@ -78,13 +95,9 @@ function CovenantsPanel() {
       {tab === 'covenants' ? (
         <div className="ctx-cov__body" role="tabpanel">
           <p className="ctx-cov__group">Covenants de alavancagem (DL/EBITDA ajustado)</p>
-          <ul className="ctx-cov__list">
-            {COVENANTS.map(c => <Indicador key={c.id} item={c} />)}
-          </ul>
+          <Lista itens={COVENANTS} vazio="Nenhum covenant de alavancagem apurado nos documentos extraídos." />
           <p className="ctx-cov__group">Gatilhos de rating</p>
-          <ul className="ctx-cov__list">
-            {GATILHOS.map(g => <Indicador key={g.id} item={g} />)}
-          </ul>
+          <Lista itens={GATILHOS} vazio="Sem gatilhos: eles vêm da versão publicada do relatório de crédito." />
         </div>
       ) : (
         <div className="ctx-cov__body" role="tabpanel">
@@ -98,7 +111,7 @@ function CovenantsPanel() {
             </thead>
             <tbody>
               {ATIVOS.map(a => (
-                <tr key={a.ticker}>
+                <tr key={a.chave || a.ticker}>
                   <td><span className="ctx-quotes__ticker">{a.ticker}</span></td>
                   <td>
                     <span className="ctx-cov__asset-name">{a.emissao}</span>
@@ -114,6 +127,7 @@ function CovenantsPanel() {
           </p>
         </div>
       )}
+      </>)}
     </section>
   )
 }

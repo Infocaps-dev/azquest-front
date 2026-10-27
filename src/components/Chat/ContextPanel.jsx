@@ -46,8 +46,9 @@ function loadFromStorage(key, fallback) {
   }
 }
 
-// `topo`: o relatório desta conversa, quando há um (miniatura acima da agenda).
-function ContextPanel({ topo = null }) {
+// `topo`: o relatório desta conversa, quando há um (miniatura acima da agenda). `empresa`: a desse relatório, para o
+// painel de covenants abrir nela.
+function ContextPanel({ topo = null, empresa = '' }) {
   const { logout } = useAuth()
   const realToday = new Date()
   const [cursor, setCursor] = useState({ year: realToday.getFullYear(), month: realToday.getMonth() })
@@ -268,8 +269,8 @@ function ContextPanel({ topo = null }) {
           )}
         </div>
 
-        {/* Covenants e gatilhos da Ecorodovias (substitui a grade de cotações) */}
-        <CovenantsPanel />
+        {/* Covenants e gatilhos da empresa da conversa (substitui a grade de cotações) */}
+        <CovenantsPanel empresa={empresa} />
 
         <div className="chat-context__info">
           <Information size={12} />

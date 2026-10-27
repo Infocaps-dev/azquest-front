@@ -175,11 +175,12 @@ export function obterGrafico({ pasta, nome }) {
   return pedir(`/api/graficos/${encodeURIComponent(pasta)}/${encodeURIComponent(nome)}`)
 }
 
-// Fontes disponíveis para o relatório: {atualizado_em, documentos (extraídos: codigo, arquivo, pasta, tipo, data_base,
-// empresa, entidade, n_itens, extraido_em), consultas (salvas: codigo, subtipo, arquivo, empresa, data_base, n_itens,
-// extraido_em, consulta_usada?, janela?)}.
-export function obterFontes() {
-  return pedir('/api/fontes')
+// Fontes disponíveis para o relatório da empresa (sem ela, a Ecorodovias): {empresa, empresas (as que têm acervo),
+// atualizado_em, documentos (extraídos: codigo, arquivo, pasta, tipo, data_base, empresa, entidade, n_itens,
+// extraido_em), consultas (salvas: codigo, subtipo, arquivo, empresa, data_base, n_itens, extraido_em,
+// consulta_usada?, janela?)}.
+export function obterFontes(empresa = '') {
+  return pedir(`/api/fontes${empresa ? `?empresa=${encodeURIComponent(empresa)}` : ''}`)
 }
 
 // Item salvo que o chat mostrou, para inserir no relatório: {grafico: {pasta, nome}} ou {link}. Devolve {id, tipo,

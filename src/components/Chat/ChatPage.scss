@@ -872,6 +872,29 @@ button.ctx-quotes__tab {
   color: $text-secondary;
 }
 
+// Seletor da empresa no lugar do título do painel.
+.ctx-cov__empresa {
+  @include type-style('heading-compact-01');
+  max-width: 100%;
+  padding: $spacing-01 $spacing-02;
+  border: 0;
+  border-bottom: 1px solid $border-strong-01;
+  background: $field-01;
+  color: $text-primary;
+  cursor: pointer;
+
+  &:focus {
+    outline: 2px solid $focus;
+    outline-offset: -2px;
+  }
+}
+
+.ctx-cov__vazio {
+  @include type-style('helper-text-01');
+  margin-bottom: $spacing-04;
+  color: $text-secondary;
+}
+
 .ctx-cov__body {
   padding: $spacing-03 $spacing-04 $spacing-04;
 }

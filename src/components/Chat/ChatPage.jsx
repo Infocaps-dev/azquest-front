@@ -44,7 +44,7 @@ function ChatPage({ onTrocarAba, onAbrirAnalise, pedidoDeVinculo }) {
         onEnviar={enviar}
         onTrocarAba={onTrocarAba}
       />
-      <ContextPanel topo={vinculo && (
+      <ContextPanel empresa={vinculo?.empresa || ''} topo={vinculo && (
         <RelatorioDaConversa vinculo={vinculo} enviando={enviando} onAtualizar={atualizarVinculo}
           onTrocar={() => setEscolhendo(true)} onDesvincular={() => vincular(null)} onAbrirAnalise={onAbrirAnalise} />
       )} />

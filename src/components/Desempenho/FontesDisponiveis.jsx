@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { InlineNotification, Loading, Tag } from '@carbon/react'
+import { InlineNotification, Loading, Select, SelectItem, Tag } from '@carbon/react'
 import { obterFontes } from '../../services/resumosApi'
 
 // Fontes disponíveis: tudo o que o sistema sabe ler, não só o que o relatório selecionado usou.
@@ -7,7 +7,8 @@ import { obterFontes } from '../../services/resumosApi'
 // Um bloco por tipo de fonte, sempre na mesma ordem, com o que é e o que o sistema tira dele. Embaixo, cada documento
 // do acervo atual (ou cada consulta salva), com período, empresa, itens indexados e quantas referências o relatório
 // selecionado faz a ele. Tipo sem documento aparece como "não disponível": a capacidade existe, falta o arquivo.
-// Os dados vêm do acervo (acervo/atual.json, gravado pelas tools) e das consultas salvas, nunca fixados na tela.
+// Os dados vêm do acervo de cada empresa (acervo/atual/<empresa>.json, gravado pelas tools) e das consultas salvas,
+// nunca fixados na tela. O seletor abre na empresa do relatório selecionado na página.
 
 const TIPOS = [
   { id: 'itr', nome: 'ITR trimestral', descricao: 'Demonstrações do trimestre e notas explicativas.',
@@ -54,19 +55,27 @@ function referenciasPorDocumento(resumo) {
 function FontesDisponiveis({ resumo, sinal }) {
   const [fontes, setFontes] = useState(null)
   const [erro, setErro] = useState('')
+  // A empresa escolhida no seletor, guardada com a do relatório selecionado na página: trocou o relatório, a escolha
+  // deixa de valer e o seletor volta à empresa dele.
+  const [escolha, setEscolha] = useState({ relatorio: resumo?.empresa, empresa: null })
+  const escolhida = escolha.relatorio === resumo?.empresa ? escolha.empresa : null
+  const empresa = escolhida || resumo?.empresa || ''
+  const setEscolhida = e => setEscolha({ relatorio: resumo?.empresa, empresa: e })
 
   useEffect(() => {
     let ativo = true
-    obterFontes()
+    obterFontes(empresa)
       .then(f => { if (ativo) { setFontes(f); setErro('') } })
       .catch(e => { if (ativo) setErro(e.message) })
     return () => { ativo = false }
-  }, [sinal])
+  }, [sinal, empresa])
 
   if (erro) return <InlineNotification kind="error" lowContrast hideCloseButton title="Fontes indisponíveis" subtitle={erro} />
   if (!fontes) return <Loading small withOverlay={false} description="Carregando as fontes" />
 
-  const citados = referenciasPorDocumento(resumo)
+  // As referências são do relatório selecionado: só valem para os documentos da empresa dele.
+  const doRelatorio = resumo && resumo.empresa === fontes.empresa
+  const citados = doRelatorio ? referenciasPorDocumento(resumo) : {}
   const doTipo = t => (t.consulta
     ? fontes.consultas.filter(c => c.subtipo === t.id)
     : fontes.documentos.filter(d => d.pasta === t.id))
@@ -75,9 +84,15 @@ function FontesDisponiveis({ resumo, sinal }) {
   return (
     <section aria-label="Fontes disponíveis" className="des-secao">
       <h2 className="ana-secao__titulo">Fontes disponíveis</h2>
+      {fontes.empresas?.length > 1 && (
+        <Select id="fontes-empresa" labelText="Empresa" size="sm" className="des-fontes__empresa"
+          value={fontes.empresa} onChange={e => setEscolhida(e.target.value)}>
+          {fontes.empresas.map(e => <SelectItem key={e} value={e} text={e} />)}
+        </Select>
+      )}
       <p className="des-fontes__resumo">
-        {disponiveis} de {TIPOS.length} tipos de fonte com documento no acervo
-        {resumo ? `; referências do relatório ${resumo.empresa} · ${resumo.periodo} · versão ${resumo.versao}` : ''}.
+        {disponiveis} de {TIPOS.length} tipos de fonte com documento no acervo da {fontes.empresa}
+        {doRelatorio ? `; referências do relatório ${resumo.empresa} · ${resumo.periodo} · versão ${resumo.versao}` : ''}.
         {fontes.atualizado_em && ` Acervo conferido em ${quando(fontes.atualizado_em)}.`}
       </p>
       {TIPOS.map(t => {

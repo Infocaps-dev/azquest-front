@@ -58,6 +58,11 @@
 .des-tabela__atual { background: $layer-selected-01; }
 
 // Fontes disponíveis: um bloco por tipo de fonte.
+.des-fontes__empresa {
+  max-width: 16rem;
+  margin-bottom: $spacing-04;
+}
+
 .des-fontes__resumo {
   @include type-style('body-compact-01');
   color: $text-secondary;

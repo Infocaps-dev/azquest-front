@@ -270,6 +270,8 @@ function AnexarDocumentos({ aoEnviar }) {
       </p>
 
       {emissores === null && <InlineLoading description="Carregando emissores…" />}
+      {/* Emissor e atuação lado a lado, como na Coleta automática (mesmo grid, col-form) */}
+      <div className="col-form anexos-emissor-linha">
       {emissores !== null && (
         <Select
           id="anexos-emissor"
@@ -286,10 +288,10 @@ function AnexarDocumentos({ aoEnviar }) {
           <SelectItem value={OPCAO_NOVO_EMISSOR} text="+ Novo emissor…" />
         </Select>
       )}
-      <NovoEmissor aberto={novoAberto} onFechar={() => setNovoAberto(false)} onCriado={emissorCadastrado} />
-      {/* Atuação do emissor escolhido: resumo clicável para consultar e editar (o mesmo painel da Coleta automática) */}
       <AtuacaoEmissor emissor={emissores?.find(e => e.emissor === emissor)}
         podeEditar={user?.role !== 'leitor' && !enviando} onAtualizado={() => emissorCadastrado({ emissor })} />
+      </div>
+      <NovoEmissor aberto={novoAberto} onFechar={() => setNovoAberto(false)} onCriado={emissorCadastrado} />
 
       <SeletorPeriodo id="anexos-periodo" valor={lote} onChange={setLote} disabled={enviando}
         helperText={'A que período os documentos se referem. Um trimestre preenche o período de quem não o traz no '

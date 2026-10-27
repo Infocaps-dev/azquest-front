@@ -56,3 +56,12 @@
   color: $text-secondary;
   margin: 0;
 }
+
+// Coleta manual: emissor e atuação na mesma linha (o grid é o col-form da Coleta automática).
+.anexos-emissor-linha {
+  margin-bottom: $spacing-05;
+
+  .atuacao-emissor {
+    margin: 0;
+  }
+}

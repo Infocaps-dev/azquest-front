@@ -53,6 +53,31 @@ function anoCurto(ano) {
 }
 
 // Período que o nome do arquivo diz, no formato do tipo; '' quando não diz.
+// O trimestre ("2T26") no formato de período do tipo: ITR, release e apresentação "2T26"; DFP o exercício fechado
+// ("2025"; no 4T, o do próprio ano); planilha de RI o mês do fim do trimestre ("2026-06"). '' nos demais tipos.
+export function periodoDoTrimestre(tipo, trimestre) {
+  const m = /^([1-4])T(\d{2})$/.exec(trimestre || '')
+  if (!m || !PADRONIZADOS.has(tipo)) return ''
+  const tri = Number(m[1])
+  const ano = 2000 + Number(m[2])
+  const formato = PERIODO_DO_TIPO[tipo]
+  if (formato === 'trimestre') return trimestre
+  if (formato === 'ano') return String(tri === 4 ? ano : ano - 1)
+  if (formato === 'mes') return `${ano}-${String(tri * 3).padStart(2, '0')}`
+  return ''
+}
+
+// O trimestre a que o período do tipo se refere: a DFP de 2025 é o 4T25; a planilha de 2026-05, o 2T26. '' se não der.
+export function trimestreDoPeriodo(tipo, periodo) {
+  const p = (periodo || '').trim().toUpperCase()
+  if (!periodoValido(tipo, p) || !PADRONIZADOS.has(tipo)) return ''
+  const formato = PERIODO_DO_TIPO[tipo]
+  if (formato === 'trimestre') return p
+  if (formato === 'ano') return `4T${p.slice(2)}`
+  if (formato === 'mes') return `${Math.ceil(Number(p.slice(5)) / 3)}T${p.slice(2, 4)}`
+  return ''
+}
+
 export function periodoDoNome(nome, tipo) {
   const base = nome.replace(/\.[a-z0-9]+$/i, '')
   const formato = PERIODO_DO_TIPO[tipo]

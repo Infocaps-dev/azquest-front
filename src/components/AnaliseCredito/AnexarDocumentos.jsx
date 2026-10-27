@@ -21,9 +21,13 @@ import {
   nomePadronizado,
   pedePeriodo,
   periodoDoNome,
+  periodoDoTrimestre,
   periodoValido,
   subtipoDoNome,
+  trimestreDoPeriodo,
 } from '../../services/nomesDoAcervo'
+import SeletorPeriodo from '../Periodo/SeletorPeriodo.jsx'
+import { ordem, periodoValido as intervaloValido, rotuloPeriodo, trimestres } from '../Periodo/periodos'
 
 // Anexar documentos à análise: o campo de upload e a confirmação do tipo.
 //
@@ -78,15 +82,25 @@ function nomeNoAcervo(documento, emissor) {
   })
 }
 
-// O que impede o envio do documento, ou ''.
-function pendenciaDe(documento) {
+// O que impede o envio do documento, ou ''. Com um intervalo escolhido para o lote, o documento precisa estar
+// dentro dele (a DFP de 2025 é o 4T25; a planilha de 2026-06, o 2T26).
+function pendenciaDe(documento, lote) {
   if (!documento.tipo) return 'sem tipo'
   const tipo = tipoDoNome(documento)
   if (!pedePeriodo(tipo)) return ''
   if (!periodoValido(tipo, documento.periodo)) {
     return `período no formato ${formatoDoPeriodo(tipo).exemplo}`
   }
+  const trimestre = trimestreDoPeriodo(tipo, documento.periodo)
+  if (lote?.ate && trimestre && (ordem(trimestre) < ordem(lote.de) || ordem(trimestre) > ordem(lote.ate))) {
+    return `fora do intervalo ${rotuloPeriodo(lote.de, lote.ate)}`
+  }
   return ''
+}
+
+// O período do documento quando o nome não diz: o trimestre do lote, no formato do tipo. Num intervalo não há um só.
+function periodoDoLote(tipo, lote) {
+  return lote?.de && !lote.ate ? periodoDoTrimestre(tipo, lote.de) : ''
 }
 
 function AnexarDocumentos({ aoEnviar }) {
@@ -94,6 +108,8 @@ function AnexarDocumentos({ aoEnviar }) {
   const [emissores, setEmissores] = useState(null)
   const [emissor, setEmissor] = useState('')
   const [documentos, setDocumentos] = useState([])
+  // A que período os documentos se referem: um trimestre (ate null) ou um intervalo. Começa no último fechado.
+  const [lote, setLote] = useState(() => ({ de: trimestres()[0], ate: null }))
   // O arquivo de cada recebimento, para subir de novo com o nome do acervo.
   const locais = useRef(new Map())
   const [recusados, setRecusados] = useState([])
@@ -128,7 +144,7 @@ function AnexarDocumentos({ aoEnviar }) {
         return {
           ...documento,
           subtipo,
-          periodo: tipoNome ? periodoDoNome(documento.arquivo_original, tipoNome) : '',
+          periodo: tipoNome ? (periodoDoNome(documento.arquivo_original, tipoNome) || periodoDoLote(tipoNome, lote)) : '',
         }
       })
       // Concatena em vez de substituir: anexar um segundo lote não pode
@@ -151,7 +167,7 @@ function AnexarDocumentos({ aoEnviar }) {
       if ('tipo' in mudanca || 'subtipo' in mudanca) {
         const tipoNome = tipoDoNome(novo)
         novo.periodo = (tipoNome && periodoDoNome(d.arquivo_original || d.arquivo, tipoNome))
-          || (periodoValido(tipoNome, d.periodo) ? d.periodo : '')
+          || (periodoValido(tipoNome, d.periodo) ? d.periodo : '') || periodoDoLote(tipoNome, lote)
       }
       return novo
     }))
@@ -220,7 +236,7 @@ function AnexarDocumentos({ aoEnviar }) {
     }
   }
 
-  const pendentes = documentos.filter(d => pendenciaDe(d)).length
+  const pendentes = documentos.filter(d => pendenciaDe(d, lote)).length
   const extensoes = [...new Set(tipos.flatMap(t => t.extensoes))]
 
   return (
@@ -248,6 +264,10 @@ function AnexarDocumentos({ aoEnviar }) {
           {emissores.map(e => <SelectItem key={e.emissor} value={e.emissor} text={e.razao_social} />)}
         </Select>
       )}
+
+      <SeletorPeriodo id="anexos-periodo" valor={lote} onChange={setLote} disabled={enviando}
+        helperText={'A que período os documentos se referem. Um trimestre preenche o período de quem não o traz no '
+          + 'nome; num intervalo, cada documento precisa estar dentro dele.'} />
 
       <FileUploaderDropContainer
         accept={extensoes}
@@ -289,7 +309,7 @@ function AnexarDocumentos({ aoEnviar }) {
           <ul className="ana-anexos__lista">
             {documentos.map(documento => {
               const tipoNome = tipoDoNome(documento)
-              const pendencia = pendenciaDe(documento)
+              const pendencia = pendenciaDe(documento, lote)
               return (
               <li key={documento.chave_recebida} className="ana-anexos__item">
                 <div className="ana-anexos__cabecalho">
@@ -350,8 +370,8 @@ function AnexarDocumentos({ aoEnviar }) {
                       value={documento.periodo}
                       placeholder={formatoDoPeriodo(tipoNome).exemplo}
                       onChange={e => alterar(documento.chave_recebida, { periodo: e.target.value.toUpperCase() })}
-                      invalid={!periodoValido(tipoNome, documento.periodo)}
-                      invalidText={`Ex.: ${formatoDoPeriodo(tipoNome).exemplo}`}
+                      invalid={!periodoValido(tipoNome, documento.periodo) || pendencia.startsWith('fora')}
+                      invalidText={pendencia.startsWith('fora') ? pendencia : `Ex.: ${formatoDoPeriodo(tipoNome).exemplo}`}
                     />
                   )}
                   <Button
@@ -375,7 +395,7 @@ function AnexarDocumentos({ aoEnviar }) {
 
           <Button
             onClick={enviar}
-            disabled={enviando || pendentes > 0}
+            disabled={enviando || pendentes > 0 || !intervaloValido(lote)}
             size="md"
           >
             {enviando
@@ -384,7 +404,7 @@ function AnexarDocumentos({ aoEnviar }) {
           </Button>
           {pendentes > 0 && (
             <p className="ana-anexos__pendencia">
-              {pendentes} documento(s) sem tipo ou sem período.
+              {pendentes} documento(s) sem tipo, sem período ou fora do intervalo escolhido.
             </p>
           )}
         </>

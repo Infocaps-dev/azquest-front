@@ -14,7 +14,7 @@ import {
 } from '../../services/resumosApi'
 import { conversar } from '../../services/chatApi'
 import { AVISO_LIGANDO_PDF, rotuloGerandoPdf, useBaixarPdf } from '../../hooks/useBaixarPdf'
-import AnexarDocumentos from './AnexarDocumentos.jsx'
+import ReferenciasRelatorio from './ReferenciasRelatorio.jsx'
 import NumerosChave from './NumerosChave.jsx'
 import PainelRevisao from './PainelRevisao.jsx'
 import RelatorioCompleto from './RelatorioCompleto.jsx'
@@ -441,9 +441,9 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
       <SecoesRelatorio itens={resumo?.itens} revisao={revisao} rotulos={rotulos}
         onRevisar={secao => abrirRevisao({ secao })} onVerNoRelatorio={abrirRelatorio} />
 
-      {/* É daqui que saem as fontes: a extração leva minutos, e o documento novo entra nos relatórios gerados
-          depois. A lista "Documentos citados" saiu desta página: o acervo de cada empresa fica na aba Documentos. */}
-      <AnexarDocumentos />
+      {/* Os documentos que este relatório usou, como bibliografia. O envio de documentos fica na aba Configurações e
+          o acervo inteiro de cada empresa, na aba Documentos. */}
+      <ReferenciasRelatorio resumo={resumo} />
 
       <PainelRevisao
         aberto={painel.aberto}

@@ -28,9 +28,13 @@ export const listarColetas = emissor =>
 export const obterColeta = id => pedir(`/api/coletas/${encodeURIComponent(id)}`)
 
 // A API recusa com 409 quando já há coleta em andamento: duas abas abertas são dois botões, e só o servidor vê os dois.
-// `periodo` (2T26): o trimestre do kit; sem ele, o da configuração do emissor.
-export const dispararColeta = ({ emissor, fontes, upload, periodo }) =>
-  pedir('/api/coletas', { method: 'POST', body: JSON.stringify({ emissor, fontes, upload, periodo: periodo || null }) })
+// `periodo` (2T26): o trimestre do kit, ou o início do intervalo que termina em `periodoAte`; sem ele, o da
+// configuração do emissor.
+export const dispararColeta = ({ emissor, fontes, upload, periodo, periodoAte }) =>
+  pedir('/api/coletas', {
+    method: 'POST',
+    body: JSON.stringify({ emissor, fontes, upload, periodo: periodo || null, periodo_ate: periodoAte || null }),
+  })
 
 export const resumoExtracao = (emissor, chave) =>
   pedir(`/api/extracoes?emissor=${encodeURIComponent(emissor)}&chave=${encodeURIComponent(chave)}`)

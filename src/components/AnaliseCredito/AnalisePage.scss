@@ -512,3 +512,50 @@
   word-break: break-all;
 }
 
+
+// ── Referências do relatório ────────────────────────────────────────────
+.ana-fontes {
+  padding: $spacing-06;
+  background: $layer-01;
+}
+
+.ana-fontes__intro {
+  @include type-style('body-compact-01');
+  margin-bottom: $spacing-05;
+  color: $text-secondary;
+}
+
+.ana-fontes__lista {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+  padding-left: $spacing-05;
+  list-style: decimal;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-02 $spacing-05;
+    align-items: baseline;
+    padding-bottom: $spacing-03;
+    border-bottom: 1px solid $border-subtle-01;
+  }
+}
+
+.ana-fontes__documento { @include type-style('body-compact-01'); }
+
+.ana-fontes__origem,
+.ana-fontes__referencias {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.ana-fontes__referencias { margin-left: auto; }
+
+.ana-fontes__abrir {
+  @include type-style('label-01');
+  display: inline-flex;
+  gap: $spacing-02;
+  align-items: center;
+  color: $link-primary;
+}

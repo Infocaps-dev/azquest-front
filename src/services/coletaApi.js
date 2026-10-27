@@ -39,8 +39,14 @@ export async function sugestaoEmissor(cnpj) {
   }
 }
 
-// 201: o registro novo. 409: o CNPJ já está cadastrado (erro.corpo.existente). 422: validação (erro.message).
+// 201: o registro novo (com reativado: true quando era um removido). 409: o CNPJ já está cadastrado
+// (erro.corpo.existente; removido: true quando dá para reativar mandando reativar: true). 422: validação.
 export const criarEmissor = dados => pedir('/api/emissores', { method: 'POST', body: JSON.stringify(dados) })
+
+// Remoção lógica de emissor cadastrado pela tela: some das listas, os documentos ficam. 409: configuração fixa,
+// coleta em andamento ou já removido.
+export const removerEmissor = emissor =>
+  pedir(`/api/emissores/${encodeURIComponent(emissor)}`, { method: 'DELETE' })
 
 export const listarColetas = emissor =>
   pedir(`/api/coletas${emissor ? `?emissor=${encodeURIComponent(emissor)}` : ''}`)

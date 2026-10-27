@@ -12,6 +12,7 @@ import '../AnaliseCredito/AnalisePage.scss'
 import '../Desempenho/DesempenhoPage.scss'
 import AnexarDocumentos from '../AnaliseCredito/AnexarDocumentos.jsx'
 import NovoEmissor from '../Emissores/NovoEmissor.jsx'
+import RemoverEmissor from '../Emissores/RemoverEmissor.jsx'
 import SeletorPeriodo from '../Periodo/SeletorPeriodo.jsx'
 import { periodoValido, rotuloPeriodo } from '../Periodo/periodos'
 import './ColetaPage.scss'
@@ -134,6 +135,15 @@ function ColetaPage() {
     }).catch(e => setErroServico(e.message))
   }
 
+  // Emissor removido: a lista é relida e a seleção volta para o primeiro que aceita envio.
+  function emissorRemovido() {
+    listarEmissores().then(lista => {
+      setEmissores(lista)
+      const padrao = lista.find(e => e.upload_permitido) || lista[0]
+      if (padrao) trocarEmissor(padrao.emissor, lista)
+    }).catch(e => setErroServico(e.message))
+  }
+
   function trocarEmissor(nome, lista = emissores) {
     setEmissor(nome)
     const cfg = lista.find(e => e.emissor === nome)
@@ -240,6 +250,7 @@ function ColetaPage() {
               {emissores.map(e => <SelectItem key={e.emissor} value={e.emissor} text={e.razao_social} />)}
             </Select>
             {!emAndamento && <NovoEmissor onCriado={emissorCadastrado} />}
+            {!emAndamento && podeDisparar && <RemoverEmissor emissor={config} onRemovido={emissorRemovido} />}
 
             <SeletorPeriodo id="col-periodo" valor={periodo} onChange={setPeriodo} padrao={config?.periodo}
               disabled={emAndamento}

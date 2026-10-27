@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, InlineLoading, InlineNotification, Modal, TextInput } from '@carbon/react'
+import { ActionableNotification, Button, InlineLoading, InlineNotification, Modal, TextInput } from '@carbon/react'
 import { Add } from '@carbon/icons-react'
 import { criarEmissor, sugestaoEmissor } from '../../services/coletaApi'
 import { cnpjValido, digitos, formatarCnpj } from './cnpj'
@@ -67,7 +67,7 @@ function NovoEmissor({ onCriado, aviso = false }) {
   const cnpjInvalido = digitos(campos.cnpj).length === 14 && !cnpjOk
   const pronto = cnpjOk && campos.razao_social.trim() && campos.nome_curto.trim()
 
-  async function salvar() {
+  async function salvar(reativar = false) {
     if (!pronto || salvando) return
     setSalvando(true)
     setErro('')
@@ -80,6 +80,7 @@ function NovoEmissor({ onCriado, aviso = false }) {
         ticker: campos.ticker.trim() || undefined,
         nomes: campos.nomes.split(',').map(n => n.trim()).filter(Boolean),
         setor: campos.setor.trim() || undefined,
+        ...(reativar ? { reativar: true } : {}),
       })
       fechar()
       setCriado(registro)
@@ -108,7 +109,7 @@ function NovoEmissor({ onCriado, aviso = false }) {
       </Button>
       {aviso && criado && (
         <InlineNotification kind="success" lowContrast className="novo-emissor__aviso"
-          title={`${criado.razao_social || criado.nome_curto} cadastrado.`}
+          title={`${criado.razao_social || criado.nome_curto} ${criado.reativado ? 'reativado' : 'cadastrado'}.`}
           subtitle="Ele aparece aqui quando tiver documentos extraídos: rode a Coleta automática ou envie na Coleta manual."
           onCloseButtonClick={() => setCriado(null)} />
       )}
@@ -118,7 +119,7 @@ function NovoEmissor({ onCriado, aviso = false }) {
         primaryButtonText={salvando ? 'Cadastrando…' : 'Cadastrar'}
         secondaryButtonText="Cancelar"
         primaryButtonDisabled={!pronto || salvando}
-        onRequestSubmit={salvar}
+        onRequestSubmit={() => salvar()}
         onRequestClose={fechar}
         size="sm"
         className="novo-emissor"
@@ -161,14 +162,18 @@ function NovoEmissor({ onCriado, aviso = false }) {
           onChange={e => mudar('nomes', e.target.value)} />
         <TextInput id="novo-emissor-setor" labelText="Setor (opcional)" value={campos.setor}
           placeholder="rodovias, saneamento, energia…" onChange={e => mudar('setor', e.target.value)} />
-        {existente && (
-          <InlineNotification kind="warning" lowContrast hideCloseButton title="CNPJ já cadastrado."
-            subtitle={
-              <>
-                Já cadastrado como {existente.razao_social || existente.emissor}.{' '}
-                <Button kind="ghost" size="sm" onClick={usarExistente}>Selecionar o existente</Button>
-              </>
-            } />
+        {/* Aviso com botão: ActionableNotification. O InlineNotification não aceita botão no texto e derruba a tela. */}
+        {existente?.removido && (
+          <ActionableNotification inline kind="warning" lowContrast hideCloseButton hasFocus={false}
+            title="CNPJ de um emissor removido."
+            subtitle={`${existente.razao_social || existente.emissor} foi removido. Reativar traz o emissor de volta às `
+              + 'listas, com a mesma pasta e os documentos que já tinha.'}
+            actionButtonLabel="Reativar" onActionButtonClick={() => salvar(true)} />
+        )}
+        {existente && !existente.removido && (
+          <ActionableNotification inline kind="warning" lowContrast hideCloseButton hasFocus={false}
+            title="CNPJ já cadastrado." subtitle={`Já cadastrado como ${existente.razao_social || existente.emissor}.`}
+            actionButtonLabel="Selecionar o existente" onActionButtonClick={usarExistente} />
         )}
         {erro && <InlineNotification kind="error" lowContrast hideCloseButton title="Não cadastrado." subtitle={erro} />}
       </Modal>

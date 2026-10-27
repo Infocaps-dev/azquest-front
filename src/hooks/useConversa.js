@@ -287,6 +287,11 @@ export function useConversa() {
     const rodada = async meu => {
       let recebeuAlgo = false
       let falha = ''
+      // A analise-api confere no histórico da conversa se toda tool do turno
+      // falhou na plataforma: o modelo já disfarçou essa falha de resposta
+      // ("não disponho do valor exato da emissão", 26/10/2026), e pelo texto
+      // a tela não tem como reconhecer.
+      let falhaDeTool = false
       try {
         for await (const evento of conversar(enviado, thread, meu.signal)) {
           if (meu.signal.aborted) return null
@@ -313,6 +318,7 @@ export function useConversa() {
               recebeuAlgo = true
               escreverNaResposta(evento.texto)
             }
+            falhaDeTool = evento.falha_de_tool === true
             break
           }
         }
@@ -337,7 +343,7 @@ export function useConversa() {
           escreverNaResposta(gravada)
         }
       }
-      return { falha, recebeuAlgo }
+      return { falha, recebeuAlgo, falhaDeTool }
     }
 
     // Espera entre tentativas: `abrir`/`nova` abortam o controlador, e o turno
@@ -362,7 +368,7 @@ export function useConversa() {
       if (!fim) return // a pessoa trocou de conversa: `abrir`/`nova` já limparam a tela
       meu.abort()
 
-      if (!falhaParaRepetir(resposta)) break
+      if (!fim.falhaDeTool && !falhaParaRepetir(resposta)) break
       // Falha da plataforma (o Orchestrate devolve "I have encountered an
       // error. Please try again." como se fosse a resposta, ou a tool não
       // roda): a mesma mensagem vai de novo, na mesma conversa. Pedido que

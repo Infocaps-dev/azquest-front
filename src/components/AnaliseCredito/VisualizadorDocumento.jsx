@@ -1,0 +1,115 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ComposedModal, InlineLoading, InlineNotification, ModalBody, ModalHeader } from '@carbon/react'
+
+// Documento de uma referência aberto na própria tela, sem baixar o arquivo: o PDF na página citada; a planilha lida
+// no navegador, na aba citada, com as linhas citadas destacadas. Antes o "Abrir" de uma planilha baixava o .xlsx.
+
+const ehPlanilha = arquivo => /\.xlsx?$/i.test(arquivo || '')
+
+// 'aba "Balanço Patrimonial", linha 7' -> { aba: 'Balanço Patrimonial', linha: 7 }
+function linhasCitadas(linhas = []) {
+  const porAba = new Map()
+  for (const texto of linhas) {
+    const m = /aba "([^"]+)"(?:, linha (\d+))?/.exec(texto)
+    if (!m) continue
+    if (!porAba.has(m[1])) porAba.set(m[1], new Set())
+    if (m[2]) porAba.get(m[1]).add(Number(m[2]))
+  }
+  return porAba
+}
+
+const semEspacos = texto => (texto || '').trim().toLowerCase()
+
+function celula(valor) {
+  if (valor == null) return ''
+  if (typeof valor === 'number') return valor.toLocaleString('pt-BR', { maximumFractionDigits: 2 })
+  if (valor instanceof Date) return valor.toLocaleDateString('pt-BR')
+  return String(valor)
+}
+
+function Planilha({ link, linhas }) {
+  const [abas, setAbas] = useState(null)
+  const [erro, setErro] = useState(null)
+  const citadas = useMemo(() => linhasCitadas(linhas), [linhas])
+  const [abaAtual, setAbaAtual] = useState(null)
+  const destaque = useRef(null)
+
+  useEffect(() => {
+    let ativo = true
+    ;(async () => {
+      try {
+        const resposta = await fetch(link, { credentials: 'same-origin' })
+        if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`)
+        const { default: lerPlanilha } = await import('read-excel-file/browser')
+        const lidas = await lerPlanilha(await resposta.blob())
+        if (!ativo) return
+        setAbas(lidas)
+        const primeira = lidas.find(a => [...citadas.keys()].some(c => semEspacos(c) === semEspacos(a.sheet))) || lidas[0]
+        setAbaAtual(primeira?.sheet || null)
+      } catch (e) {
+        if (ativo) setErro(e.message || 'não foi possível ler a planilha')
+      }
+    })()
+    return () => { ativo = false }
+  }, [link, citadas])
+
+  useEffect(() => { destaque.current?.scrollIntoView({ block: 'center' }) }, [abaAtual, abas])
+
+  if (erro) return <InlineNotification kind="error" lowContrast hideCloseButton title="Planilha" subtitle={erro} />
+  if (!abas) return <InlineLoading description="Lendo a planilha…" />
+
+  const aba = abas.find(a => a.sheet === abaAtual)
+  const marcadas = [...citadas.entries()].find(([nome]) => semEspacos(nome) === semEspacos(abaAtual))?.[1] || new Set()
+  const primeiraMarcada = Math.min(...marcadas)
+  return (
+    <div className="ana-planilha">
+      <div className="ana-planilha__abas" role="tablist">
+        {abas.map(a => {
+          const citada = [...citadas.keys()].some(c => semEspacos(c) === semEspacos(a.sheet))
+          return (
+            <button key={a.sheet} type="button" role="tab" aria-selected={a.sheet === abaAtual}
+              className={`ana-planilha__aba${a.sheet === abaAtual ? ' ana-planilha__aba--atual' : ''}${citada ? ' ana-planilha__aba--citada' : ''}`}
+              onClick={() => setAbaAtual(a.sheet)}>
+              {a.sheet}
+            </button>
+          )
+        })}
+      </div>
+      <div className="ana-planilha__grade">
+        <table>
+          <tbody>
+            {(aba?.data || []).map((linha, i) => {
+              const numero = i + 1
+              const marcada = marcadas.has(numero)
+              return (
+                <tr key={numero} ref={numero === primeiraMarcada ? destaque : null}
+                  className={marcada ? 'ana-planilha__linha--citada' : ''}>
+                  <th scope="row">{numero}</th>
+                  {linha.map((v, j) => <td key={j}>{celula(v)}</td>)}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function VisualizadorDocumento({ documento, onFechar }) {
+  if (!documento) return null
+  const { arquivo, link, paginas = [], linhas = [] } = documento
+  return (
+    <ComposedModal open onClose={onFechar} size="lg" className="ana-visualizador">
+      <ModalHeader label="Referência" title={arquivo} closeModal={onFechar} iconDescription="Fechar" />
+      <ModalBody>
+        {ehPlanilha(arquivo)
+          ? <Planilha link={link} linhas={linhas} />
+          : <iframe className="ana-visualizador__pdf" title={arquivo}
+              src={`${link}${paginas[0] ? `#page=${paginas[0]}` : ''}`} />}
+      </ModalBody>
+    </ComposedModal>
+  )
+}
+
+export default VisualizadorDocumento

@@ -1,23 +1,22 @@
 import { Tile } from '@carbon/react'
 import { WarningAlt } from '@carbon/icons-react'
 import { formatar, rotuloEvidencia } from './vocabulario'
-import { useDocumentosDoAcervo } from './useDocumentosDoAcervo'
 
 // Números-chave: os cartões do topo da aba, um número por cartão.
 //
 // Nenhum destes números foi escrito por um modelo: saem do resumo montado por
-// código (planilha de RI, documentos do período, escritura), com a fonte. O
-// clique abre o relatório no trecho que cita o mesmo item do acervo (ou a
-// mesma página); quando o relatório não cita a fonte do número, o clique abre
-// o documento de origem. Nunca uma seção que não contém o número: com âncoras
-// fixas, o lucro líquido da Motiva levava a uma seção fora do piloto.
+// código (planilha de RI, documentos do período, escritura), com a fonte. A aba
+// é um resumo do relatório: o clique abre o relatório no trecho que traz o
+// número, com a citação. O gerador escreve no relatório todo número de cartão
+// (tools/acervo/indicadores.py) e o resumo aponta para esse trecho; nunca para
+// uma seção que não contém o número, nem para o arquivo de origem (os
+// documentos se abrem nas Referências).
 //
 // A ressalva viaja com o número, não numa nota de rodapé: o rating da Fitch
 // disponível é da Ecovias Ponte, não do consolidado, e quem lê a nota precisa
 // ler isso junto.
 
-function NumerosChave({ numeros = [], empresa, onAbrir }) {
-  const linkDoArquivo = useDocumentosDoAcervo(empresa)
+function NumerosChave({ numeros = [], onAbrir }) {
   if (!numeros.length) return null
 
   return (
@@ -32,8 +31,9 @@ function NumerosChave({ numeros = [], empresa, onAbrir }) {
               numero.fonte ? '' : 'ana-kpi--sem-fonte',
             ].join(' ').trim()}
           >
-            <Gatilho numero={numero} onAbrir={onAbrir}
-              link={numero.documento && linkDoArquivo(numero.documento.arquivo, numero.documento.pagina)}>
+            {/* Sem trecho apontado (resumo antigo), abre o relatório do começo. */}
+            <button type="button" className="ana-kpi__gatilho" onClick={() => onAbrir?.(numero.ancora || null)}
+              title="Ver no relatório">
               <span className="ana-kpi__titulo">{numero.titulo}</span>
               <span className="ana-kpi__valor">{formatar(numero.valor, numero.unidade)}</span>
               {numero.periodo && <span className="ana-kpi__periodo">{numero.periodo}</span>}
@@ -57,34 +57,12 @@ function NumerosChave({ numeros = [], empresa, onAbrir }) {
                   </span>
                 </span>
               )}
-            </Gatilho>
+            </button>
           </Tile>
         ))}
       </div>
     </section>
   )
-}
-
-// No relatório, se ele cita a fonte do número; senão, o documento de origem;
-// sem nenhum dos dois, o cartão não é clicável.
-function Gatilho({ numero, link, onAbrir, children }) {
-  if (numero.ancora) {
-    return (
-      <button type="button" className="ana-kpi__gatilho" onClick={() => onAbrir?.(numero.ancora)}
-        title="Ver no relatório">
-        {children}
-      </button>
-    )
-  }
-  if (link) {
-    return (
-      <a className="ana-kpi__gatilho" href={link} target="_blank" rel="noreferrer"
-        title="Abrir o documento de origem (o relatório não cita esta fonte)">
-        {children}
-      </a>
-    )
-  }
-  return <div className="ana-kpi__gatilho ana-kpi__gatilho--estatico">{children}</div>
 }
 
 export default NumerosChave

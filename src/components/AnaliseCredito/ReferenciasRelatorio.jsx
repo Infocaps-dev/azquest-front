@@ -1,11 +1,12 @@
-import { useMemo } from 'react'
-import { Launch } from '@carbon/icons-react'
+import { useMemo, useState } from 'react'
+import { View } from '@carbon/icons-react'
 import { useDocumentosDoAcervo } from './useDocumentosDoAcervo'
+import VisualizadorDocumento from './VisualizadorDocumento.jsx'
 
 // Referências do relatório: os documentos que ESTE relatório usou, como uma bibliografia. Cada documento com o tipo,
-// a data-base, as páginas (ou abas e linhas da planilha) citadas e quantas vezes, e o link para abrir o arquivo no
-// acervo da empresa, já na primeira página citada. Sai das evidências dos itens do resumo, não do acervo inteiro: o
-// acervo de cada empresa fica na aba Documentos.
+// a data-base, as páginas (ou abas e linhas da planilha) citadas e quantas vezes, e o botão que mostra o arquivo na
+// própria tela (o PDF na primeira página citada; a planilha na aba citada, com as linhas destacadas), sem baixar.
+// Sai das evidências dos itens do resumo, não do acervo inteiro: o acervo de cada empresa fica na aba Documentos.
 
 const ORDEM_TIPO = ['ITR', 'DFP', 'Release', 'Planilha', 'Escritura', 'Relatório do agente fiduciário', 'Rating']
 const posicao = tipo => {
@@ -44,6 +45,7 @@ function referenciasDoResumo(resumo) {
 function ReferenciasRelatorio({ resumo }) {
   const linkDoArquivo = useDocumentosDoAcervo(resumo?.empresa)
   const referencias = useMemo(() => referenciasDoResumo(resumo), [resumo])
+  const [aberto, setAberto] = useState(null)
 
   if (!referencias.length) return null
   return (
@@ -54,7 +56,7 @@ function ReferenciasRelatorio({ resumo }) {
       </p>
       <ol className="ana-fontes__lista">
         {referencias.map(r => {
-          const link = linkDoArquivo(r.arquivo, r.paginas[0])
+          const link = linkDoArquivo(r.arquivo)
           const local = [
             r.paginas.length ? `${r.paginas.length === 1 ? 'p.' : 'pp.'} ${r.paginas.join(', ')}` : '',
             r.linhas.join('; '),
@@ -71,14 +73,16 @@ function ReferenciasRelatorio({ resumo }) {
                 {r.citacoes ? ` · ${r.citacoes} ${r.citacoes === 1 ? 'citação' : 'citações'}` : ''}
               </span>
               {link && (
-                <a className="ana-fontes__abrir" target="_blank" rel="noreferrer" href={link}>
-                  Abrir <Launch size={12} />
-                </a>
+                <button type="button" className="ana-fontes__abrir"
+                  onClick={() => setAberto({ arquivo: r.arquivo, link, paginas: r.paginas, linhas: r.linhas })}>
+                  Ver <View size={12} />
+                </button>
               )}
             </li>
           )
         })}
       </ol>
+      <VisualizadorDocumento documento={aberto} onFechar={() => setAberto(null)} />
     </section>
   )
 }

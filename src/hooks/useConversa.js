@@ -307,6 +307,13 @@ export function useConversa() {
       })
     }
     const escreverNaResposta = trecho => trocarResposta(resposta + trecho)
+    // O relatório gerado neste turno (27/10/2026): a analise-api repassa as etapas reais da geração (evento
+    // `relatorio`) e o pedido_id, com que a tela acompanha a versão 2 depois da resposta.
+    const marcarNaResposta = campos => setMensagens(atuais => {
+      const copia = [...atuais]
+      copia[copia.length - 1] = { ...copia[copia.length - 1], ...campos }
+      return copia
+    })
 
     // Uma rodada: o stream e, se ele não trouxer a resposta, a conversa
     // gravada. Devolve {falha, recebeuAlgo}, ou null se a pessoa saiu da
@@ -333,6 +340,10 @@ export function useConversa() {
             if (!thread) recarregarConversas()
             thread = evento.thread_id
             setThreadId(evento.thread_id)
+            if (evento.pedido_id) marcarNaResposta({ pedidoId: evento.pedido_id })
+          } else if (evento.tipo === 'relatorio') {
+            marcarNaResposta({ andamento: evento.andamento })
+            setPasso(evento.andamento?.estado === 'concluida' ? 'Relatório pronto; redigindo a resposta' : 'Construindo o relatório')
           } else if (evento.tipo === 'passo') {
             setPasso(evento.texto)
           } else if (evento.tipo === 'trecho') {

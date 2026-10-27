@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, InlineNotification, Loading, Select, SelectItem, Tag } from '@carbon/react'
-import { ChartLineData, Document, DocumentPdf, Renew, TaskApproved } from '@carbon/icons-react'
+import { Add, ChartLineData, Document, DocumentPdf, Renew, TaskApproved } from '@carbon/icons-react'
 import {
   aplicarAjustes,
   decidirItem,
@@ -12,7 +12,10 @@ import {
   obterRevisao,
   publicar,
 } from '../../services/resumosApi'
-import { conversar } from '../../services/chatApi'
+import { gerarRelatorioPadrao } from '../../services/relatoriosApi'
+import useAndamentoRelatorio from '../../hooks/useAndamentoRelatorio'
+import ProgressoRelatorio from '../Relatorio/ProgressoRelatorio.jsx'
+import GerarRelatorio from '../Relatorio/GerarRelatorio.jsx'
 import { AVISO_LIGANDO_PDF, rotuloGerandoPdf, useBaixarPdf } from '../../hooks/useBaixarPdf'
 import ReferenciasRelatorio from './ReferenciasRelatorio.jsx'
 import NumerosChave from './NumerosChave.jsx'
@@ -49,6 +52,10 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
   const [painel, setPainel] = useState({ aberto: false, filtro: null })
   const [relatorio, setRelatorio] = useState({ aberto: false, ancora: null })
   const [reprocessando, setReprocessando] = useState(false)
+  // Geração pelo botão Reprocessar: {operacao, origem (o relatório de onde pediu), esperando (o novo)}.
+  const [geracao, setGeracao] = useState(null)
+  const andamentoGeracao = useAndamentoRelatorio(geracao?.operacao || null)
+  const [gerarAberto, setGerarAberto] = useState(false) // diálogo Gerar relatório (empresa e período)
   const [enviando, setEnviando] = useState(false) // publicar, devolver, gerar versão: um clique só
   // O relatório que está na tela agora: respostas que chegam depois de o analista trocar de relatório são descartadas,
   // em vez de mostrar o relatório A com as decisões indo para o B.
@@ -77,7 +84,7 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
           setRelatorioId(pedido ? relatorioAlvo.id : indice.relatorios[0].relatorio_id)
           if (pedido) onAlvoConsumido?.()
         } else {
-          setErroCarga('Nenhum relatório gerado ainda. Peça um relatório ao agente no chat.')
+          setErroCarga('Nenhum relatório gerado ainda. Gere um aqui ou peça ao agente no chat.')
           setCarregando(false)
         }
       })
@@ -254,57 +261,56 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
     }
   }
 
-  // Reprocessar: pede ao Agente Analista de Crédito um relatório novo do mesmo
-  // emissor e período, pela conversa da analise-api (é lá que a chave do
-  // Orchestrate fica), e muda a tela para ele quando o resumo chegar. O agente
-  // gera do zero, a partir dos documentos atuais: a revisão e os ajustes desta
-  // versão continuam no relatório atual. O aviso diz o que de fato aconteceu:
-  // dizer "reprocessado" sem relatório novo faria o analista crer que o
-  // documento mudou.
+  // Reprocessar (27/10/2026): o relatório padrão do mesmo emissor e período pelo serviço de geração, sem o agente
+  // (2-7 s em vez dos 18-26 s do chat), com as etapas reais na tela. Ele é gerado do zero, a partir dos documentos
+  // atuais: a revisão e os ajustes desta versão continuam no relatório atual. Personalização: pelo chat. O aviso diz
+  // o que de fato aconteceu: dizer "reprocessado" sem relatório novo faria o analista crer que o documento mudou.
   async function reprocessarRelatorio() {
-    const pedido = `Gere o relatório de crédito da ${resumo.empresa} do ${resumo.periodo}.`
-    if (!window.confirm(`Pedir ao Agente Analista de Crédito um relatório novo (${resumo.empresa}, ${resumo.periodo})?`
+    if (!window.confirm(`Gerar um relatório novo (${resumo.empresa}, ${resumo.periodo})?`
       + '\n\nEle é gerado do zero, com os documentos atuais. A revisão e os ajustes desta versão continuam no relatório atual.')) return
-    const origem = relatorioId
     setAviso(null)
     setReprocessando(true)
-    let fim = null
-    let erro = null
     try {
-      for await (const evento of conversar(pedido)) {
-        if (evento.tipo === 'fim') fim = evento
-        if (evento.tipo === 'erro') erro = evento.detalhe
-      }
+      const pedido = await gerarRelatorioPadrao({ empresa: resumo.empresa, periodo: resumo.periodo })
+      setGeracao({ operacao: pedido.operacao_id, origem: relatorioId })
     } catch (e) {
-      erro = e.message
-    }
-    const novoId = /relatorios\/([a-z0-9-]+)\.html/.exec(fim?.texto || '')?.[1]
-    if (!novoId) {
       setReprocessando(false)
-      setAviso({ kind: 'warning', title: 'O relatório não foi regerado',
-        subtitle: erro || 'O agente respondeu sem o link de um relatório novo. Tente de novo ou peça pelo chat.' })
-      return
+      setAviso({ kind: 'warning', title: 'O relatório não foi regerado', subtitle: e.message })
     }
-    // O resumo chega em segundos pelo monitor; espera até 90 s antes de desistir. Só troca a tela se o analista
-    // continua no relatório de onde pediu; se mudou de relatório, o aviso do App leva ao novo.
-    for (let tentativa = 0; tentativa < 30; tentativa++) {
-      const indice = await listarResumos().catch(() => null)
-      if (indice?.relatorios?.some(r => r.relatorio_id === novoId)) {
-        setRelatorios(indice.relatorios)
-        setReprocessando(false)
-        if (atual.current === origem) {
-          setRelatorioId(novoId)
-          setAviso({ kind: 'success', title: 'Relatório regerado pelo Agente Analista de Crédito',
-            subtitle: `Relatório novo ${novoId}, versão 1.` })
-        }
-        return
-      }
-      await new Promise(r => setTimeout(r, 3000))
-    }
-    setReprocessando(false)
-    setAviso({ kind: 'warning', title: 'O agente gerou o relatório, mas o resumo ainda não chegou',
-      subtitle: `Relatório ${novoId}. Ele aparece no seletor assim que o resumo for montado.` })
   }
+
+  // Fim da geração: espera o resumo do relatório novo chegar (o monitor monta em segundos) e muda a tela para ele,
+  // se o analista continua no relatório de onde pediu; se mudou, o aviso do App leva ao novo.
+  useEffect(() => {
+    if (!geracao || !andamentoGeracao) return undefined
+    if (andamentoGeracao.estado === 'falhou') {
+      setReprocessando(false)
+      setAviso({ kind: 'warning', title: 'O relatório não foi regerado', subtitle: andamentoGeracao.erro || '' })
+      return undefined
+    }
+    const novoId = andamentoGeracao.estado === 'concluida' && andamentoGeracao.relatorio_id
+    if (!novoId || geracao.esperando === novoId) return undefined
+    setGeracao(g => ({ ...g, esperando: novoId }))
+    let ativo = true
+    ;(async () => {
+      for (let tentativa = 0; tentativa < 30 && ativo; tentativa++) {
+        const indice = await listarResumos().catch(() => null)
+        if (indice?.relatorios?.some(r => r.relatorio_id === novoId)) {
+          setRelatorios(indice.relatorios)
+          setReprocessando(false)
+          if (atual.current === geracao.origem) setRelatorioId(novoId)
+          return
+        }
+        await new Promise(r => setTimeout(r, 2000))
+      }
+      if (ativo) {
+        setReprocessando(false)
+        setAviso({ kind: 'warning', title: 'O relatório foi gerado, mas o resumo ainda não chegou',
+          subtitle: `Relatório ${novoId}. Ele aparece no seletor assim que o resumo for montado.` })
+      }
+    })()
+    return () => { ativo = false }
+  }, [andamentoGeracao, geracao])
 
   async function devolverVersao() {
     const justificativa = window.prompt('Por que a versão está sendo devolvida para ajuste?')
@@ -322,11 +328,32 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
     }
   }
 
+  // Relatório novo pelo diálogo: entra na tela assim que o resumo dele chega (o monitor monta em segundos).
+  async function abrirQuandoResumir(novoId) {
+    for (let tentativa = 0; tentativa < 30; tentativa++) {
+      const indice = await listarResumos().catch(() => null)
+      if (indice?.relatorios?.some(r => r.relatorio_id === novoId)) {
+        setErroCarga('')
+        setRelatorios(indice.relatorios)
+        setRelatorioId(novoId)
+        return
+      }
+      await new Promise(r => setTimeout(r, 2000))
+    }
+  }
+
+  const dialogoGerar = (
+    <GerarRelatorio aberto={gerarAberto} empresaInicial={resumo?.empresa || ''}
+      onFechar={() => setGerarAberto(false)} onPronto={abrirQuandoResumir} />
+  )
+
   if (erroCarga && !resumo) {
     return (
       <main className="ana-pagina ana-pagina--vazia">
         <InlineNotification kind="info" lowContrast hideCloseButton
           title="Análise de Crédito indisponível" subtitle={erroCarga} />
+        <Button kind="primary" size="md" renderIcon={Add} onClick={() => setGerarAberto(true)}>Gerar relatório</Button>
+        {dialogoGerar}
       </main>
     )
   }
@@ -373,9 +400,12 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
             onClick={() => { setAviso(null); pdf.limparErro(); pdf.baixar(relatorioId, resumo?.versao) }}>
             {pdf.gerando === null ? 'Baixar PDF' : rotuloGerandoPdf(pdf.gerando)}
           </Button>
+          <Button kind="tertiary" size="sm" renderIcon={Add} onClick={() => setGerarAberto(true)}>
+            Gerar relatório
+          </Button>
           <Button kind="tertiary" size="sm" renderIcon={Renew} disabled={reprocessando || Boolean(gerando)}
             onClick={reprocessarRelatorio}>
-            {reprocessando ? 'Agente gerando o relatório…' : 'Reprocessar'}
+            {reprocessando ? 'Gerando o relatório…' : 'Reprocessar'}
           </Button>
           {gerando && !gerando.atrasado && <Tag type="blue" size="md">Gerando a versão {resumo.versao + 1}…</Tag>}
           {gerando?.atrasado && (
@@ -412,6 +442,10 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
           title="Gerando o PDF" subtitle={AVISO_LIGANDO_PDF} />
       )}
 
+      {dialogoGerar}
+      {geracao && (reprocessando || andamentoGeracao?.versao_2?.estado === 'em_preparo') && (
+        <ProgressoRelatorio andamento={andamentoGeracao} solicitado mostrarLink={false} />
+      )}
       {aviso && (
         <InlineNotification kind={aviso.kind} lowContrast className="ana-aviso"
           title={aviso.title} subtitle={aviso.subtitle} onClose={() => setAviso(null)} />

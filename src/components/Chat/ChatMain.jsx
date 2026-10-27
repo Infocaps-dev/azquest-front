@@ -2,8 +2,18 @@ import { useEffect, useRef, useState } from 'react'
 import { Button, ClickableTile, InlineLoading, TextArea } from '@carbon/react'
 import { Link as IconeVinculo, Send, WarningAlt } from '@carbon/icons-react'
 import RespostaDoAgente from './RespostaDoAgente.jsx'
+import ProgressoRelatorio from '../Relatorio/ProgressoRelatorio.jsx'
+import useAndamentoRelatorio from '../../hooks/useAndamentoRelatorio'
 import { MODO_SIMULADO } from '../../services/chatApi'
 import { RelatorioDaConversa } from './contextoChat'
+
+// Relatório gerado no turno: as etapas vêm pelo stream enquanto o agente responde; depois, a tela acompanha a
+// versão 2 (interpretação redigida) pela operação do turno. O link fica na resposta do agente.
+function RelatorioDoTurno({ mensagem, respondendo }) {
+  const acompanhar = !respondendo && mensagem.andamento?.estado === 'concluida' ? mensagem.pedidoId : null
+  const andamento = useAndamentoRelatorio(acompanhar, mensagem.andamento)
+  return <ProgressoRelatorio andamento={andamento} mostrarLink={false} />
+}
 
 const suggestions = [
   'Gerar relatório de crédito de uma nova empresa',
@@ -94,7 +104,7 @@ function ChatMain({
         {conversando && (
           <RelatorioDaConversa.Provider value={vinculo?.relatorio_id || null}>
           <div className="chat-conversa">
-            {mensagens.map(m => (
+            {mensagens.map((m, i) => (
               <article
                 key={m.id}
                 className={`chat-msg chat-msg--${m.papel}`}
@@ -103,6 +113,9 @@ function ChatMain({
                   {m.papel === 'usuario' ? 'Você' : 'Analista de Crédito AZ Quest'}
                 </p>
                 <div className="chat-msg__corpo">
+                  {m.papel !== 'usuario' && m.andamento && (
+                    <RelatorioDoTurno mensagem={m} respondendo={enviando && i === mensagens.length - 1} />
+                  )}
                   {m.papel === 'usuario'
                     ? <p>{m.texto}</p>
                     : <RespostaDoAgente texto={m.texto} onTrocarAba={onTrocarAba} onEnviar={onEnviar} />}

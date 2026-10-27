@@ -1,25 +1,29 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ActionableNotification, Button, InlineLoading, InlineNotification, Modal, TextInput } from '@carbon/react'
-import { Add } from '@carbon/icons-react'
+import { Add, Renew } from '@carbon/icons-react'
 import { criarEmissor, sugestaoEmissor } from '../../services/coletaApi'
 import { cnpjValido, digitos, formatarCnpj } from './cnpj'
+import { perfilParaEnvio, propostaDe, propostaValida, usePesquisaAtuacao } from './atuacao'
+import RevisaoAtuacao from './RevisaoAtuacao.jsx'
 import './NovoEmissor.scss'
 
 // Novo emissor: o botão que fica ao lado de toda lista de emissores (Coleta automática e manual, Fontes, painel do
-// chat, Documentos). Antes, cadastrar uma empresa exigia engenharia: arquivo de configuração, buckets, job do extrator
-// e cópias do cadastro em cada serviço. Agora o cadastro é um só, na coleta-api, e o emissor aparece em todas as telas.
+// chat, Documentos). O cadastro é um só, na coleta-api, e o emissor aparece em todas as telas.
 //
-// Só três campos são obrigatórios. Com o CNPJ a coleta da CVM já acha ITR, DFP, escrituras, relatórios do agente
-// fiduciário e ratings; a razão social vem sugerida do cadastro aberto da CVM quando é companhia aberta.
+// Dois passos (27/10/2026): os dados da empresa e, antes de gravar, a confirmação, com a atuação pesquisada (CVM, B3
+// e site oficial, cada frase com fonte). A pessoa confere, corrige o setor ou o resumo e só então cadastra; a
+// atuação confirmada fica no cadastro e é o contexto que todo agente usa ao falar da empresa.
 
 // "Motiva Infraestrutura de Mobilidade S.A." -> "Motiva": a primeira palavra que não é forma societária.
 const NAO_NOME = /^(cia|companhia|concessionaria|concessionária|s\.?a\.?|ltda|de|da|do|das|dos|e)$/i
 const sugerirNomeCurto = razao => (razao || '').split(/\s+/).find(p => p && !NAO_NOME.test(p)) || ''
 
-const VAZIO = { cnpj: '', razao_social: '', nome_curto: '', ticker: '', nomes: '', setor: '' }
+const VAZIO = { cnpj: '', razao_social: '', nome_curto: '', ticker: '', nomes: '' }
+const PROPOSTA_VAZIA = propostaDe(null)
 
 function NovoEmissor({ onCriado, aviso = false }) {
   const [aberto, setAberto] = useState(false)
+  const [passo, setPasso] = useState('dados') // dados | confirmar
   const [campos, setCampos] = useState(VAZIO)
   const [cvm, setCvm] = useState(null) // {codigo_cvm, situacao} da sugestão
   const [buscando, setBuscando] = useState(false)
@@ -28,16 +32,21 @@ function NovoEmissor({ onCriado, aviso = false }) {
   const [existente, setExistente] = useState(null)
   const [criado, setCriado] = useState(null)
   const [ultimoConsultado, setUltimoConsultado] = useState('')
+  const [proposta, setProposta] = useState(PROPOSTA_VAZIA)
+  const pesquisa = usePesquisaAtuacao()
 
   const mudar = (campo, valor) => setCampos(c => ({ ...c, [campo]: valor }))
 
   function fechar() {
     setAberto(false)
+    setPasso('dados')
     setCampos(VAZIO)
     setCvm(null)
     setErro('')
     setExistente(null)
     setUltimoConsultado('')
+    setProposta(PROPOSTA_VAZIA)
+    pesquisa.limpar()
   }
 
   // Ao completar o CNPJ (ou sair do campo), a sugestão da CVM: preenche a razão social se estiver vazia.
@@ -66,9 +75,26 @@ function NovoEmissor({ onCriado, aviso = false }) {
   const cnpjOk = cnpjValido(campos.cnpj)
   const cnpjInvalido = digitos(campos.cnpj).length === 14 && !cnpjOk
   const pronto = cnpjOk && campos.razao_social.trim() && campos.nome_curto.trim()
+  const nomes = () => campos.nomes.split(',').map(n => n.trim()).filter(Boolean)
+
+  // Passo 1 -> 2: pesquisa a atuação e abre a confirmação; a proposta é preenchida quando a pesquisa termina.
+  async function pesquisar() {
+    if (!pronto) return
+    setPasso('confirmar')
+    setErro('')
+    setExistente(null)
+    setProposta(PROPOSTA_VAZIA)
+    await pesquisa.iniciar({
+      cnpj: digitos(campos.cnpj), razao_social: campos.razao_social.trim(), nome_curto: campos.nome_curto.trim(),
+      nomes: nomes(),
+    })
+  }
+  // Quando a pesquisa termina, a proposta editável vem do perfil (uma vez por pesquisa).
+  const perfil = pesquisa.resultado?.perfil
+  useEffect(() => { if (perfil) setProposta(propostaDe(perfil)) }, [perfil])
 
   async function salvar(reativar = false) {
-    if (!pronto || salvando) return
+    if (!pronto || salvando || !propostaValida(proposta)) return
     setSalvando(true)
     setErro('')
     setExistente(null)
@@ -78,8 +104,9 @@ function NovoEmissor({ onCriado, aviso = false }) {
         razao_social: campos.razao_social.trim(),
         nome_curto: campos.nome_curto.trim(),
         ticker: campos.ticker.trim() || undefined,
-        nomes: campos.nomes.split(',').map(n => n.trim()).filter(Boolean),
-        setor: campos.setor.trim() || undefined,
+        nomes: nomes(),
+        perfil: perfilParaEnvio(proposta, perfil),
+        pesquisa_id: pesquisa.resultado?.pesquisa_id,
         ...(reativar ? { reativar: true } : {}),
       })
       fechar()
@@ -102,6 +129,7 @@ function NovoEmissor({ onCriado, aviso = false }) {
     onCriado?.(e)
   }
 
+  const confirmar = passo === 'confirmar'
   return (
     <>
       <Button kind="ghost" size="sm" renderIcon={Add} onClick={() => { setCriado(null); setAberto(true) }}>
@@ -115,53 +143,72 @@ function NovoEmissor({ onCriado, aviso = false }) {
       )}
       <Modal
         open={aberto}
-        modalHeading="Novo emissor"
-        primaryButtonText={salvando ? 'Cadastrando…' : 'Cadastrar'}
-        secondaryButtonText="Cancelar"
-        primaryButtonDisabled={!pronto || salvando}
-        onRequestSubmit={() => salvar()}
+        modalHeading={confirmar ? `Confirmar cadastro: ${campos.nome_curto}` : 'Novo emissor'}
+        primaryButtonText={confirmar ? (salvando ? 'Cadastrando…' : 'Confirmar cadastro') : 'Pesquisar atuação'}
+        secondaryButtonText={confirmar ? 'Voltar' : 'Cancelar'}
+        primaryButtonDisabled={confirmar
+          ? salvando || pesquisa.estado === 'pesquisando' || !propostaValida(proposta)
+          : !pronto}
+        onRequestSubmit={() => (confirmar ? salvar() : pesquisar())}
+        onSecondarySubmit={() => (confirmar ? (pesquisa.limpar(), setPasso('dados')) : fechar())}
         onRequestClose={fechar}
-        size="sm"
+        size={confirmar ? 'md' : 'sm'}
         className="novo-emissor"
       >
-        <p className="novo-emissor__ajuda">
-          Com o CNPJ, a coleta da CVM já busca ITR, DFP, escrituras, relatórios do agente fiduciário e ratings. O site
-          de RI e o envio manual complementam o acervo.
-        </p>
-        <TextInput
-          id="novo-emissor-cnpj"
-          labelText="CNPJ"
-          value={formatarCnpj(campos.cnpj)}
-          onChange={e => {
-            mudar('cnpj', e.target.value)
-            if (digitos(e.target.value).length === 14) consultarCnpj(e.target.value)
-          }}
-          onBlur={e => consultarCnpj(e.target.value)}
-          invalid={cnpjInvalido}
-          invalidText="CNPJ inválido: confira os dígitos."
-          placeholder="00.000.000/0000-00"
-        />
-        {buscando && <InlineLoading description="Consultando a CVM…" />}
-        {!buscando && cvm && (
-          <p className="novo-emissor__cvm">
-            CVM: código {cvm.codigo_cvm ?? '—'}{cvm.situacao ? ` · ${cvm.situacao}` : ''}
-          </p>
+        {!confirmar && (
+          <>
+            <p className="novo-emissor__ajuda">
+              Com o CNPJ, a coleta da CVM já busca ITR, DFP, escrituras, relatórios do agente fiduciário e ratings. No
+              próximo passo o sistema pesquisa a atuação da empresa para você confirmar antes de cadastrar.
+            </p>
+            <TextInput
+              id="novo-emissor-cnpj"
+              labelText="CNPJ"
+              value={formatarCnpj(campos.cnpj)}
+              onChange={e => {
+                mudar('cnpj', e.target.value)
+                if (digitos(e.target.value).length === 14) consultarCnpj(e.target.value)
+              }}
+              onBlur={e => consultarCnpj(e.target.value)}
+              invalid={cnpjInvalido}
+              invalidText="CNPJ inválido: confira os dígitos."
+              placeholder="00.000.000/0000-00"
+            />
+            {buscando && <InlineLoading description="Consultando a CVM…" />}
+            {!buscando && cvm && (
+              <p className="novo-emissor__cvm">
+                CVM: código {cvm.codigo_cvm ?? '—'}{cvm.situacao ? ` · ${cvm.situacao}` : ''}
+              </p>
+            )}
+            {!buscando && cnpjOk && ultimoConsultado && !cvm && (
+              <p className="novo-emissor__cvm">CNPJ sem cadastro de companhia aberta na CVM: preencha os dados à mão.</p>
+            )}
+            <TextInput id="novo-emissor-razao" labelText="Razão social" value={campos.razao_social}
+              onChange={e => mudar('razao_social', e.target.value)}
+              onBlur={() => { if (!campos.nome_curto.trim()) mudar('nome_curto', sugerirNomeCurto(campos.razao_social)) }} />
+            <TextInput id="novo-emissor-nome" labelText="Nome curto" value={campos.nome_curto}
+              helperText="Como a empresa aparece nas listas e no chat." onChange={e => mudar('nome_curto', e.target.value)} />
+            <TextInput id="novo-emissor-ticker" labelText="Ticker (opcional)" value={campos.ticker}
+              onChange={e => mudar('ticker', e.target.value.toUpperCase())} />
+            <TextInput id="novo-emissor-nomes" labelText="Outros nomes e apelidos (opcional)" value={campos.nomes}
+              helperText="Separados por vírgula: SPEs, nome antigo, apelidos usados no chat."
+              onChange={e => mudar('nomes', e.target.value)} />
+          </>
         )}
-        {!buscando && cnpjOk && ultimoConsultado && !cvm && (
-          <p className="novo-emissor__cvm">CNPJ sem cadastro de companhia aberta na CVM: preencha os dados à mão.</p>
+        {confirmar && (
+          <>
+            <p className="novo-emissor__ajuda">
+              <strong>{campos.razao_social}</strong> · CNPJ {formatarCnpj(campos.cnpj)}
+              {cvm?.codigo_cvm ? ` · CVM ${cvm.codigo_cvm}` : ''}. Confira a atuação: ela fica no cadastro e é o contexto
+              que os agentes usam sempre que falam desta empresa (chat, relatório, monitoramento).
+            </p>
+            <RevisaoAtuacao estado={pesquisa.estado} resultado={pesquisa.resultado} erro={pesquisa.erro}
+              proposta={proposta} onChange={setProposta} />
+            {pesquisa.estado !== 'pesquisando' && (
+              <Button kind="ghost" size="sm" renderIcon={Renew} onClick={pesquisar}>Pesquisar de novo</Button>
+            )}
+          </>
         )}
-        <TextInput id="novo-emissor-razao" labelText="Razão social" value={campos.razao_social}
-          onChange={e => mudar('razao_social', e.target.value)}
-          onBlur={() => { if (!campos.nome_curto.trim()) mudar('nome_curto', sugerirNomeCurto(campos.razao_social)) }} />
-        <TextInput id="novo-emissor-nome" labelText="Nome curto" value={campos.nome_curto}
-          helperText="Como a empresa aparece nas listas e no chat." onChange={e => mudar('nome_curto', e.target.value)} />
-        <TextInput id="novo-emissor-ticker" labelText="Ticker (opcional)" value={campos.ticker}
-          onChange={e => mudar('ticker', e.target.value.toUpperCase())} />
-        <TextInput id="novo-emissor-nomes" labelText="Outros nomes e apelidos (opcional)" value={campos.nomes}
-          helperText="Separados por vírgula: SPEs, nome antigo, apelidos usados no chat."
-          onChange={e => mudar('nomes', e.target.value)} />
-        <TextInput id="novo-emissor-setor" labelText="Setor (opcional)" value={campos.setor}
-          placeholder="rodovias, saneamento, energia…" onChange={e => mudar('setor', e.target.value)} />
         {/* Aviso com botão: ActionableNotification. O InlineNotification não aceita botão no texto e derruba a tela. */}
         {existente?.removido && (
           <ActionableNotification inline kind="warning" lowContrast hideCloseButton hasFocus={false}

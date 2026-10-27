@@ -13,6 +13,7 @@ import '../Desempenho/DesempenhoPage.scss'
 import AnexarDocumentos from '../AnaliseCredito/AnexarDocumentos.jsx'
 import NovoEmissor from '../Emissores/NovoEmissor.jsx'
 import RemoverEmissor from '../Emissores/RemoverEmissor.jsx'
+import AtuacaoEmissor from '../Emissores/AtuacaoEmissor.jsx'
 import SeletorPeriodo from '../Periodo/SeletorPeriodo.jsx'
 import { periodoValido, rotuloPeriodo } from '../Periodo/periodos'
 import './ColetaPage.scss'
@@ -251,6 +252,8 @@ function ColetaPage() {
             </Select>
             {!emAndamento && <NovoEmissor onCriado={emissorCadastrado} />}
             {!emAndamento && podeDisparar && <RemoverEmissor emissor={config} onRemovido={emissorRemovido} />}
+            <AtuacaoEmissor emissor={config} podeEditar={!emAndamento && podeDisparar}
+              onAtualizado={() => emissorCadastrado({ emissor })} />
 
             <SeletorPeriodo id="col-periodo" valor={periodo} onChange={setPeriodo} padrao={config?.periodo}
               disabled={emAndamento}

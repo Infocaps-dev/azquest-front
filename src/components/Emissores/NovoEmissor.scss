@@ -22,3 +22,35 @@
   margin-top: $spacing-03;
   max-width: none;
 }
+
+.atuacao-revisao {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-05;
+  margin-bottom: $spacing-05;
+}
+
+.atuacao-revisao__oficial {
+  @include type-style('body-compact-01');
+  color: $text-secondary;
+}
+
+.atuacao-revisao__fontes ol {
+  @include type-style('body-compact-01');
+  padding-left: $spacing-06;
+  list-style: decimal;
+}
+
+.atuacao-emissor {
+  margin: $spacing-03 0 $spacing-05;
+  max-width: 48rem;
+}
+
+.atuacao-emissor__texto {
+  @include type-style('body-compact-01');
+  margin: $spacing-02 0;
+}
+
+.atuacao-emissor__meta {
+  color: $text-secondary;
+}

@@ -45,6 +45,15 @@ export const criarEmissor = dados => pedir('/api/emissores', { method: 'POST', b
 
 // Remoção lógica de emissor cadastrado pela tela: some das listas, os documentos ficam. 409: configuração fixa,
 // coleta em andamento ou já removido.
+// Atuação da empresa (perfil): a pesquisa roda em segundo plano na coleta-api (CVM, B3, site oficial, resumo com
+// fontes); a tela consulta até terminar e a pessoa confirma antes de gravar.
+export const iniciarPesquisaAtuacao = dados =>
+  pedir('/api/emissores/pesquisa', { method: 'POST', body: JSON.stringify(dados) })
+export const verPesquisaAtuacao = id => pedir(`/api/emissores/pesquisa/${encodeURIComponent(id)}`)
+export const confirmarAtuacao = (emissor, perfil, pesquisaId) =>
+  pedir(`/api/emissores/${encodeURIComponent(emissor)}/perfil`,
+    { method: 'PUT', body: JSON.stringify({ perfil, pesquisa_id: pesquisaId || null }) })
+
 export const removerEmissor = emissor =>
   pedir(`/api/emissores/${encodeURIComponent(emissor)}`, { method: 'DELETE' })
 

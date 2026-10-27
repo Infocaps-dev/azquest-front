@@ -1,0 +1,24 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/theme' as *;
+@use '@carbon/react/scss/type' as *;
+
+.novo-emissor {
+  .cds--text-input-wrapper { margin-bottom: $spacing-05; }
+}
+
+.novo-emissor__ajuda {
+  @include type-style('body-compact-01');
+  color: $text-secondary;
+  margin-bottom: $spacing-05;
+}
+
+.novo-emissor__cvm {
+  @include type-style('label-01');
+  color: $text-secondary;
+  margin: -$spacing-03 0 $spacing-05;
+}
+
+.novo-emissor__aviso {
+  margin-top: $spacing-03;
+  max-width: none;
+}

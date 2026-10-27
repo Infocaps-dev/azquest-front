@@ -5,6 +5,7 @@ import {
 } from '@carbon/react'
 import { Download, DocumentPdf, Renew, Search as IconeBusca, Table } from '@carbon/icons-react'
 import { buscarConteudo, listarDocumentos, urlDocumento } from '../../services/coletaApi'
+import NovoEmissor from '../Emissores/NovoEmissor.jsx'
 import '../AnaliseCredito/AnalisePage.scss'
 import '../Desempenho/DesempenhoPage.scss'
 import './DocumentosPage.scss'
@@ -133,6 +134,8 @@ function DocumentosPage() {
           <h1 className="ana-cabecalho__emissor">Documentos</h1>
           <span className="ana-cabecalho__referencia">acervo de cada empresa no COS, por tipo de documento</span>
         </div>
+        {/* O acervo lista as empresas com documentos: a nova aparece depois da primeira coleta ou envio. */}
+        <NovoEmissor aviso />
       </header>
 
       <section className="des-secao" aria-label="Acervo">

@@ -15,12 +15,30 @@ async function pedir(rota, opcoes = {}) {
   })
   if (!resposta.ok) {
     const corpo = await resposta.json().catch(() => ({}))
-    throw new Error(corpo.detail || `Falha em ${rota} (HTTP ${resposta.status})`)
+    // status e corpo viajam no erro: o cadastro de emissor precisa do 409 com o emissor que já existe.
+    const erro = new Error(corpo.detail || `Falha em ${rota} (HTTP ${resposta.status})`)
+    erro.status = resposta.status
+    erro.corpo = corpo
+    throw erro
   }
   return resposta.json()
 }
 
 export const listarEmissores = () => pedir('/api/emissores')
+
+// Cadastro de emissor pela tela. A sugestão vem do cadastro aberto da CVM pelo CNPJ: 404 quando o CNPJ não é de
+// companhia aberta, e então o usuário preenche à mão (devolve null, não é erro).
+export async function sugestaoEmissor(cnpj) {
+  try {
+    return await pedir(`/api/emissores/sugestao?cnpj=${encodeURIComponent(cnpj)}`)
+  } catch (erro) {
+    if (erro.status === 404) return null
+    throw erro
+  }
+}
+
+// 201: o registro novo. 409: o CNPJ já está cadastrado (erro.corpo.existente). 422: validação (erro.message).
+export const criarEmissor = dados => pedir('/api/emissores', { method: 'POST', body: JSON.stringify(dados) })
 
 export const listarColetas = emissor =>
   pedir(`/api/coletas${emissor ? `?emissor=${encodeURIComponent(emissor)}` : ''}`)

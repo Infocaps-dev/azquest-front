@@ -11,6 +11,7 @@ import {
 import '../AnaliseCredito/AnalisePage.scss'
 import '../Desempenho/DesempenhoPage.scss'
 import AnexarDocumentos from '../AnaliseCredito/AnexarDocumentos.jsx'
+import NovoEmissor from '../Emissores/NovoEmissor.jsx'
 import SeletorPeriodo from '../Periodo/SeletorPeriodo.jsx'
 import { periodoValido, rotuloPeriodo } from '../Periodo/periodos'
 import './ColetaPage.scss'
@@ -125,9 +126,17 @@ function ColetaPage() {
     recarregarHistorico()
   }, [recarregarHistorico])
 
-  function trocarEmissor(nome) {
+  // Emissor recém-cadastrado (ou o existente com o mesmo CNPJ): a lista é relida e ele fica selecionado.
+  function emissorCadastrado(registro) {
+    listarEmissores().then(lista => {
+      setEmissores(lista)
+      trocarEmissor(registro.emissor, lista)
+    }).catch(e => setErroServico(e.message))
+  }
+
+  function trocarEmissor(nome, lista = emissores) {
     setEmissor(nome)
-    const cfg = emissores.find(e => e.emissor === nome)
+    const cfg = lista.find(e => e.emissor === nome)
     setFontes(cfg?.fontes || [])
     setUpload(Boolean(cfg?.upload_permitido))
     setPeriodo({ de: cfg?.periodo || '', ate: null })
@@ -230,6 +239,7 @@ function ColetaPage() {
               disabled={emAndamento}>
               {emissores.map(e => <SelectItem key={e.emissor} value={e.emissor} text={e.razao_social} />)}
             </Select>
+            {!emAndamento && <NovoEmissor onCriado={emissorCadastrado} />}
 
             <SeletorPeriodo id="col-periodo" valor={periodo} onChange={setPeriodo} padrao={config?.periodo}
               disabled={emAndamento}

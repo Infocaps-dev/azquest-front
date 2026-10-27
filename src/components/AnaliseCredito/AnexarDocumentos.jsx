@@ -16,6 +16,7 @@ import {
   listarTiposDeDocumento,
 } from '../../services/documentosApi'
 import { listarEmissores } from '../../services/coletaApi'
+import NovoEmissor from '../Emissores/NovoEmissor.jsx'
 import {
   formatoDoPeriodo,
   nomePadronizado,
@@ -128,6 +129,14 @@ function AnexarDocumentos({ aoEnviar }) {
       setErro(`Não foi possível carregar os emissores: ${falha.message}`)
     })
   }, [])
+
+  // Emissor recém-cadastrado (ou o existente com o mesmo CNPJ): a lista é relida e ele fica selecionado.
+  function emissorCadastrado(registro) {
+    listarEmissores().then(lista => {
+      setEmissores(lista)
+      setEmissor(registro.emissor)
+    }).catch(falha => setErro(`Não foi possível recarregar os emissores: ${falha.message}`))
+  }
 
   async function aoAnexar(_evento, { addedFiles }) {
     if (!addedFiles?.length) return
@@ -264,6 +273,7 @@ function AnexarDocumentos({ aoEnviar }) {
           {emissores.map(e => <SelectItem key={e.emissor} value={e.emissor} text={e.razao_social} />)}
         </Select>
       )}
+      {emissores !== null && documentos.length === 0 && !enviando && <NovoEmissor onCriado={emissorCadastrado} />}
 
       <SeletorPeriodo id="anexos-periodo" valor={lote} onChange={setLote} disabled={enviando}
         helperText={'A que período os documentos se referem. Um trimestre preenche o período de quem não o traz no '

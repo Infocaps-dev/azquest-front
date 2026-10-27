@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { usePainelEmissor } from '../../hooks/usePainelEmissor'
+import NovoEmissor from '../Emissores/NovoEmissor.jsx'
 
 const fx = v => `${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}x`
 
@@ -70,6 +71,8 @@ function CovenantsPanel({ empresa: empresaDaConversa = '' }) {
             {empresas.map(e => <option key={e} value={e}>{e}</option>)}
           </select>
         ) : <h3 className="ctx-quotes__title">{empresa}</h3>}
+        {/* As empresas daqui são as com relatório: a nova aparece depois de coletar e gerar o relatório dela. */}
+        <NovoEmissor aviso />
       </div>
       {carregando ? (
         <p className="ctx-cov__subtitle">Carregando o painel da {empresa}…</p>

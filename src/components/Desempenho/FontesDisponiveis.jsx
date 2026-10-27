@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { InlineNotification, Loading, Select, SelectItem, Tag } from '@carbon/react'
 import { obterFontes } from '../../services/resumosApi'
+import NovoEmissor from '../Emissores/NovoEmissor.jsx'
 
 // Fontes disponíveis: tudo o que o sistema sabe ler, não só o que o relatório selecionado usou.
 //
@@ -90,6 +91,8 @@ function FontesDisponiveis({ resumo, sinal }) {
           {fontes.empresas.map(e => <SelectItem key={e} value={e} text={e} />)}
         </Select>
       )}
+      {/* A lista é das empresas com documentos extraídos: o emissor novo aparece depois da primeira coleta ou envio. */}
+      <NovoEmissor aviso />
       <p className="des-fontes__resumo">
         {disponiveis} de {TIPOS.length} tipos de fonte com documento no acervo da {fontes.empresa}
         {doRelatorio ? `; referências do relatório ${resumo.empresa} · ${resumo.periodo} · versão ${resumo.versao}` : ''}.

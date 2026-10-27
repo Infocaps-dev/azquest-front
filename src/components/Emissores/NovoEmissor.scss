@@ -52,5 +52,7 @@
 }
 
 .atuacao-emissor__meta {
+  @include type-style('label-01');
   color: $text-secondary;
+  margin: 0;
 }

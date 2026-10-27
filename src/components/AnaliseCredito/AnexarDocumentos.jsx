@@ -16,7 +16,7 @@ import {
   listarTiposDeDocumento,
 } from '../../services/documentosApi'
 import { listarEmissores } from '../../services/coletaApi'
-import NovoEmissor from '../Emissores/NovoEmissor.jsx'
+import NovoEmissor, { OPCAO_NOVO_EMISSOR } from '../Emissores/NovoEmissor.jsx'
 import {
   formatoDoPeriodo,
   nomePadronizado,
@@ -108,6 +108,7 @@ function AnexarDocumentos({ aoEnviar }) {
   const [tipos, setTipos] = useState([])
   const [emissores, setEmissores] = useState(null)
   const [emissor, setEmissor] = useState('')
+  const [novoAberto, setNovoAberto] = useState(false)
   const [documentos, setDocumentos] = useState([])
   // A que período os documentos se referem: um trimestre (ate null) ou um intervalo. Começa no último fechado.
   const [lote, setLote] = useState(() => ({ de: trimestres()[0], ate: null }))
@@ -258,22 +259,23 @@ function AnexarDocumentos({ aoEnviar }) {
       </p>
 
       {emissores === null && <InlineLoading description="Carregando emissores…" />}
-      {emissores?.length > 0 && (
+      {emissores !== null && (
         <Select
           id="anexos-emissor"
           labelText="Emissor"
           value={emissor}
-          onChange={e => setEmissor(e.target.value)}
+          onChange={e => (e.target.value === OPCAO_NOVO_EMISSOR ? setNovoAberto(true) : setEmissor(e.target.value))}
           disabled={documentos.length > 0 || identificando || enviando}
           helperText={documentos.length > 0
             ? 'Envie ou remova os documentos anexados para trocar o emissor.'
             : 'Os documentos entram no acervo deste emissor.'}
         >
-          {emissores.length > 1 && <SelectItem value="" text="Selecione…" />}
+          {emissores.length !== 1 && <SelectItem value="" text="Selecione…" />}
           {emissores.map(e => <SelectItem key={e.emissor} value={e.emissor} text={e.razao_social} />)}
+          <SelectItem value={OPCAO_NOVO_EMISSOR} text="+ Novo emissor…" />
         </Select>
       )}
-      {emissores !== null && documentos.length === 0 && !enviando && <NovoEmissor onCriado={emissorCadastrado} />}
+      <NovoEmissor aberto={novoAberto} onFechar={() => setNovoAberto(false)} onCriado={emissorCadastrado} />
 
       <SeletorPeriodo id="anexos-periodo" valor={lote} onChange={setLote} disabled={enviando}
         helperText={'A que período os documentos se referem. Um trimestre preenche o período de quem não o traz no '

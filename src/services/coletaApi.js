@@ -50,6 +50,7 @@ export const criarEmissor = dados => pedir('/api/emissores', { method: 'POST', b
 export const iniciarPesquisaAtuacao = dados =>
   pedir('/api/emissores/pesquisa', { method: 'POST', body: JSON.stringify(dados) })
 export const verPesquisaAtuacao = id => pedir(`/api/emissores/pesquisa/${encodeURIComponent(id)}`)
+export const verAtuacao = emissor => pedir(`/api/emissores/${encodeURIComponent(emissor)}/perfil`)
 export const confirmarAtuacao = (emissor, perfil, pesquisaId) =>
   pedir(`/api/emissores/${encodeURIComponent(emissor)}/perfil`,
     { method: 'PUT', body: JSON.stringify({ perfil, pesquisa_id: pesquisaId || null }) })

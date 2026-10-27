@@ -19,10 +19,16 @@ const NAO_NOME = /^(cia|companhia|concessionaria|concessionária|s\.?a\.?|ltda|d
 const sugerirNomeCurto = razao => (razao || '').split(/\s+/).find(p => p && !NAO_NOME.test(p)) || ''
 
 const VAZIO = { cnpj: '', razao_social: '', nome_curto: '', ticker: '', nomes: '' }
+
+// Opção "+ Novo emissor…" dos seletores de emissor (Coleta automática e manual): escolhida, abre este cadastro.
+export const OPCAO_NOVO_EMISSOR = '__novo_emissor__'
 const PROPOSTA_VAZIA = propostaDe(null)
 
-function NovoEmissor({ onCriado, aviso = false }) {
-  const [aberto, setAberto] = useState(false)
+// `aberto`/`onFechar`: aberto de fora (pela opção do seletor), sem o botão. Sem eles, o botão "Novo emissor".
+function NovoEmissor({ onCriado, aviso = false, aberto: abertoDeFora, onFechar }) {
+  const controlado = abertoDeFora !== undefined
+  const [abertoAqui, setAberto] = useState(false)
+  const aberto = controlado ? abertoDeFora : abertoAqui
   const [passo, setPasso] = useState('dados') // dados | confirmar
   const [campos, setCampos] = useState(VAZIO)
   const [cvm, setCvm] = useState(null) // {codigo_cvm, situacao} da sugestão
@@ -39,6 +45,7 @@ function NovoEmissor({ onCriado, aviso = false }) {
 
   function fechar() {
     setAberto(false)
+    onFechar?.()
     setPasso('dados')
     setCampos(VAZIO)
     setCvm(null)
@@ -132,9 +139,11 @@ function NovoEmissor({ onCriado, aviso = false }) {
   const confirmar = passo === 'confirmar'
   return (
     <>
-      <Button kind="ghost" size="sm" renderIcon={Add} onClick={() => { setCriado(null); setAberto(true) }}>
-        Novo emissor
-      </Button>
+      {!controlado && (
+        <Button kind="ghost" size="sm" renderIcon={Add} onClick={() => { setCriado(null); setAberto(true) }}>
+          Novo emissor
+        </Button>
+      )}
       {aviso && criado && (
         <InlineNotification kind="success" lowContrast className="novo-emissor__aviso"
           title={`${criado.razao_social || criado.nome_curto} ${criado.reativado ? 'reativado' : 'cadastrado'}.`}

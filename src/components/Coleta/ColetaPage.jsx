@@ -11,7 +11,7 @@ import {
 import '../AnaliseCredito/AnalisePage.scss'
 import '../Desempenho/DesempenhoPage.scss'
 import AnexarDocumentos from '../AnaliseCredito/AnexarDocumentos.jsx'
-import NovoEmissor from '../Emissores/NovoEmissor.jsx'
+import NovoEmissor, { OPCAO_NOVO_EMISSOR } from '../Emissores/NovoEmissor.jsx'
 import RemoverEmissor from '../Emissores/RemoverEmissor.jsx'
 import AtuacaoEmissor from '../Emissores/AtuacaoEmissor.jsx'
 import SeletorPeriodo from '../Periodo/SeletorPeriodo.jsx'
@@ -93,6 +93,7 @@ function ColetaPage() {
   const [emissores, setEmissores] = useState(null)
   const [erroServico, setErroServico] = useState('')
   const [emissor, setEmissor] = useState('')
+  const [novoAberto, setNovoAberto] = useState(false)
   const [fontes, setFontes] = useState([])
   const [upload, setUpload] = useState(true)
   const [periodo, setPeriodo] = useState({ de: '', ate: null }) // um trimestre (ate null) ou um intervalo
@@ -246,11 +247,12 @@ function ColetaPage() {
         {emissores === null && !erroServico && <InlineLoading description="Carregando emissores…" />}
         {emissores && (
           <div className="col-form">
-            <Select id="col-emissor" labelText="Emissor" value={emissor} onChange={e => trocarEmissor(e.target.value)}
-              disabled={emAndamento}>
+            <Select id="col-emissor" labelText="Emissor" value={emissor} disabled={emAndamento}
+              onChange={e => (e.target.value === OPCAO_NOVO_EMISSOR ? setNovoAberto(true) : trocarEmissor(e.target.value))}>
               {emissores.map(e => <SelectItem key={e.emissor} value={e.emissor} text={e.razao_social} />)}
+              <SelectItem value={OPCAO_NOVO_EMISSOR} text="+ Novo emissor…" />
             </Select>
-            {!emAndamento && <NovoEmissor onCriado={emissorCadastrado} />}
+            <NovoEmissor aberto={novoAberto} onFechar={() => setNovoAberto(false)} onCriado={emissorCadastrado} />
             {!emAndamento && podeDisparar && <RemoverEmissor emissor={config} onRemovido={emissorRemovido} />}
             <AtuacaoEmissor emissor={config} podeEditar={!emAndamento && podeDisparar}
               onAtualizado={() => emissorCadastrado({ emissor })} />

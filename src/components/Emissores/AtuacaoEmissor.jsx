@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Button, InlineLoading, InlineNotification, Link, Modal } from '@carbon/react'
 import { Renew } from '@carbon/icons-react'
 import { confirmarAtuacao, verAtuacao } from '../../services/coletaApi'
-import { perfilParaEnvio, propostaDe, propostaValida, usePesquisaAtuacao } from './atuacao'
+import { avisarEmissoresAtualizados, perfilParaEnvio, propostaDe, propostaValida, usePesquisaAtuacao } from './atuacao'
 import RevisaoAtuacao from './RevisaoAtuacao.jsx'
 import './NovoEmissor.scss'
 
@@ -78,6 +78,7 @@ function AtuacaoEmissor({ emissor, podeEditar = true, onAtualizado }) {
         emPesquisa ? pesquisa.resultado?.pesquisa_id : null)
       fechar()
       onAtualizado?.()
+      avisarEmissoresAtualizados()
     } catch (e) {
       setErro(e.message || 'Não foi possível gravar a atuação.')
     } finally {

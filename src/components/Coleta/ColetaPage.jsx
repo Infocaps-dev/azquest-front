@@ -14,6 +14,7 @@ import AnexarDocumentos from '../AnaliseCredito/AnexarDocumentos.jsx'
 import NovoEmissor, { OPCAO_NOVO_EMISSOR } from '../Emissores/NovoEmissor.jsx'
 import RemoverEmissor from '../Emissores/RemoverEmissor.jsx'
 import AtuacaoEmissor from '../Emissores/AtuacaoEmissor.jsx'
+import { EVENTO_EMISSORES } from '../Emissores/atuacao'
 import SeletorPeriodo from '../Periodo/SeletorPeriodo.jsx'
 import { periodoValido, rotuloPeriodo } from '../Periodo/periodos'
 import './ColetaPage.scss'
@@ -128,6 +129,13 @@ function ColetaPage() {
     }).catch(e => setErroServico(e.message))
     recarregarHistorico()
   }, [recarregarHistorico])
+
+  // Cadastro ou atuação gravados em outra aba: relê a lista, mantendo a seleção.
+  useEffect(() => {
+    const reler = () => listarEmissores().then(setEmissores).catch(() => {})
+    window.addEventListener(EVENTO_EMISSORES, reler)
+    return () => window.removeEventListener(EVENTO_EMISSORES, reler)
+  }, [])
 
   // Emissor recém-cadastrado (ou o existente com o mesmo CNPJ): a lista é relida e ele fica selecionado.
   function emissorCadastrado(registro) {

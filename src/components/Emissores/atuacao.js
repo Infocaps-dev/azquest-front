@@ -8,6 +8,11 @@ export const SETORES = [
   'educação', 'financeiro', 'indústria', 'mineração e siderurgia', 'papel e celulose', 'tecnologia', 'outro',
 ]
 
+// Cadastro ou atuação gravados numa aba: as outras telas com lista de emissores relêem a lista (a Coleta manual
+// fica montada ao lado da automática e mostrava o dado antigo).
+export const EVENTO_EMISSORES = 'azquest:emissores-atualizados'
+export const avisarEmissoresAtualizados = () => window.dispatchEvent(new Event(EVENTO_EMISSORES))
+
 const INTERVALO_MS = 3000
 const LIMITE_MS = 180000
 

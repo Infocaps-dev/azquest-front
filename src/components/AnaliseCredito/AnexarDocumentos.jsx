@@ -17,6 +17,9 @@ import {
 } from '../../services/documentosApi'
 import { listarEmissores } from '../../services/coletaApi'
 import NovoEmissor, { OPCAO_NOVO_EMISSOR } from '../Emissores/NovoEmissor.jsx'
+import AtuacaoEmissor from '../Emissores/AtuacaoEmissor.jsx'
+import { EVENTO_EMISSORES } from '../Emissores/atuacao'
+import { useAuth } from '../../auth/AuthContext.jsx'
 import {
   formatoDoPeriodo,
   nomePadronizado,
@@ -109,6 +112,7 @@ function AnexarDocumentos({ aoEnviar }) {
   const [emissores, setEmissores] = useState(null)
   const [emissor, setEmissor] = useState('')
   const [novoAberto, setNovoAberto] = useState(false)
+  const { user } = useAuth()
   const [documentos, setDocumentos] = useState([])
   // A que período os documentos se referem: um trimestre (ate null) ou um intervalo. Começa no último fechado.
   const [lote, setLote] = useState(() => ({ de: trimestres()[0], ate: null }))
@@ -129,6 +133,13 @@ function AnexarDocumentos({ aoEnviar }) {
       setEmissores([])
       setErro(`Não foi possível carregar os emissores: ${falha.message}`)
     })
+  }, [])
+
+  // Cadastro ou atuação gravados em outra aba: relê a lista, mantendo a seleção.
+  useEffect(() => {
+    const reler = () => listarEmissores().then(setEmissores).catch(() => {})
+    window.addEventListener(EVENTO_EMISSORES, reler)
+    return () => window.removeEventListener(EVENTO_EMISSORES, reler)
   }, [])
 
   // Emissor recém-cadastrado (ou o existente com o mesmo CNPJ): a lista é relida e ele fica selecionado.
@@ -276,6 +287,9 @@ function AnexarDocumentos({ aoEnviar }) {
         </Select>
       )}
       <NovoEmissor aberto={novoAberto} onFechar={() => setNovoAberto(false)} onCriado={emissorCadastrado} />
+      {/* Atuação do emissor escolhido: resumo clicável para consultar e editar (o mesmo painel da Coleta automática) */}
+      <AtuacaoEmissor emissor={emissores?.find(e => e.emissor === emissor)}
+        podeEditar={user?.role !== 'leitor' && !enviando} onAtualizado={() => emissorCadastrado({ emissor })} />
 
       <SeletorPeriodo id="anexos-periodo" valor={lote} onChange={setLote} disabled={enviando}
         helperText={'A que período os documentos se referem. Um trimestre preenche o período de quem não o traz no '

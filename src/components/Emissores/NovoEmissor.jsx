@@ -3,7 +3,7 @@ import { ActionableNotification, Button, InlineLoading, InlineNotification, Moda
 import { Add, Renew } from '@carbon/icons-react'
 import { criarEmissor, sugestaoEmissor } from '../../services/coletaApi'
 import { cnpjValido, digitos, formatarCnpj } from './cnpj'
-import { perfilParaEnvio, propostaDe, propostaValida, usePesquisaAtuacao } from './atuacao'
+import { avisarEmissoresAtualizados, perfilParaEnvio, propostaDe, propostaValida, usePesquisaAtuacao } from './atuacao'
 import RevisaoAtuacao from './RevisaoAtuacao.jsx'
 import './NovoEmissor.scss'
 
@@ -119,6 +119,7 @@ function NovoEmissor({ onCriado, aviso = false, aberto: abertoDeFora, onFechar }
       fechar()
       setCriado(registro)
       onCriado?.(registro)
+      avisarEmissoresAtualizados()
     } catch (e) {
       if (e.status === 409 && e.corpo?.existente) {
         setExistente(e.corpo.existente)

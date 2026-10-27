@@ -16,7 +16,9 @@ async function pedir(rota, opcoes = {}) {
   if (!resposta.ok) {
     const corpo = await resposta.json().catch(() => ({}))
     // status e corpo viajam no erro: o cadastro de emissor precisa do 409 com o emissor que já existe.
-    const erro = new Error(corpo.detail || `Falha em ${rota} (HTTP ${resposta.status})`)
+    // 422 de validação do FastAPI traz a lista de campos em detail; a mensagem é a do primeiro.
+    const detalhe = Array.isArray(corpo.detail) ? corpo.detail.map(d => d.msg).filter(Boolean).join('; ') : corpo.detail
+    const erro = new Error(detalhe || `Falha em ${rota} (HTTP ${resposta.status})`)
     erro.status = resposta.status
     erro.corpo = corpo
     throw erro

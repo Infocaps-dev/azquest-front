@@ -441,7 +441,7 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
       <SecoesRelatorio itens={resumo?.itens} revisao={revisao} rotulos={rotulos}
         onRevisar={secao => abrirRevisao({ secao })} onVerNoRelatorio={abrirRelatorio} />
 
-      {/* Os documentos que este relatório usou, como bibliografia. O envio de documentos fica na aba Configurações e
+      {/* Os documentos que este relatório usou, como bibliografia. O envio de documentos fica em Coleta › Coleta manual e
           o acervo inteiro de cada empresa, na aba Documentos. */}
       <ReferenciasRelatorio resumo={resumo} />
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Button, Checkbox, InlineLoading, InlineNotification, Modal, Select, SelectItem, Tag, Toggle,
+  Button, Checkbox, InlineLoading, InlineNotification, Modal, Select, SelectItem, Tab, TabList, TabPanel, TabPanels,
+  Tabs, Tag, Toggle,
 } from '@carbon/react'
 import { CloudDownload, Download, Launch } from '@carbon/icons-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
@@ -9,7 +10,7 @@ import {
 } from '../../services/coletaApi'
 import '../AnaliseCredito/AnalisePage.scss'
 import '../Desempenho/DesempenhoPage.scss'
-import '../Configuracoes/ConfiguracoesPage.scss'
+import AnexarDocumentos from '../AnaliseCredito/AnexarDocumentos.jsx'
 import SeletorPeriodo from '../Periodo/SeletorPeriodo.jsx'
 import { periodoValido, rotuloPeriodo } from '../Periodo/periodos'
 import './ColetaPage.scss'
@@ -195,10 +196,18 @@ function ColetaPage() {
         <div className="ana-cabecalho__identidade">
           <h1 className="ana-cabecalho__emissor">Coleta de fontes</h1>
           <span className="ana-cabecalho__referencia">
-            crawler de fontes públicas do emissor, envio ao COS e extração
+            fontes públicas (automática) ou envio de arquivos (manual), com o período de cada um
           </span>
         </div>
       </header>
+
+      <Tabs>
+        <TabList aria-label="Tipo de coleta" contained>
+          <Tab>Coleta automática</Tab>
+          <Tab>Coleta manual</Tab>
+        </TabList>
+        <TabPanels>
+          <TabPanel className="col-aba">
 
       {erroServico && (
         <InlineNotification kind="error" lowContrast title="Serviço de coleta indisponível." subtitle={erroServico}
@@ -407,6 +416,17 @@ function ColetaPage() {
           ))}
         </ul>
       </section>
+
+          </TabPanel>
+          <TabPanel className="col-aba">
+            {/* Coleta manual: o analista envia os documentos (vários de uma vez) e diz de que período são. */}
+            {podeDisparar ? <AnexarDocumentos /> : (
+              <InlineNotification kind="info" lowContrast hideCloseButton title="Seu perfil só acompanha as coletas."
+                subtitle="O envio de documentos é para analistas." />
+            )}
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
 
       <Modal open={Boolean(extracaoAberta)} passiveModal modalHeading={extracaoAberta?.nome || 'Extração'}
         modalLabel="Resultado do extrator" onRequestClose={() => setExtracaoAberta(null)}>

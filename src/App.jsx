@@ -6,7 +6,6 @@ import ChatPage from './components/Chat/ChatPage.jsx'
 import AnalisePage from './components/AnaliseCredito/AnalisePage.jsx'
 import MonitoramentoPage from './components/Monitoramento/MonitoramentoPage.jsx'
 import DesempenhoPage from './components/Desempenho/DesempenhoPage.jsx'
-import ConfiguracoesPage from './components/Configuracoes/ConfiguracoesPage.jsx'
 import ColetaPage from './components/Coleta/ColetaPage.jsx'
 import DocumentosPage from './components/Documentos/DocumentosPage.jsx'
 import LoginPage from './components/Login/LoginPage.jsx'
@@ -56,7 +55,6 @@ function Gate() {
             onAlvoConsumido={() => setAlvo(null)} onVersaoPropria={ignorar} />
         )
           : aba === 'desempenho' ? <DesempenhoPage sinalIndice={sinal} />
-          : aba === 'configuracoes' ? <ConfiguracoesPage />
           : aba === 'coleta' ? <ColetaPage />
           : aba === 'documentos' ? <DocumentosPage />
           : null}

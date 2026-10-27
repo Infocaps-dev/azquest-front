@@ -3,7 +3,7 @@ import { periodoValido, trimestres } from './periodos'
 import './SeletorPeriodo.scss'
 
 // Um trimestre ou um intervalo de trimestres, para dizer de que período são os documentos: o que a Coleta baixa das
-// fontes públicas e o que o analista envia em Configurações. Valor: {de, ate}; `ate` null é um trimestre só.
+// fontes públicas e o que o analista envia na Coleta manual. Valor: {de, ate}; `ate` null é um trimestre só.
 
 function SeletorPeriodo({ id, valor, onChange, padrao = '', disabled = false, helperText = '' }) {
   const intervalo = Boolean(valor?.ate)

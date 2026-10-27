@@ -240,3 +240,15 @@
   @include type-style('helper-text-01');
   color: $text-secondary;
 }
+
+// Texto explicativo das seções (vinha da antiga aba Configurações).
+.cfg-texto {
+  @include type-style('body-compact-01');
+  margin-bottom: $spacing-05;
+  color: $text-secondary;
+}
+
+// Cada aba (automática, manual) começa logo abaixo da barra de abas.
+.col-aba {
+  padding: $spacing-05 0 0;
+}

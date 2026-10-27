@@ -9,7 +9,6 @@ import DesempenhoPage from './components/Desempenho/DesempenhoPage.jsx'
 import ColetaPage from './components/Coleta/ColetaPage.jsx'
 import DocumentosPage from './components/Documentos/DocumentosPage.jsx'
 import LoginPage from './components/Login/LoginPage.jsx'
-import AvisosRelatorios from './components/Avisos/AvisosRelatorios.jsx'
 import { useNovosRelatorios } from './hooks/useNovosRelatorios'
 
 function Gate() {
@@ -17,10 +16,10 @@ function Gate() {
   // Navegação por estado, sem router: são duas telas e o Piloto não precisa de
   // URL própria por aba. Trocar por react-router quando houver link direto.
   const [aba, setAba] = useState('inicio')
-  // Relatório novo (gerado pelo chat, pelo "Reprocessar" ou versão nova de
-  // ajuste): aviso em qualquer aba, e o "Abrir" leva à Análise de Crédito com
-  // ele selecionado. `alvo.n` muda a cada clique, para reabrir o mesmo id.
-  const { avisos, dispensar, sinal, ignorar } = useNovosRelatorios(Boolean(user))
+  // Relatório novo (gerado pelo chat, pelo botão ou versão nova de ajuste): o sinal atualiza as listas das abas.
+  // Sem aviso flutuante desde 27/10/2026: o chat e a Análise de Crédito já mostram o relatório sendo construído e
+  // o abrem ao lado. `alvo.n` muda a cada clique, para reabrir o mesmo id.
+  const { sinal, ignorar } = useNovosRelatorios(Boolean(user))
   const [alvo, setAlvo] = useState(null)
   function abrirRelatorio(relatorioId) {
     setAlvo(atual => ({ id: relatorioId, n: (atual?.n || 0) + 1 }))
@@ -58,7 +57,6 @@ function Gate() {
           : aba === 'coleta' ? <ColetaPage />
           : aba === 'documentos' ? <DocumentosPage />
           : null}
-      <AvisosRelatorios avisos={avisos} onAbrir={abrirRelatorio} onDispensar={dispensar} />
     </>
   )
 }

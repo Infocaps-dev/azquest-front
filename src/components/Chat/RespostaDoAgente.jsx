@@ -291,6 +291,13 @@ function RespostaDoAgente({ texto, onTrocarAba, onEnviar }) {
   if (!texto) return null
   if (ERRO_DA_PLATAFORMA.test(texto)) texto = ERRO_TRADUZIDO
   const relatorio = [...texto.matchAll(LINK)].find(a => eRelatorio(a[2]))
+  // Com o cartão, a linha que só traz o link do relatório sai do texto: o mesmo link duas vezes, uma delas no meio
+  // da narrativa do agente, parecia resposta com defeito (27/10/2026). Linha com mais conteúdo fica como está.
+  if (relatorio) {
+    texto = texto.split('\n')
+      .filter(linha => !(linha.trim() && linha.replace(LINK, (m, rotulo, url) => (eRelatorio(url) ? '' : m)).trim() === ''))
+      .join('\n').replace(/\n{3,}/g, '\n\n').trim()
+  }
   return (
     <>
       <EnvioDoChat.Provider value={onEnviar || null}>

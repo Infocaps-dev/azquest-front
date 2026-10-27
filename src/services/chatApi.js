@@ -50,7 +50,9 @@ async function pedir(rota, opcoes = {}) {
 //   {tipo: 'fim',     texto, thread_id, run_id, uso}
 //   {tipo: 'erro',    detalhe}
 
-export async function* conversar(mensagem, threadId = null, sinal = null) {
+// `empresa`: a empresa de que a conversa trata (ver empresaDaConversa em useConversa); a analise-api a manda ao
+// Orchestrate como contexto, e as tools a usam quando o pedido chega sem empresa.
+export async function* conversar(mensagem, threadId = null, sinal = null, empresa = null) {
   if (MODO_SIMULADO) {
     yield* conversaSimulada(mensagem, threadId)
     return
@@ -59,7 +61,7 @@ export async function* conversar(mensagem, threadId = null, sinal = null) {
   const resposta = await fetch(`${BASE}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mensagem, thread_id: threadId }),
+    body: JSON.stringify({ mensagem, thread_id: threadId, ...(empresa ? { empresa } : {}) }),
     signal: sinal,
   })
 

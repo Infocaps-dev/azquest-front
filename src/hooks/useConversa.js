@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { conversar, listarConversas, obterConversa } from '../services/chatApi'
-import { enderecoRelatorio, estadoRelatorio, pedidosEmAndamento, relatoriosDesde } from '../services/resumosApi'
+import { enderecoRelatorio, estadoRelatorio, obterFontes, pedidosEmAndamento, relatoriosDesde } from '../services/resumosApi'
 
 // Governa a conversa da tela de início com o Agente Analista de Crédito.
 //
@@ -155,8 +155,36 @@ function ultimoRelatorio(texto) {
   return [...(texto || '').matchAll(LINK_RELATORIO)].map(m => m[1]).pop() || null
 }
 
+// Empresa da conversa. As tools do agente não veem a conversa, e o Analista já repassou uma pergunta de seguimento
+// sem a empresa ("E a margem EBITDA ajustada nesse trimestre?"): a resposta foi "Ecorodovias ou Motiva?" numa conversa
+// sobre a Ecorodovias (27/10/2026). A tela manda a empresa junto, e a tool a usa quando o pedido chega sem nenhuma.
+const semAcento = texto => (texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+
+// A empresa citada no texto, entre as que têm acervo; null se nenhuma ou mais de uma.
+export function empresaCitada(texto, empresas) {
+  const t = semAcento(texto)
+  const citadas = empresas.filter(e => new RegExp(`(^|[^a-z0-9])${semAcento(e)}([^a-z0-9]|$)`).test(t))
+  return citadas.length === 1 ? citadas[0] : null
+}
+
+// A da mensagem; senão a última citada pelo analista nesta conversa; senão a do relatório vinculado.
+export function empresaDaConversa(mensagem, anteriores, empresaDoVinculo, empresas) {
+  for (const texto of [mensagem, ...[...anteriores].reverse()]) {
+    const citada = empresaCitada(texto, empresas)
+    if (citada) return citada
+  }
+  return empresaDoVinculo || null
+}
+
 export function useConversa() {
   const [mensagens, setMensagens] = useState([])
+  // As mensagens e as empresas com acervo, lidas no envio sem recriar o `enviar` a cada mensagem.
+  const mensagensRef = useRef([])
+  useEffect(() => { mensagensRef.current = mensagens }, [mensagens])
+  const empresasRef = useRef([])
+  useEffect(() => {
+    obterFontes().then(f => { empresasRef.current = f.empresas || [] }).catch(() => {})
+  }, [])
   const [threadId, setThreadId] = useState(null)
   const [conversas, setConversas] = useState([])
   const [passo, setPasso] = useState('')
@@ -244,6 +272,9 @@ export function useConversa() {
 
     controlador.current?.abort()
 
+    const anteriores = mensagensRef.current.filter(m => m.papel === 'usuario').map(m => m.texto)
+    const empresa = empresaDaConversa(mensagem, anteriores, vinculo?.empresa, empresasRef.current)
+
     setErro('')
     setEnviando(true)
     setSegundos(0)
@@ -293,7 +324,7 @@ export function useConversa() {
       // a tela não tem como reconhecer.
       let falhaDeTool = false
       try {
-        for await (const evento of conversar(enviado, thread, meu.signal)) {
+        for await (const evento of conversar(enviado, thread, meu.signal, empresa)) {
           if (meu.signal.aborted) return null
 
           if (evento.tipo === 'inicio') {
@@ -413,7 +444,7 @@ export function useConversa() {
     setEnviando(false)
     setPasso('')
     recarregarConversas()
-  }, [enviando, threadId, recarregarConversas, vinculo?.relatorio_id, vincular, atualizarVinculo])
+  }, [enviando, threadId, recarregarConversas, vinculo?.relatorio_id, vinculo?.empresa, vincular, atualizarVinculo])
 
   const abrir = useCallback(async id => {
     controlador.current?.abort()

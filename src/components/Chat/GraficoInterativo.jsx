@@ -142,12 +142,11 @@ function GraficoInterativo({ grafico, url, titulo, onEnviar }) {
     return () => { ativo = false }
   }, [grafico])
 
+  // Gráfico anexado pela ferramenta (28/10/2026) não tem imagem pública: sem os dados, só o aviso.
   if (falhou) {
-    return (
-      <figure className="chat-grafico">
-        <img className="chat-grafico__imagem" src={url} alt={titulo} />
-      </figure>
-    )
+    return url
+      ? <figure className="chat-grafico"><img className="chat-grafico__imagem" src={url} alt={titulo} /></figure>
+      : <p className="chat-grafico__subtitulo">Não foi possível carregar o gráfico “{titulo}”.</p>
   }
   if (!spec) return <InlineLoading className="chat-grafico__carregando" description="Carregando o gráfico" />
 
@@ -162,8 +161,8 @@ function GraficoInterativo({ grafico, url, titulo, onEnviar }) {
         return Painel ? <div key={i} className="chat-grafico__painel"><Painel painel={painel} unidade={spec.unidade} /></div> : null
       })}
       <p className="chat-grafico__fonte">
-        Fonte: {spec.fonte}.{' '}
-        <a href={url} target="_blank" rel="noopener noreferrer">Imagem do gráfico</a>
+        Fonte: {spec.fonte}.
+        {url && <>{' '}<a href={url} target="_blank" rel="noopener noreferrer">Imagem do gráfico</a></>}
       </p>
       {onEnviar && <InserirNoRelatorio grafico={grafico} onEnviar={onEnviar} />}
     </figure>

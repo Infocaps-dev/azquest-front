@@ -368,6 +368,7 @@ export function useConversa() {
               marcarNaResposta({ retida: true, ratings: evento.ratings || [] })
             }
             if (evento.escolha) marcarNaResposta({ escolha: evento.escolha })
+            if (evento.graficos?.length) marcarNaResposta({ graficos: evento.graficos })
             break
           }
         }

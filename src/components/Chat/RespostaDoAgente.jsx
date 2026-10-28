@@ -348,7 +348,23 @@ function EscolhaDaResposta({ escolha, onEscolher }) {
   )
 }
 
-function RespostaDoAgente({ texto, fontes, retida, ratings, escolha, onEscolher, onTrocarAba, onEnviar }) {
+// Os gráficos que as ferramentas geraram no turno (28/10/2026): desenhados abaixo da resposta, sem depender de o
+// agente escrever a imagem. Um gráfico que o texto já traz como imagem não se repete.
+function GraficosDaResposta({ graficos, texto, onEnviar }) {
+  const lista = (graficos || []).filter(g => !texto.includes(`/${g.pasta}/${g.nome}.`))
+  if (!lista.length) return null
+  return (
+    <EnvioDoChat.Provider value={onEnviar || null}>
+      {lista.map(g => (
+        <Suspense key={`${g.pasta}/${g.nome}`} fallback={<InlineLoading description="Carregando o gráfico" />}>
+          <GraficoInterativo grafico={{ pasta: g.pasta, nome: g.nome }} titulo={g.titulo} onEnviar={onEnviar} />
+        </Suspense>
+      ))}
+    </EnvioDoChat.Provider>
+  )
+}
+
+function RespostaDoAgente({ texto, fontes, retida, ratings, escolha, graficos, onEscolher, onTrocarAba, onEnviar }) {
   if (retida && ratings?.length) return <CartaoRating ratings={ratings} />
   // Retida porque o agente escolheu uma das opções sozinho e trouxe dado dela: a tela mostra só a escolha.
   if (retida && escolha) {
@@ -382,6 +398,7 @@ function RespostaDoAgente({ texto, fontes, retida, ratings, escolha, onEscolher,
       <EnvioDoChat.Provider value={onEnviar || null}>
         <Blocos texto={texto} />
       </EnvioDoChat.Provider>
+      <GraficosDaResposta graficos={graficos} texto={texto} onEnviar={onEnviar} />
       <FontesDaResposta fontes={fontes} />
       <EscolhaDaResposta escolha={escolha} onEscolher={onEscolher} />
       {relatorio && <CartaoRelatorio url={relatorio[2]} onTrocarAba={onTrocarAba} />}

@@ -16,7 +16,7 @@ import './ChatPage.scss'
 
 function ChatPage({ onTrocarAba, onAbrirAnalise, pedidoDeVinculo }) {
   const {
-    mensagens, threadId, conversas, passo, enviando, erro, segundos, vinculo,
+    mensagens, threadId, conversas, passo, enviando, erro, segundos, vinculo, abrindo,
     enviar, abrir, nova, vincular, atualizarVinculo,
   } = useConversa()
   const [escolhendo, setEscolhendo] = useState(false)
@@ -31,6 +31,7 @@ function ChatPage({ onTrocarAba, onAbrirAnalise, pedidoDeVinculo }) {
         conversas={conversas}
         threadId={threadId}
         onAbrir={abrir}
+        abrindo={abrindo}
         onNova={nova}
       />
       <ChatMain
@@ -41,6 +42,7 @@ function ChatPage({ onTrocarAba, onAbrirAnalise, pedidoDeVinculo }) {
         segundos={segundos}
         vinculo={vinculo}
         threadId={threadId}
+        abrindo={abrindo}
         onEscolherRelatorio={() => setEscolhendo(true)}
         onEnviar={enviar}
         onTrocarAba={onTrocarAba}

@@ -1171,9 +1171,12 @@ button.ctx-quotes__tab {
   gap: $spacing-02;
   margin-top: $spacing-03;
 
+  // Largura fixa: "Esta resposta foi útil?" e "Obrigado pelo retorno" têm larguras diferentes, e os polegares
+  // andavam a cada voto (28/10/2026).
   &__pergunta {
     @include type-style('label-01');
     color: $text-secondary;
+    min-width: 9.5rem;
     margin-right: $spacing-02;
   }
 
@@ -1205,3 +1208,15 @@ button.ctx-quotes__tab {
 
 .cds--modal .chat-feedback__ajuda { margin-bottom: $spacing-05; }
 .cds--modal .chat-feedback__observacoes { margin-top: $spacing-05; }
+
+// A conversa antiga sendo aberta (28/10/2026): o clique responde na hora.
+.chat-abrindo {
+  display: flex;
+  justify-content: center;
+  padding: $spacing-09 0;
+}
+
+.chat-sidebar__abrindo {
+  min-height: auto;
+  .cds--inline-loading__text { @include type-style('label-01'); }
+}

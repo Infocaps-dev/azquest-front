@@ -186,6 +186,10 @@ export function useConversa() {
     obterFontes().then(f => { empresasRef.current = f.empresas || [] }).catch(() => {})
   }, [])
   const [threadId, setThreadId] = useState(null)
+  // A conversa que está sendo aberta (28/10/2026): a lista a marca na hora e a tela mostra "Abrindo a conversa";
+  // clicar noutra no meio descarta a resposta da primeira.
+  const [abrindo, setAbrindo] = useState(null)
+  const ultimaAberta = useRef(null)
   const [conversas, setConversas] = useState([])
   const [passo, setPasso] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -475,8 +479,11 @@ export function useConversa() {
     setPasso('')
     setEnviando(false)
     setSegundos(0)
+    ultimaAberta.current = id
+    setAbrindo(id)
     try {
       const { mensagens: anteriores } = await obterConversa(id)
+      if (ultimaAberta.current !== id) return  // clicou noutra conversa enquanto esta carregava
       const salvos = lerVinculos()
       let relatorio = salvos[id] ?? null
       if (!(id in salvos)) {
@@ -489,7 +496,9 @@ export function useConversa() {
       setThreadId(id)
       vincular(relatorio || null, { escolhido: false })
     } catch (e) {
-      setErro(e.message)
+      if (ultimaAberta.current === id) setErro(e.message)
+    } finally {
+      if (ultimaAberta.current === id) setAbrindo(null)
     }
   }, [vincular])
 
@@ -498,6 +507,8 @@ export function useConversa() {
     // Do botão "Nova conversa" chega o evento do clique: só uma string é id de relatório.
     const id = typeof relatorioId === 'string' ? relatorioId : null
     controlador.current?.abort()
+    ultimaAberta.current = null  // uma conversa antiga que ainda estava abrindo não toma o lugar da nova
+    setAbrindo(null)
     setMensagens([])
     setThreadId(null)
     mudouVinculo.current = Boolean(id)
@@ -509,7 +520,7 @@ export function useConversa() {
   }, [vincular])
 
   return {
-    mensagens, threadId, conversas, passo, enviando, erro, segundos, vinculo,
+    mensagens, threadId, conversas, passo, enviando, erro, segundos, vinculo, abrindo,
     enviar, abrir, nova, vincular, atualizarVinculo,
   }
 }

@@ -38,6 +38,7 @@ function ChatMain({
   segundos = 0,
   vinculo = null,
   threadId = null,
+  abrindo = null,
   onEscolherRelatorio,
   onEnviar,
   onTrocarAba,
@@ -72,7 +73,12 @@ function ChatMain({
   return (
     <main className="chat-main">
       <div className="chat-main__body">
-        {!conversando && (
+        {abrindo && (
+          <div className="chat-abrindo">
+            <InlineLoading description="Abrindo a conversa…" />
+          </div>
+        )}
+        {!abrindo && !conversando && (
           <>
             <section className="chat-hero">
               <p className="chat-eyebrow">Assistente de análise</p>
@@ -104,7 +110,7 @@ function ChatMain({
           </>
         )}
 
-        {conversando && (
+        {!abrindo && conversando && (
           <RelatorioDaConversa.Provider value={vinculo?.relatorio_id || null}>
           <div className="chat-conversa">
             {mensagens.map((m, i) => (

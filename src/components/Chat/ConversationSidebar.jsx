@@ -1,4 +1,5 @@
 import { Add } from '@carbon/icons-react'
+import { InlineLoading } from '@carbon/react'
 
 // A lista vem da analise-api, que guarda de quem é cada conversa. O
 // Orchestrate guarda a thread e as mensagens, mas todas as threads nascem sob
@@ -16,7 +17,8 @@ function quando(iso) {
     : data.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
 }
 
-function ConversationSidebar({ conversas = [], threadId, onAbrir, onNova }) {
+function ConversationSidebar({ conversas = [], threadId, abrindo = null, onAbrir, onNova }) {
+  const atual = abrindo || threadId  // a clicada fica marcada na hora, antes de a conversa chegar
   return (
     <aside className="chat-sidebar">
       <div className="chat-sidebar__top">
@@ -36,13 +38,14 @@ function ConversationSidebar({ conversas = [], threadId, onAbrir, onNova }) {
               <button
                 type="button"
                 className={`chat-sidebar__item${
-                  c.thread_id === threadId ? ' chat-sidebar__item--atual' : ''}`}
+                  c.thread_id === atual ? ' chat-sidebar__item--atual' : ''}`}
                 onClick={() => onAbrir?.(c.thread_id)}
               >
                 <span className="chat-sidebar__titulo">{c.titulo || 'Conversa'}</span>
                 <span className="chat-sidebar__meta">
-                  {quando(c.ultima_em)}
-                  {c.turnos > 1 && ` · ${c.turnos} turnos`}
+                  {c.thread_id === abrindo
+                    ? <InlineLoading className="chat-sidebar__abrindo" description="Abrindo…" />
+                    : <>{quando(c.ultima_em)}{c.turnos > 1 && ` · ${c.turnos} turnos`}</>}
                 </span>
               </button>
             </li>

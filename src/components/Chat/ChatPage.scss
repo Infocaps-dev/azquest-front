@@ -322,6 +322,35 @@ $side-width: 22rem;
   overflow-wrap: anywhere;
 }
 
+.chat-msg__retida {
+  padding: $spacing-05;
+  border: 1px solid $border-subtle-01;
+  background: $layer-01;
+}
+
+.chat-msg__retida-aviso {
+  @include type-style('helper-text-01');
+  margin-bottom: $spacing-04;
+  color: $text-secondary;
+}
+
+.chat-msg__rating {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: $spacing-02 $spacing-05;
+  margin-bottom: $spacing-03;
+
+  dt {
+    @include type-style('label-01');
+    color: $text-secondary;
+  }
+
+  dd {
+    @include type-style('body-compact-01');
+    color: $text-primary;
+  }
+}
+
 .chat-msg__relatorio {
   margin-top: $spacing-05;
   padding: $spacing-05;

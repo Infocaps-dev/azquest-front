@@ -301,9 +301,46 @@ function FontesDaResposta({ fontes }) {
   )
 }
 
-function RespostaDoAgente({ texto, fontes, onTrocarAba, onEnviar }) {
+// A linha "Fontes:" que o prompt pede no fim da resposta (28/10/2026): sai do texto e vai para o componente, no
+// padrão visual das fontes. As citações vêm separadas por ";".
+const LINHA_FONTES = /\n+[ \t]*[*_]*Fontes?[*_]*[ \t]*:[*_]*[ \t]*([^\n]+)\s*$/i
+
+function separarFontes(texto) {
+  const m = LINHA_FONTES.exec(texto)
+  if (!m) return { texto, declaradas: [] }
+  const declaradas = m[1].split(';').map(f => f.replace(/[*_]/g, '').trim().replace(/\.$/, '')).filter(Boolean)
+  return { texto: texto.slice(0, m.index).trim(), declaradas }
+}
+
+// Resposta retida pela conferência (nota de uma emissão, ou de outra empresa do grupo, dita como rating da empresa,
+// e a correção não resolveu): a tela mostra o rating como está no documento, montado dos dados da ferramenta.
+function CartaoRating({ ratings }) {
+  return (
+    <div className="chat-msg__retida">
+      <p className="chat-msg__retida-aviso">A conferência reteve a resposta do agente. O rating, como está no documento:</p>
+      {ratings.map(r => (
+        <dl key={`${r.agencia}-${r.nota}-${r.emissao}`} className="chat-msg__rating">
+          <dt>Agência</dt><dd>{r.agencia}</dd>
+          <dt>Nota</dt><dd>{r.nota}</dd>
+          {r.emissao && <><dt>Escopo</dt><dd>{r.emissao}</dd></>}
+          {r.entidade_diferente_do_emissor && r.entidade && <><dt>Entidade</dt><dd>{r.entidade} (não é o emissor)</dd></>}
+          {r.perspectiva && <><dt>Perspectiva</dt><dd>{r.perspectiva}</dd></>}
+        </dl>
+      ))}
+      <FontesDaResposta fontes={ratings.flatMap(r => r.fontes || [])} />
+    </div>
+  )
+}
+
+function RespostaDoAgente({ texto, fontes, retida, ratings, onTrocarAba, onEnviar }) {
+  if (retida && ratings?.length) return <CartaoRating ratings={ratings} />
   if (!texto) return null
   if (ERRO_DA_PLATAFORMA.test(texto)) texto = ERRO_TRADUZIDO
+  // A linha só sai do texto quando todas as fontes dela estão entre as confirmadas pelos dados da ferramenta (as que a
+  // analise-api manda): fonte que o modelo declarou e os dados não confirmam fica no texto, sem o destaque de fonte.
+  const separado = separarFontes(texto)
+  const confirmada = f => (fontes || []).some(x => x.startsWith(f) || f.startsWith(x))
+  if (separado.declaradas.length && separado.declaradas.every(confirmada)) texto = separado.texto
   const relatorio = [...texto.matchAll(LINK)].find(a => eRelatorio(a[2]))
   // Com o cartão, a linha que só traz o link do relatório sai do texto: o mesmo link duas vezes, uma delas no meio
   // da narrativa do agente, parecia resposta com defeito (27/10/2026). Linha com mais conteúdo fica como está.

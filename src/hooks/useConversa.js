@@ -362,6 +362,11 @@ export function useConversa() {
             }
             falhaDeTool = evento.falha_de_tool === true
             if (evento.fontes?.length) marcarNaResposta({ fontes: evento.fontes })
+            // Retida pela conferência: a tela mostra o cartão do rating no lugar do texto.
+            if (evento.retida) {
+              recebeuAlgo = true
+              marcarNaResposta({ retida: true, ratings: evento.ratings || [] })
+            }
             break
           }
         }

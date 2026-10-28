@@ -118,7 +118,8 @@ function ChatMain({
                   )}
                   {m.papel === 'usuario'
                     ? <p>{m.texto}</p>
-                    : <RespostaDoAgente texto={m.texto} fontes={m.fontes} onTrocarAba={onTrocarAba} onEnviar={onEnviar} />}
+                    : <RespostaDoAgente texto={m.texto} fontes={m.fontes} retida={m.retida} ratings={m.ratings}
+                                        onTrocarAba={onTrocarAba} onEnviar={onEnviar} />}
                 </div>
               </article>
             ))}

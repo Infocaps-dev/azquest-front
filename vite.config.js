@@ -22,8 +22,9 @@ export default defineConfig({
   // navegador na mesma origem, então o cookie de sessão é first-party e não
   // existe CORS no caminho.
   server: {
+    // Chaves com barra no fim: /coletas, /relatorios etc. são telas (rotas.js), não as APIs.
     proxy: {
-      '/api': {
+      '/api/': {
         target: process.env.VITE_API_TARGET
           || 'https://azquest-auth-bff.2fom3olxz1yh.br-sao.codeengine.appdomain.cloud',
         changeOrigin: true,
@@ -33,14 +34,14 @@ export default defineConfig({
       // prefixo proprio evita colidir com /api do BFF de autenticacao.
       // A analise-api e a etapa 1.2 e roda em outro servico. Mesmo padrao do
       // /monitor: prefixo proprio, para nao colidir com o /api do BFF.
-      '/analise': {
+      '/analise/': {
         target: process.env.VITE_ANALISE_TARGET
           || 'https://analise-api.2fom3olxz1yh.br-sao.codeengine.appdomain.cloud',
         changeOrigin: true,
         secure: true,
         rewrite: caminho => caminho.replace(/^\/analise/, ''),
       },
-      '/monitor': {
+      '/monitor/': {
         target: process.env.VITE_MONITOR_TARGET
           || 'https://monitor-api.2fom3olxz1yh.br-sao.codeengine.appdomain.cloud',
         changeOrigin: true,
@@ -49,7 +50,7 @@ export default defineConfig({
       },
       // A coleta-api (azquest_code_engine/coleta/api.py) dispara o crawler de fontes públicas da aba Coleta.
       // Para rodar a API local: VITE_COLETA_TARGET=http://localhost:8083.
-      '/coleta': {
+      '/coleta/': {
         target: process.env.VITE_COLETA_TARGET
           || 'https://coleta-api.2fom3olxz1yh.br-sao.codeengine.appdomain.cloud',
         changeOrigin: true,
@@ -60,7 +61,7 @@ export default defineConfig({
       // crédito gerados pelo agente. Mesmo padrão: prefixo próprio, e a sessão
       // é a do BFF (o cookie vai junto e a API confere em /api/auth/me).
       // Para rodar a API local: VITE_RESUMOS_TARGET=http://localhost:8082.
-      '/resumos': {
+      '/resumos/': {
         target: process.env.VITE_RESUMOS_TARGET
           || 'https://resumos-api.2g1a5bl5ugid.br-sao.codeengine.appdomain.cloud',
         changeOrigin: true,

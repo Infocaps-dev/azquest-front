@@ -53,10 +53,10 @@ export function FonteClicavel({ evidencia, className = 'ana-fonte', title, child
 
 // Link de fonte do relatório aberto fora da tela (nova aba, PDF): a tela abre com ?fonte=1&arquivo=…&pagina=… e
 // mostra o documento, depois do login se for preciso.
-const CAMPOS_DA_FONTE = ['empresa', 'arquivo', 'pagina', 'aba', 'linha']
+export const CAMPOS_DA_FONTE = ['empresa', 'arquivo', 'pagina', 'aba', 'linha']
 
-export function fonteDaUrl() {
-  const parametros = new URLSearchParams(window.location.search)
+export function fonteDaUrl(consulta = window.location.search) {
+  const parametros = new URLSearchParams(consulta)
   if (!parametros.get('fonte') || !parametros.get('arquivo')) return null
   return Object.fromEntries(CAMPOS_DA_FONTE.map(k => [k, parametros.get(k) || undefined]))
 }

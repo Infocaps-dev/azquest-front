@@ -718,3 +718,15 @@
   background: $highlight;
   font-weight: 600;
 }
+
+// Endereço que não corresponde a nenhuma tela (App.jsx, NaoEncontrada).
+.nao-encontrada__titulo {
+  @include type-style('heading-05');
+  margin-bottom: $spacing-03;
+}
+
+.nao-encontrada__texto {
+  @include type-style('body-01');
+  margin-bottom: $spacing-06;
+  color: $text-secondary;
+}

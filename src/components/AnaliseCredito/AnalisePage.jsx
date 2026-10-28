@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, Dropdown, InlineNotification, SkeletonPlaceholder, SkeletonText, Tag } from '@carbon/react'
 import { Add, ChartLineData, Document, DocumentPdf, Renew, TaskApproved } from '@carbon/icons-react'
+import { useLocation, useNavigate } from 'react-router'
 import {
   aplicarAjustes,
   decidirItem,
@@ -25,6 +26,7 @@ import SecoesRelatorio from './SecoesRelatorio.jsx'
 import SumarioTese from './SumarioTese.jsx'
 import { ProvedorDeFontes } from './FontesDoDocumento.jsx'
 import Carregando from '../Comum/Carregando.jsx'
+import { caminhoDoRelatorio, definirTitulo, relatorioDoCaminho } from '../../rotas'
 import { STATUS_VERSAO, dataHora } from './vocabulario'
 import './AnalisePage.scss'
 
@@ -73,21 +75,35 @@ const itemDoSeletor = r => (r === GERAR_NOVO
   ? <span className="ana-seletor__gerar"><Add size={16} /> Gerar novo relatório</span>
   : <span>{rotuloRelatorio(r)}</span>)
 
-function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido, onVersaoPropria, onConversar }) {
+// Endereço (28/10/2026): /relatorios/<id> é o relatório na tela e /relatorios/<id>/completo, o relatório completo
+// aberto por cima. A URL manda: escolher outro relatório navega (fica no histórico); as trocas que a tela faz sozinha
+// (abrir o mais recente em /relatorios, abrir o recém-gerado) substituem o endereço. Id que não existe mostra "não
+// encontrado" com a lista, em vez de abrir outro relatório no lugar.
+function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, onRelatorioAtual }) {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { id: relatorioDaUrl, completo } = relatorioDoCaminho(location.pathname)
+  const relatorioId = relatorioDaUrl || ''
+  const ir = useCallback((id, { replace = false } = {}) => navigate(caminhoDoRelatorio(id), { replace }), [navigate])
+  const [naoEncontrado, setNaoEncontrado] = useState('')
   const [relatorios, setRelatorios] = useState([])
-  const [relatorioId, setRelatorioId] = useState('')
   const [resumo, setResumo] = useState(null)
   const [revisao, setRevisao] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [erroCarga, setErroCarga] = useState('')
   const [aviso, setAviso] = useState(null)
   const [painel, setPainel] = useState({ aberto: false, filtro: null })
-  const [relatorio, setRelatorio] = useState({ aberto: false, ancora: null })
+  const [ancoraCompleto, setAncoraCompleto] = useState(null) // onde o relatório completo abre
   const [reprocessando, setReprocessando] = useState(false)
   // Geração pelo botão Reprocessar: {operacao, origem (o relatório de onde pediu), esperando (o novo)}.
   const [geracao, setGeracao] = useState(null)
   const andamentoGeracao = useAndamentoRelatorio(geracao?.operacao || null)
   const [gerarAberto, setGerarAberto] = useState(false) // diálogo Gerar relatório (empresa e período)
+  // Versão 2 automática (interpretação redigida pelo agente, só fora do piloto): depois da geração, a tela acompanha
+  // o preparo dela no relatório aberto, em vez de deixar o diálogo aberto até ela chegar. {operacao, relatorioId}
+  const [acompanhada, setAcompanhada] = useState(null)
+  const andamentoV2 = useAndamentoRelatorio(acompanhada?.operacao || null)
+  const estadoV2 = acompanhada?.relatorioId === relatorioId ? andamentoV2?.versao_2?.estado : null
   const [enviando, setEnviando] = useState(false) // publicar, devolver, gerar versão: um clique só
   // O relatório que está na tela agora: respostas que chegam depois de o analista trocar de relatório são descartadas,
   // em vez de mostrar o relatório A com as decisões indo para o B.
@@ -112,11 +128,9 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
       .then(indice => {
         if (!ativo) return
         setRelatorios(indice.relatorios || [])
+        if (relatorioDaUrl) return // o do endereço carrega sozinho (mesmo fora da lista: link antigo vira "não encontrado")
         if (indice.relatorios?.length) {
-          // Só na abertura da aba: chegando pelo "Abrir" do aviso, abre aquele relatório; senão, o mais recente.
-          const pedido = relatorioAlvo?.id && indice.relatorios.some(r => r.relatorio_id === relatorioAlvo.id)
-          setRelatorioId(pedido ? relatorioAlvo.id : indice.relatorios[0].relatorio_id)
-          if (pedido) onAlvoConsumido?.()
+          ir(indice.relatorios[0].relatorio_id, { replace: true }) // /relatorios: o mais recente
         } else {
           setErroCarga('Nenhum relatório gerado ainda. Gere um aqui ou peça ao agente no chat.')
           setCarregando(false)
@@ -142,11 +156,32 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
   useEffect(() => {
     if (!relatorioId) return
     atual.current = relatorioId
+    setNaoEncontrado('')
+    setAviso(null)
     setCarregando(true)
+    onRelatorioAtual?.(relatorioId)
     carregar(relatorioId)
-      .catch(e => { if (atual.current === relatorioId) setErroCarga(e.message) })
+      .catch(e => {
+        if (atual.current !== relatorioId) return
+        setResumo(null)
+        setRevisao(null)
+        setNaoEncontrado(e.message)
+      })
       .finally(() => { if (atual.current === relatorioId) setCarregando(false) })
-  }, [relatorioId, carregar])
+  }, [relatorioId, carregar]) // eslint-disable-line react-hooks/exhaustive-deps -- onRelatorioAtual é do App
+
+  // /relatorios de novo (aba clicada estando num relatório, voltar do navegador): fica no relatório que já estava aberto.
+  useEffect(() => {
+    if (!relatorioDaUrl && atual.current) ir(atual.current, { replace: true })
+  }, [relatorioDaUrl, ir])
+
+  // Título da aba do navegador: o relatório aberto.
+  useEffect(() => {
+    if (naoEncontrado) definirTitulo('Relatório não encontrado')
+    else if (resumo?.relatorio_id === relatorioId) {
+      definirTitulo(`${resumo.empresa} · ${resumo.periodo}${completo ? ' — relatório completo' : ''}`, 'Análise de crédito')
+    } else definirTitulo('Análise de crédito')
+  }, [naoEncontrado, resumo, relatorioId, completo])
 
   // Relatório novo disponível (aviso do App): a lista do seletor se atualiza. Se o relatório aberto ganhou versão nova
   // (edição pelo chat, por exemplo), a tela recarrega, para ninguém decidir sobre um texto que já mudou.
@@ -160,25 +195,26 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
       if (esperado || (!atual.current && lista.length)) {
         aguardado.current = null
         setErroCarga('')
-        setRelatorioId((esperado || lista[0]).relatorio_id)
+        ir((esperado || lista[0]).relatorio_id, { replace: true })
         return
       }
       const linha = (indice.relatorios || []).find(r => r.relatorio_id === atual.current)
       if (linha && resumo && linha.versao > resumo.versao) {
         const propria = versoesProprias.current.has(`${linha.relatorio_id}-v${linha.versao}`)
-        carregar(atual.current).then(novo => novo && !propria && setAviso({ kind: 'info',
-          title: `Chegou a versão ${novo.versao} deste relatório`,
-          subtitle: 'A tela foi atualizada. Itens cujo texto mudou voltaram a pendente.' }))
+        carregar(atual.current).then(novo => {
+          if (!novo || propria) return
+          // Versão 2 que o job publica sozinho depois da 1 (execucao.operacao "redacao"): não é edição de ninguém.
+          setAviso(novo.execucao?.operacao === 'redacao'
+            ? { kind: 'success', title: `Versão ${novo.versao} pronta, com a interpretação automática`,
+              subtitle: 'O agente redigiu a interpretação a partir dos documentos e ela passou na conferência dos '
+                + 'números. Os trechos aparecem marcados como rascunho para a sua revisão.' }
+            : { kind: 'info', title: `Chegou a versão ${novo.versao} deste relatório`,
+              subtitle: 'A tela foi atualizada. Itens cujo texto mudou voltaram a pendente.' })
+          if (acompanhada?.relatorioId === novo.relatorio_id) setAcompanhada(null)
+        })
       }
     }).catch(() => {})
   }, [sinalIndice]) // eslint-disable-line react-hooks/exhaustive-deps -- reage ao sinal, não ao resumo
-
-  useEffect(() => {
-    if (!relatorioAlvo?.id) return
-    setAviso(null)
-    setRelatorioId(relatorioAlvo.id)
-    onAlvoConsumido?.()
-  }, [relatorioAlvo]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Erro de versão (409 com versao_atual): o relatório mudou enquanto a tela estava aberta. Recarrega e avisa.
   const tratarErro = useCallback(async (e, titulo) => {
@@ -238,7 +274,17 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
     }
   }
 
-  const abrirRelatorio = useCallback(ancora => setRelatorio({ aberto: true, ancora: ancora || null }), [])
+  // Relatório completo: endereço próprio (/completo), para o link levar direto a ele e o "voltar" do navegador fechá-lo.
+  // Fechar volta no histórico quando foi aberto aqui; aberto por link, troca o endereço pelo do relatório.
+  const abrirRelatorio = useCallback(ancora => {
+    setAncoraCompleto(ancora || null)
+    navigate(caminhoDoRelatorio(atual.current, { completo: true }), { state: { completoPelaTela: true } })
+  }, [navigate])
+  function fecharRelatorioCompleto() {
+    setAncoraCompleto(null)
+    if (location.state?.completoPelaTela) navigate(-1)
+    else navigate(caminhoDoRelatorio(relatorioId), { replace: true })
+  }
 
   // Versão nova feita pelo botão "Editar" do relatório completo. O relatório já está na tela nessa versão; o resumo
   // (cartões, revisão) chega quando o monitor o refaz, segundos depois, e a tela o acompanha em silêncio.
@@ -341,7 +387,8 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
         if (indice?.relatorios?.some(r => r.relatorio_id === novoId)) {
           setRelatorios(indice.relatorios)
           setReprocessando(false)
-          if (atual.current === geracao.origem) setRelatorioId(novoId)
+          setAcompanhada({ operacao: geracao.operacao, relatorioId: novoId })
+          if (atual.current === geracao.origem) ir(novoId, { replace: true })
           return
         }
         await new Promise(r => setTimeout(r, 2000))
@@ -372,7 +419,11 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
   }
 
   // Relatório novo pelo diálogo: entra na tela assim que o resumo dele chega (o monitor monta em segundos).
-  async function abrirQuandoResumir(novoId) {
+  // Relatório novo pelo diálogo: o diálogo fecha assim que a versão 1 fica pronta (ficar aberto fazia ele voltar ao
+  // formulário quando a tela trocava para o relatório, com o "Gerar" de novo à mão) e a versão 2 é acompanhada aqui.
+  async function abrirQuandoResumir(novoId, operacao) {
+    setGerarAberto(false)
+    if (operacao) setAcompanhada({ operacao, relatorioId: novoId })
     aguardado.current = novoId
     for (let tentativa = 0; tentativa < 30 && aguardado.current === novoId; tentativa++) {
       const indice = await listarResumos().catch(() => null)
@@ -380,7 +431,7 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
         aguardado.current = null
         setErroCarga('')
         setRelatorios(indice.relatorios)
-        setRelatorioId(novoId)
+        ir(novoId, { replace: true })
         return
       }
       await new Promise(r => setTimeout(r, 2000))
@@ -395,6 +446,35 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
     <GerarRelatorio aberto={gerarAberto} empresaInicial={resumo?.empresa || ''}
       onFechar={() => setGerarAberto(false)} onPronto={abrirQuandoResumir} />
   )
+
+  const seletor = (
+    <Dropdown id="ana-relatorio" titleText="Relatório" hideLabel size="sm" label="Escolha um relatório"
+      className="ana-cabecalho__seletor" items={[GERAR_NOVO, ...relatorios]}
+      selectedItem={relatorios.find(r => r.relatorio_id === relatorioId) || null}
+      itemToString={textoDoItem} itemToElement={itemDoSeletor}
+      onChange={({ selectedItem }) => {
+        if (!selectedItem) return
+        if (selectedItem === GERAR_NOVO) {
+          setGerarAberto(true)
+          return
+        }
+        setAviso(null)
+        if (selectedItem.relatorio_id !== relatorioId) ir(selectedItem.relatorio_id)
+      }} />
+  )
+
+  // Endereço de um relatório que não existe (apagado, link antigo): o aviso e a lista, sem abrir outro no lugar.
+  if (naoEncontrado && !carregando) {
+    return (
+      <main className="ana-pagina">
+        <InlineNotification kind="warning" lowContrast hideCloseButton className="ana-aviso"
+          title="Relatório não encontrado"
+          subtitle="Este endereço aponta para um relatório que não existe mais. Escolha outro na lista." />
+        <div className="ana-cabecalho__acoes">{seletor}</div>
+        {dialogoGerar}
+      </main>
+    )
+  }
 
   if (erroCarga && !resumo) {
     return (
@@ -433,19 +513,7 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
           )}
         </div>
         <div className="ana-cabecalho__acoes">
-          <Dropdown id="ana-relatorio" titleText="Relatório" hideLabel size="sm" label="Escolha um relatório"
-            className="ana-cabecalho__seletor" items={[GERAR_NOVO, ...relatorios]}
-            selectedItem={relatorios.find(r => r.relatorio_id === relatorioId) || null}
-            itemToString={textoDoItem} itemToElement={itemDoSeletor}
-            onChange={({ selectedItem }) => {
-              if (!selectedItem) return
-              if (selectedItem === GERAR_NOVO) {
-                setGerarAberto(true)
-                return
-              }
-              setAviso(null)
-              setRelatorioId(selectedItem.relatorio_id)
-            }} />
+          {seletor}
           <Button kind="tertiary" size="sm" renderIcon={Document} onClick={() => abrirRelatorio(null)}>
             Relatório completo
           </Button>
@@ -493,12 +561,23 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
       )}
 
       {dialogoGerar}
-      {geracao && (reprocessando || andamentoGeracao?.versao_2?.estado === 'em_preparo') && (
+      {geracao && reprocessando && (
         <ProgressoRelatorio andamento={andamentoGeracao} solicitado mostrarLink={false} />
       )}
       {aviso && (
         <InlineNotification kind={aviso.kind} lowContrast className="ana-aviso"
           title={aviso.title} subtitle={aviso.subtitle} onClose={() => setAviso(null)} />
+      )}
+      {estadoV2 === 'em_preparo' && (
+        <InlineNotification kind="info" lowContrast hideCloseButton className="ana-aviso"
+          title="Interpretação automática em preparo (versão 2)"
+          subtitle={'Esta é a versão 1. Em alguns segundos o agente redige a interpretação a partir dos documentos e, '
+            + 'se ela passar na conferência dos números, a versão 2 entra aqui sozinha.'} />
+      )}
+      {estadoV2 === 'sem_texto' && (
+        <InlineNotification kind="info" lowContrast className="ana-aviso" onClose={() => setAcompanhada(null)}
+          title="Interpretação automática não entrou"
+          subtitle="O texto redigido pelo agente não passou na conferência dos números: o relatório fica na versão 1." />
       )}
 
       {revisao?.status === 'publicada' && (
@@ -543,9 +622,9 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
       />
 
       <RelatorioCompleto
-        aberto={relatorio.aberto}
-        ancora={relatorio.ancora}
-        onFechar={() => setRelatorio({ aberto: false, ancora: null })}
+        aberto={completo && Boolean(resumo)}
+        ancora={ancoraCompleto}
+        onFechar={fecharRelatorioCompleto}
         relatorioId={relatorioId}
         versao={resumo?.versao}
         versaoResumo={resumo?.versao}

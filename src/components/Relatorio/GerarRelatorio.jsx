@@ -50,7 +50,7 @@ export default function GerarRelatorio({ aberto, empresaInicial = '', onFechar, 
   useEffect(() => { setPeriodo(periodos[0] || '') }, [periodos])
 
   useEffect(() => {
-    if (andamento?.estado === 'concluida' && andamento.relatorio_id) onPronto?.(andamento.relatorio_id)
+    if (andamento?.estado === 'concluida' && andamento.relatorio_id) onPronto?.(andamento.relatorio_id, operacao)
   }, [andamento?.estado, andamento?.relatorio_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function gerar() {

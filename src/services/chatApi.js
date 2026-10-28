@@ -210,3 +210,10 @@ export function avaliarResposta({ pedidoId, threadId, avaliacao, motivo = null, 
     body: JSON.stringify({ pedido_id: pedidoId, thread_id: threadId, avaliacao, motivo, comentario }),
   })
 }
+
+// Clicar de novo no polegar marcado tira o voto.
+export function removerAvaliacao({ pedidoId, threadId }) {
+  if (MODO_SIMULADO) return Promise.resolve({ avaliacao: null })
+  const consulta = new URLSearchParams({ pedido_id: pedidoId, thread_id: threadId })
+  return pedir(`/api/chat/feedback?${consulta}`, { method: 'DELETE' })
+}

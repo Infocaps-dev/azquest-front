@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Dropdown, IconButton, Modal, TextArea } from '@carbon/react'
 import { ThumbsDown, ThumbsDownFilled, ThumbsUp, ThumbsUpFilled } from '@carbon/icons-react'
-import { avaliarResposta, motivosDeFeedback } from '../../services/chatApi'
+import { avaliarResposta, motivosDeFeedback, removerAvaliacao } from '../../services/chatApi'
 
-// A avaliação de cada resposta do agente (28/10/2026). O polegar grava na hora; no negativo, um modal oferece (sem
-// obrigar) o motivo e uma observação. Fechar ou pular mantém o voto negativo sem detalhe. Trocar para positivo enquanto
-// o modal está aberto não deixa um envio antigo do modal voltar o voto para negativo.
+// A avaliação de cada resposta do agente (28/10/2026). O polegar grava na hora; clicar de novo no polegar marcado tira
+// o voto. No negativo, um modal oferece (sem obrigar) o motivo e uma observação; fechar ou pular mantém o voto sem
+// detalhe, e "Detalhar" reabre o modal depois. Trocar o voto enquanto o modal está aberto não deixa um envio antigo do
+// modal voltar o voto para negativo.
 
 const LIMITE = 2000
 
@@ -28,8 +29,19 @@ export default function FeedbackDaResposta({ pedidoId, threadId, inicial }) {
 
   const votar = async (avaliacao) => {
     const anterior = voto
-    setVoto(avaliacao)
     setErro('')
+    if (avaliacao === anterior) {  // clicou de novo no polegar marcado: tira o voto
+      setVoto(null)
+      setAberto(false)
+      try {
+        await removerAvaliacao({ pedidoId, threadId })
+      } catch (e) {
+        setVoto(anterior)
+        setErro(e.message || 'Não foi possível tirar a avaliação.')
+      }
+      return
+    }
+    setVoto(avaliacao)
     try {
       await avaliarResposta({ pedidoId, threadId, avaliacao })
       if (avaliacao === 'negativo') {
@@ -62,14 +74,17 @@ export default function FeedbackDaResposta({ pedidoId, threadId, inicial }) {
       <span className="chat-feedback__pergunta">
         {voto ? 'Obrigado pelo retorno' : 'Esta resposta foi útil?'}
       </span>
-      <IconButton kind="ghost" size="sm" align="top" label="Útil" aria-pressed={voto === 'positivo'}
-                  onClick={() => voto !== 'positivo' && votar('positivo')}>
+      <IconButton kind="ghost" size="sm" align="top" label={voto === 'positivo' ? 'Tirar avaliação' : 'Útil'}
+                  aria-pressed={voto === 'positivo'} onClick={() => votar('positivo')}>
         {voto === 'positivo' ? <ThumbsUpFilled /> : <ThumbsUp />}
       </IconButton>
-      <IconButton kind="ghost" size="sm" align="top" label="Não foi útil" aria-pressed={voto === 'negativo'}
-                  onClick={() => (voto === 'negativo' ? setAberto(true) : votar('negativo'))}>
+      <IconButton kind="ghost" size="sm" align="top" label={voto === 'negativo' ? 'Tirar avaliação' : 'Não foi útil'}
+                  aria-pressed={voto === 'negativo'} onClick={() => votar('negativo')}>
         {voto === 'negativo' ? <ThumbsDownFilled /> : <ThumbsDown />}
       </IconButton>
+      {voto === 'negativo' && (
+        <button type="button" className="chat-feedback__detalhar" onClick={() => setAberto(true)}>Detalhar</button>
+      )}
       {erro && <span className="chat-feedback__erro">{erro}</span>}
 
       <Modal

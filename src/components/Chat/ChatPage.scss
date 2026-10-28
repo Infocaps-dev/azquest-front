@@ -1182,6 +1182,17 @@ button.ctx-quotes__tab {
     color: $text-error;
   }
 
+  &__detalhar {
+    @include type-style('label-01');
+    padding: 0;
+    border: 0;
+    background: none;
+    color: $link-primary;
+    cursor: pointer;
+
+    &:hover { text-decoration: underline; }
+  }
+
   &__ajuda {
     @include type-style('body-01');
     margin-bottom: $spacing-05;

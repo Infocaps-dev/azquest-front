@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button, InlineLoading, InlineNotification, Select, SelectItem } from '@carbon/react'
 import { filaDeConceitos, decidirConceito } from '../../services/conceitosApi'
+import '../AnaliseCredito/AnalisePage.scss'
+import '../Desempenho/DesempenhoPage.scss'
 import './ConceitosPage.scss'
 
 // Fila de confirmação de conceitos (28/10/2026). As planilhas de cada empresa chamam o mesmo indicador por nomes
@@ -183,37 +185,42 @@ export default function ConceitosPage() {
 
   if (erro) {
     return (
-      <main className="conceitos">
+      <main className="ana-pagina">
         <InlineNotification kind="error" title="Lista indisponível" subtitle={erro} hideCloseButton />
       </main>
     )
   }
-  if (!fila) return <main className="conceitos"><InlineLoading description="Carregando" /></main>
+  if (!fila) return <main className="ana-pagina"><InlineLoading description="Carregando" /></main>
   const total = fila.empresas.reduce((n, e) => n + e.itens.length, 0)
   return (
-    <main className="conceitos">
-      <h1>Conceitos das séries</h1>
-      <div className="conceitos__explicacao">
+    <main className="ana-pagina">
+      <header className="ana-cabecalho">
+        <div className="ana-cabecalho__identidade">
+          <h1 className="ana-cabecalho__emissor">Conceitos</h1>
+          <span className="ana-cabecalho__referencia">qual linha das planilhas é cada indicador, por empresa</span>
+        </div>
+      </header>
+      <section className="des-secao conceitos__explicacao" aria-label="Para que serve">
         <p>
           Cada empresa chama o mesmo indicador por nomes diferentes nas planilhas e demonstrações ("Receita líquida",
           "Net revenue", "Receita operacional líquida"). O sistema aprende sozinho qual linha é cada indicador, para
           responder no chat e montar o relatório com o número certo.
         </p>
         <p>Quando ele não tem certeza, pergunta aqui. Sua resposta passa a valer no chat e nos relatórios.</p>
-      </div>
+      </section>
       {!fila.pode_decidir && (
         <InlineNotification kind="info" title="Só leitura" subtitle="Seu perfil não responde a estas perguntas."
                             hideCloseButton lowContrast />
       )}
       {aviso && <InlineNotification kind="warning" title="Atenção" subtitle={aviso} onClose={() => setAviso('')} lowContrast />}
-      {total === 0 && <p>Nenhuma pergunta pendente.</p>}
+      {total === 0 && <section className="des-secao"><p className="ana-vazio">Nenhuma pergunta pendente.</p></section>}
       {fila.empresas.filter(e => e.itens.length).map(empresa => {
         const grupos = gruposDeConflito(empresa.itens)
         const pendentes = empresa.itens.filter(i => i.estado !== 'conflito')
         const decidir = decidirNa(empresa)
         return (
-          <section key={empresa.empresa_id} className="conceitos__empresa">
-            <h2>{empresa.empresa}</h2>
+          <section key={empresa.empresa_id} className="des-secao" aria-label={empresa.empresa}>
+            <h2 className="ana-secao__titulo">{empresa.empresa}</h2>
             <ol className="conceitos__lista">
               {grupos.map(membros => (
                 <Conflito key={`${membros.map(m => m.serie).join('-')}-${empresa.versao}`} membros={membros}

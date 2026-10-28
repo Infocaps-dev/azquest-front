@@ -1,29 +1,28 @@
 @use '@carbon/react/scss/spacing' as *;
 @use '@carbon/react/scss/theme' as *;
+@use '@carbon/react/scss/type' as *;
 
-// Fila de confirmação de conceitos (28/10/2026), em forma de pergunta.
+// Aba Conceitos (28/10/2026): margens, cabeçalho e seções das outras abas (.ana-pagina, .ana-cabecalho, .des-secao);
+// aqui só o que é desta aba, com os tokens do Carbon.
 .conceitos {
-  max-width: 64rem;
-  margin: 0 auto;
-  // O Header do Carbon é fixo e ocupa 3rem: sem a folga, o título fica debaixo dele (como em .ana-pagina).
-  padding: calc(3rem + #{$spacing-06}) $spacing-05 $spacing-09;
-
-  h1 { margin-bottom: $spacing-04; }
-  &__explicacao {
+  &__explicacao p {
+    @include type-style('body-01');
     max-width: 48rem;
-    margin-bottom: $spacing-06;
-    p + p { margin-top: $spacing-03; }
+    & + p { margin-top: $spacing-03; }
   }
-  &__empresa { margin-top: $spacing-07; }
-  &__lista { list-style: none; padding: 0; margin: $spacing-04 0 0; }
+  &__lista { list-style: none; padding: 0; margin: 0; }
   &__cartao {
-    border: 1px solid $border-subtle;
-    background: $layer;
+    background: $layer-02;
     padding: $spacing-05;
-    margin-bottom: $spacing-05;
+    & + & { margin-top: $spacing-04; }
   }
-  &__pergunta { font-size: 1rem; margin-bottom: $spacing-03; }
-  &__ajuda { font-size: 0.875rem; color: $text-secondary; margin: $spacing-02 0 $spacing-04; max-width: 48rem; }
+  &__pergunta { @include type-style('body-01'); margin-bottom: $spacing-03; }
+  &__ajuda {
+    @include type-style('label-01');
+    color: $text-secondary;
+    margin: $spacing-02 0 $spacing-04;
+    max-width: 48rem;
+  }
   &__opcoes { list-style: none; padding: 0; margin: 0; }
   &__opcao {
     display: flex;
@@ -31,19 +30,19 @@
     align-items: center;
     gap: $spacing-05;
     padding: $spacing-04 0;
-    border-top: 1px solid $border-subtle;
+    border-top: 1px solid $border-subtle-02;
   }
-  &__rotulo { font-weight: 600; }
-  &__onde { display: block; font-size: 0.875rem; color: $text-secondary; }
+  &__rotulo { @include type-style('heading-compact-01'); }
+  &__onde { display: block; @include type-style('label-01'); color: $text-secondary; }
   &__valores {
     display: flex;
     flex-wrap: wrap;
     gap: $spacing-04;
     margin-top: $spacing-02;
-    font-size: 0.875rem;
+    @include type-style('body-compact-01');
     em { font-style: normal; color: $text-secondary; }
   }
-  &__unidade, &__sem-valor { color: $text-secondary; font-size: 0.875rem; }
+  &__unidade, &__sem-valor { @include type-style('label-01'); color: $text-secondary; }
   &__acoes {
     display: flex;
     flex-wrap: wrap;

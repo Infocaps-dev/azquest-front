@@ -23,6 +23,7 @@ import PainelRevisao from './PainelRevisao.jsx'
 import RelatorioCompleto from './RelatorioCompleto.jsx'
 import SecoesRelatorio from './SecoesRelatorio.jsx'
 import SumarioTese from './SumarioTese.jsx'
+import { ProvedorDeFontes } from './FontesDoDocumento.jsx'
 import { STATUS_VERSAO, dataHora } from './vocabulario'
 import './AnalisePage.scss'
 
@@ -373,6 +374,8 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
   const rotulos = Object.fromEntries(categorias.map(c => [c.id, c.rotulo]))
 
   return (
+    // As fontes dos números-chave e das seções abrem o documento original (FontesDoDocumento.jsx).
+    <ProvedorDeFontes empresa={resumo?.empresa}>
     <main className="ana-pagina">
       <header className="ana-cabecalho">
         <div className="ana-cabecalho__identidade">
@@ -506,6 +509,7 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
         titulo={`${resumo?.empresa || ''} · ${resumo?.referencia || ''}`}
       />
     </main>
+    </ProvedorDeFontes>
   )
 }
 

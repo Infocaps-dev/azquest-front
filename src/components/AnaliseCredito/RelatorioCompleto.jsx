@@ -4,6 +4,8 @@ import { Chat, DocumentPdf, Launch } from '@carbon/icons-react'
 import { enderecoHtml, enderecoRelatorio, versaoPublicada } from '../../services/resumosApi'
 import { AVISO_LIGANDO_PDF, rotuloGerandoPdf, useBaixarPdf } from '../../hooks/useBaixarPdf'
 import EdicaoTrecho from './EdicaoTrecho.jsx'
+import { useVisualizadorDeFontes } from './FontesDoDocumento.jsx'
+import { PainelDocumento } from './VisualizadorDocumento.jsx'
 import { PREFIXO_EDICAO, referenciaDoTrecho, textoVisivel } from './edicaoTrecho'
 import './RelatorioCompleto.scss'
 
@@ -23,6 +25,10 @@ import './RelatorioCompleto.scss'
 // versão nova é publicada, a tela troca para ela, posicionada no trecho
 // alterado e com ele destacado. Sem aviso de "versão disponível": o analista
 // já está olhando para ela.
+//
+// Fontes (28/10/2026): cada linha "Fonte:" do relatório é um link (a.azq-fonte) com o arquivo, a página e a aba/linha
+// citados. Fora da tela, o link abre a tela já no documento; aqui, a tela troca o destino por #azq-fonte=<n>, lê o
+// hash como no Editar e abre o documento por cima do relatório, com "Voltar". As fontes ficam fora do trecho editado.
 
 const ESTILO_EDICAO = `
 .azq-editavel { position: relative; }
@@ -36,6 +42,36 @@ const ESTILO_EDICAO = `
 .azq-editavel:hover > .azq-editar, .azq-editar:focus { display: inline-block; }
 .section-heading.azq-editavel > .azq-editar, .annex-heading.azq-editavel > .azq-editar { top: 50%; transform: translateY(-50%); right: 8px; }
 `
+
+const PREFIXO_FONTE = 'azq-fonte='
+
+// Links de fonte do relatório: o destino vira o fragmento lido pela tela (o iframe não navega) e os dados de cada
+// link ficam na lista, na ordem.
+function porLinksDeFonte(doc) {
+  const links = [...(doc?.querySelectorAll('a.azq-fonte[data-arquivo]') || [])]
+  links.forEach((a, n) => {
+    a.setAttribute('href', `#${PREFIXO_FONTE}${n}`)
+    a.removeAttribute('target')
+    a.title = 'Abrir o documento citado'
+  })
+  return links.map(a => ({ ...a.dataset }))
+}
+
+// Fontes do trecho que vai ser editado: os links das linhas "Fonte:" do bloco e das que vêm logo depois dele, até a
+// âncora seguinte. A janela de edição as mostra para o analista conferir o original enquanto pede a alteração; a
+// mensagem ao agente não muda (ela leva o texto-fonte do bloco, com as citações).
+function fontesDoTrecho(doc, id) {
+  const fontes = []
+  let elemento = doc.getElementById(id)?.nextElementSibling
+  for (let n = 0; elemento && !elemento.classList.contains('ancora') && n < 12; n += 1) {
+    elemento.querySelectorAll('a.azq-fonte[data-arquivo]').forEach(a => {
+      const texto = (a.textContent || '').replace(/\s+/g, ' ').trim()
+      if (!fontes.some(f => f.texto === texto)) fontes.push({ ...a.dataset, texto })
+    })
+    elemento = elemento.nextElementSibling
+  }
+  return fontes
+}
 
 // Blocos que ganham botão: todo item com âncora, menos tabela, gráfico e imagem (vêm prontos dos documentos e não se
 // editam por texto), e todo título de seção e subseção.
@@ -77,6 +113,9 @@ function RelatorioCompleto({
   const [edicao, setEdicao] = useState(null)
   const [concluida, setConcluida] = useState(null)
   const pdf = useBaixarPdf()
+  const fontes = useVisualizadorDeFontes()
+  const linksDeFonte = useRef([])
+  const { fechar: fecharFonte, valor: { abrir: abrirFonte } } = fontes
 
   useEffect(() => {
     setVersaoTela(versao || null)
@@ -94,12 +133,33 @@ function RelatorioCompleto({
       setCarregado(false)
       setEdicao(null)
       setConcluida(null)
+      fecharFonte()
     }
     setSemAncora(false)
     setFoco(null) // "Ver no relatório" depois de uma edição volta a valer a âncora pedida
-  }, [aberto, relatorioId, ancora])
+  }, [aberto, relatorioId, ancora, fecharFonte])
 
   useEffect(() => { setCarregado(false) }, [versaoTela])
+
+  // Links de fonte em cada carga do HTML, e o clique lido do hash do iframe (vale também sem versão conhecida).
+  useEffect(() => {
+    if (!aberto || !carregado) return undefined
+    linksDeFonte.current = porLinksDeFonte(quadro.current?.contentWindow?.document)
+    const relogio = setInterval(() => {
+      const atual = quadro.current?.contentWindow
+      const hash = decodeURIComponent(atual?.location.hash || '')
+      if (!hash.startsWith(`#${PREFIXO_FONTE}`)) return
+      const dados = linksDeFonte.current[Number(hash.slice(1 + PREFIXO_FONTE.length))]
+      // Tira o fragmento sem rolar a página, para o mesmo link poder ser clicado de novo.
+      try {
+        atual.history.replaceState(null, '', atual.location.pathname + atual.location.search)
+      } catch {
+        atual.location.hash = ''
+      }
+      if (dados) abrirFonte(dados)
+    }, 250)
+    return () => clearInterval(relogio)
+  }, [aberto, carregado, abrirFonte])
 
   // Âncora pedida (clique em "Ver no relatório") ou foco da versão nova depois de uma edição.
   useEffect(() => {
@@ -119,10 +179,13 @@ function RelatorioCompleto({
   const abrirEdicao = useCallback((id, doc) => {
     const bloco = doc.getElementById(id)?.nextElementSibling
     setConcluida(null)
-    setEdicao(referenciaDoTrecho({
-      ancora: id, itens, indice, textoNaTela: textoVisivel(bloco),
-      resumoDaVersaoNaTela: Boolean(versaoTela) && versaoResumo === versaoTela,
-    }))
+    setEdicao({
+      ...referenciaDoTrecho({
+        ancora: id, itens, indice, textoNaTela: textoVisivel(bloco),
+        resumoDaVersaoNaTela: Boolean(versaoTela) && versaoResumo === versaoTela,
+      }),
+      fontes: id.startsWith('item-') ? fontesDoTrecho(doc, id) : [],
+    })
   }, [itens, indice, versaoResumo, versaoTela])
 
   // Botões de edição em cada carga do HTML, e o clique lido do hash do iframe.
@@ -221,6 +284,7 @@ function RelatorioCompleto({
               onLoad={() => setCarregado(true)}
             />
           )}
+          {fontes.aberto && <PainelDocumento documento={fontes.aberto} onFechar={fontes.fechar} />}
           {edicao && (
             <EdicaoTrecho
               key={`${edicao.ancora}-${versaoTela}`}
@@ -230,6 +294,7 @@ function RelatorioCompleto({
               onFechar={() => setEdicao(null)}
               onVersaoNova={versaoGerada}
               onVersaoMudou={irParaMaisNova}
+              onAbrirFonte={abrirFonte}
               onConversar={onConversar && (() => { onFechar(); onConversar(relatorioId) })}
             />
           )}

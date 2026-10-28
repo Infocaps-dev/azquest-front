@@ -23,7 +23,9 @@ const ESPERA_APOS_RESPOSTA_MS = 20000 // a versão é gravada antes da resposta;
 
 const esperar = ms => new Promise(resolve => { setTimeout(resolve, ms) })
 
-function EdicaoTrecho({ relatorioId, versao, referencia, onFechar, onVersaoNova, onVersaoMudou, onConversar }) {
+function EdicaoTrecho({
+  relatorioId, versao, referencia, onFechar, onVersaoNova, onVersaoMudou, onConversar, onAbrirFonte,
+}) {
   const [dialogo, setDialogo] = useState([]) // {papel: 'usuario' | 'agente', texto}
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -151,6 +153,23 @@ function EdicaoTrecho({ relatorioId, versao, referencia, onFechar, onVersaoNova,
         <blockquote className="edicao-trecho__atual">
           {referencia.textoNaTela.length > 400 ? `${referencia.textoNaTela.slice(0, 400)}…` : referencia.textoNaTela}
         </blockquote>
+      )}
+
+      {/* As fontes do trecho abrem o documento por cima do relatório; "Voltar" devolve a esta janela, como estava. */}
+      {onAbrirFonte && referencia.fontes?.length > 0 && (
+        <div className="edicao-trecho__fontes">
+          <p className="edicao-trecho__rotulo">{referencia.fontes.length === 1 ? 'Fonte do trecho' : 'Fontes do trecho'}</p>
+          <ul>
+            {referencia.fontes.map(f => (
+              <li key={f.texto}>
+                <button type="button" className="edicao-trecho__fonte" title="Abrir o documento citado"
+                  onClick={() => onAbrirFonte(f)}>
+                  {f.texto}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <div className="edicao-trecho__conversa">

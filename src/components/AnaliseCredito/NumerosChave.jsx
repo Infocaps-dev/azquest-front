@@ -1,6 +1,7 @@
 import { Tile } from '@carbon/react'
 import { WarningAlt } from '@carbon/icons-react'
 import { formatar, rotuloEvidencia } from './vocabulario'
+import { FonteClicavel } from './FontesDoDocumento.jsx'
 
 // Números-chave: os cartões do topo da aba, um número por cartão.
 //
@@ -9,8 +10,8 @@ import { formatar, rotuloEvidencia } from './vocabulario'
 // é um resumo do relatório: o clique abre o relatório no trecho que traz o
 // número, com a citação. O gerador escreve no relatório todo número de cartão
 // (tools/acervo/indicadores.py) e o resumo aponta para esse trecho; nunca para
-// uma seção que não contém o número, nem para o arquivo de origem (os
-// documentos se abrem nas Referências).
+// uma seção que não contém o número. A fonte, embaixo do cartão, abre o
+// documento original na página (ou na aba e linha da planilha) citada.
 //
 // A ressalva viaja com o número, não numa nota de rodapé: o rating da Fitch
 // disponível é da Ecovias Ponte, não do consolidado, e quem lê a nota precisa
@@ -50,14 +51,15 @@ function NumerosChave({ numeros = [], onAbrir }) {
                   <WarningAlt size={14} /> {numero.ressalva}
                 </span>
               )}
-              {numero.fonte && (
-                <span className="ana-kpi__rodape">
-                  <span className="ana-fonte ana-fonte--estatica" title={rotuloEvidencia(numero.fonte)}>
-                    {rotuloEvidencia(numero.fonte)}
-                  </span>
-                </span>
-              )}
             </button>
+            {/* Fora do botão do cartão: um botão não pode ficar dentro de outro. */}
+            {numero.fonte && (
+              <span className="ana-kpi__rodape">
+                <FonteClicavel evidencia={numero.fonte} title={rotuloEvidencia(numero.fonte)}>
+                  {rotuloEvidencia(numero.fonte)}
+                </FonteClicavel>
+              </span>
+            )}
           </Tile>
         ))}
       </div>

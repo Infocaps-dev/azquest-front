@@ -245,6 +245,10 @@
     gap: $spacing-02 $spacing-03;
     align-items: baseline;
   }
+
+  // A fonte abre o documento: link no tamanho do texto da evidência.
+  .rev-detalhe__fonte { @include type-style('body-compact-01'); }
+  .rev-detalhe__fonte.ana-fonte--estatica { color: $text-primary; }
 }
 .rev-detalhe__nota {
   @include type-style('label-01');

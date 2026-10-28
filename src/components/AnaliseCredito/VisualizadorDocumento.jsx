@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ComposedModal, InlineLoading, InlineNotification, ModalBody, ModalHeader } from '@carbon/react'
+import { Button, ComposedModal, InlineLoading, InlineNotification, ModalBody, ModalHeader } from '@carbon/react'
+import { ArrowLeft } from '@carbon/icons-react'
 
 // Documento de uma referência aberto na própria tela, sem baixar o arquivo: o PDF na página citada; a planilha lida
 // no navegador, na aba citada, com as linhas citadas destacadas. Antes o "Abrir" de uma planilha baixava o .xlsx.
@@ -96,17 +97,60 @@ function Planilha({ link, linhas }) {
   )
 }
 
+// O documento em si (PDF ou planilha), sem a janela: serve à janela abaixo e ao painel que abre por cima do relatório
+// completo, onde uma segunda janela ficaria presa atrás da primeira.
+export function ConteudoDocumento({ documento }) {
+  const { arquivo, link, paginas = [], linhas = [] } = documento
+  if (link === undefined) return <InlineLoading description="Procurando o documento no acervo…" />
+  if (!link) {
+    return (
+      <InlineNotification kind="warning" lowContrast hideCloseButton title="Documento fora do acervo"
+        subtitle={`${arquivo} não está na aba Documentos (pode ter sido renomeado ou removido).`} />
+    )
+  }
+  return ehPlanilha(arquivo)
+    ? <Planilha link={link} linhas={linhas} />
+    : <iframe className="ana-visualizador__pdf" title={arquivo} src={`${link}${paginas[0] ? `#page=${paginas[0]}` : ''}`} />
+}
+
+// "p. 12" ou 'aba "DRE", linha 13': onde o documento abre.
+export function localDoDocumento({ paginas = [], linhas = [] } = {}) {
+  return [paginas.length ? `p. ${paginas.join(', ')}` : '', ...linhas].filter(Boolean).join('; ')
+}
+
+// Dentro de uma janela (painel de revisão, relatório completo): o documento cobre a janela, com "Voltar" para ela.
+export function PainelDocumento({ documento, onFechar }) {
+  const local = localDoDocumento(documento)
+  return (
+    <section className="ana-doc-painel" aria-label={`Documento ${documento.arquivo}`}
+      onKeyDown={evento => {
+        if (evento.key !== 'Escape') return
+        evento.stopPropagation() // Esc fecha o documento, não a janela de baixo
+        onFechar()
+      }}>
+      <header className="ana-doc-painel__topo">
+        <div>
+          <p className="ana-doc-painel__rotulo">{local ? `Referência · ${local}` : 'Referência'}</p>
+          <h3 className="ana-doc-painel__titulo">{documento.arquivo}</h3>
+        </div>
+        <Button kind="ghost" size="sm" renderIcon={ArrowLeft} onClick={onFechar} autoFocus>Voltar</Button>
+      </header>
+      <div className="ana-doc-painel__corpo">
+        <ConteudoDocumento documento={documento} />
+      </div>
+    </section>
+  )
+}
+
 function VisualizadorDocumento({ documento, onFechar }) {
   if (!documento) return null
-  const { arquivo, link, paginas = [], linhas = [] } = documento
+  const local = localDoDocumento(documento)
   return (
     <ComposedModal open onClose={onFechar} size="lg" className="ana-visualizador">
-      <ModalHeader label="Referência" title={arquivo} closeModal={onFechar} iconDescription="Fechar" />
+      <ModalHeader label={local ? `Referência · ${local}` : 'Referência'} title={documento.arquivo} closeModal={onFechar}
+        iconDescription="Fechar" />
       <ModalBody>
-        {ehPlanilha(arquivo)
-          ? <Planilha link={link} linhas={linhas} />
-          : <iframe className="ana-visualizador__pdf" title={arquivo}
-              src={`${link}${paginas[0] ? `#page=${paginas[0]}` : ''}`} />}
+        <ConteudoDocumento documento={documento} />
       </ModalBody>
     </ComposedModal>
   )

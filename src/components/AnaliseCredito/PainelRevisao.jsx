@@ -23,6 +23,7 @@ import {
   revisaoDe,
   rotuloEvidencia,
 } from './vocabulario'
+import { FonteClicavel, ProvedorDeFontes } from './FontesDoDocumento.jsx'
 import './PainelRevisao.scss'
 
 // Painel de revisão: os ~50 itens do relatório numa tela só.
@@ -138,7 +139,7 @@ function Detalhe({ item, decisao, rotulos, onDecidir, onVerNoRelatorio, onAnteri
               <span className={`ana-rotulo ana-rotulo--${evidenciaDe(e.tipo_fonte).classe}`}>
                 {evidenciaDe(e.tipo_fonte).rotulo}
               </span>
-              <span>{rotuloEvidencia(e)}</span>
+              <FonteClicavel evidencia={e} className="ana-fonte rev-detalhe__fonte">{rotuloEvidencia(e)}</FonteClicavel>
               {e.nota && <span className="rev-detalhe__nota">{e.nota}</span>}
               {e.entidade_divergente && (
                 <span className="rev-detalhe__nota rev-detalhe__nota--alerta">Documento de {e.entidade}</span>
@@ -332,6 +333,8 @@ function PainelRevisao({
         closeModal={onFechar}
         iconDescription="Fechar"
       />
+      {/* A fonte de cada evidência abre o documento por cima do painel (Voltar retorna ao item). */}
+      <ProvedorDeFontes empresa={resumo?.empresa} embutido>
       <ModalBody className="rev-painel__corpo">
         <ProgressBar className="rev-painel__progresso" label={`${revisados} de ${total} itens revisados`}
           value={revisados} max={total || 1} size="small" hideLabel={false} />
@@ -450,6 +453,7 @@ function PainelRevisao({
           />
         </div>
       </ModalBody>
+      </ProvedorDeFontes>
     </ComposedModal>
   )
 }

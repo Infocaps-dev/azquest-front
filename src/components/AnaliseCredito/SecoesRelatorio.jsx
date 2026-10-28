@@ -1,6 +1,7 @@
 import { Button, Tag, Tile } from '@carbon/react'
 import { ArrowRight, TaskApproved } from '@carbon/icons-react'
 import { ancoraDaSecao, corDaCategoria, evidenciaDe, rotuloEvidencia } from './vocabulario'
+import { FonteClicavel } from './FontesDoDocumento.jsx'
 
 // Seções do relatório: um cartão por seção com conteúdo, na ordem do relatório.
 //
@@ -60,9 +61,9 @@ function SecoesRelatorio({ itens = [], revisao, rotulos = {}, onRevisar, onVerNo
                       <button type="button" className="ana-tema__frase" onClick={() => onVerNoRelatorio?.(item.ancora)}>
                         {item.texto.length > 220 ? `${item.texto.slice(0, 220)}…` : item.texto}
                       </button>
-                      <span className="ana-fonte ana-fonte--estatica">
+                      <FonteClicavel evidencia={item.evidencias?.[0]}>
                         {evidenciaDe(item.tipo_fonte).rotulo}: {rotuloEvidencia(item.evidencias?.[0])}
-                      </span>
+                      </FonteClicavel>
                     </li>
                   ))}
                 </ul>

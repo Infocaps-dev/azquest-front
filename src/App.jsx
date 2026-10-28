@@ -11,6 +11,7 @@ import DocumentosPage from './components/Documentos/DocumentosPage.jsx'
 import ConceitosPage from './components/Conceitos/ConceitosPage.jsx'
 import LoginPage from './components/Login/LoginPage.jsx'
 import { useNovosRelatorios } from './hooks/useNovosRelatorios'
+import { FonteDaUrl, fonteDaUrl } from './components/AnaliseCredito/FontesDoDocumento.jsx'
 
 function Gate() {
   const { user, checking } = useAuth()
@@ -28,6 +29,12 @@ function Gate() {
   }
   // "Conversar no chat" do relatório: conversa nova, já ligada a ele.
   const [pedidoChat, setPedidoChat] = useState(null)
+  // Fonte do relatório clicada fora da tela (nova aba, PDF): a tela abre já mostrando o documento citado.
+  const [fonteAberta, setFonteAberta] = useState(fonteDaUrl)
+  function fecharFonte() {
+    setFonteAberta(null)
+    window.history.replaceState(null, '', window.location.pathname)
+  }
   function conversarSobre(relatorioId) {
     setPedidoChat(atual => ({ id: relatorioId, n: (atual?.n || 0) + 1 }))
     setAba('inicio')
@@ -44,6 +51,7 @@ function Gate() {
   return (
     <>
       <AppHeader aba={aba} onTrocarAba={setAba} />
+      {fonteAberta && <FonteDaUrl fonte={fonteAberta} onFechar={fecharFonte} />}
       {/* O chat fica montado nas outras abas: a conversa aberta, a lista de conversas e uma resposta em andamento
           sobrevivem à troca de aba, em vez de recarregar tudo na volta (e de abortar a geração de um relatório). */}
       <div hidden={aba !== 'inicio'}>

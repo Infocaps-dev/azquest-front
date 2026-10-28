@@ -40,6 +40,31 @@
   margin-top: $spacing-02;
 }
 
+.edicao-trecho__fontes {
+  margin: $spacing-03 $spacing-05 0;
+
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-02;
+    max-height: 6rem;
+    margin-top: $spacing-02;
+    overflow: auto;
+  }
+}
+
+.edicao-trecho__fonte {
+  @include type-style('label-01');
+  padding: 0;
+  color: $link-primary;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  &:hover { text-decoration: underline; }
+}
+
 .edicao-trecho__atual {
   @include type-style('body-compact-01');
   max-height: 9rem;

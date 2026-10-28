@@ -8,6 +8,7 @@ import MonitoramentoPage from './components/Monitoramento/MonitoramentoPage.jsx'
 import DesempenhoPage from './components/Desempenho/DesempenhoPage.jsx'
 import ColetaPage from './components/Coleta/ColetaPage.jsx'
 import DocumentosPage from './components/Documentos/DocumentosPage.jsx'
+import ConceitosPage from './components/Conceitos/ConceitosPage.jsx'
 import LoginPage from './components/Login/LoginPage.jsx'
 import { useNovosRelatorios } from './hooks/useNovosRelatorios'
 
@@ -56,6 +57,7 @@ function Gate() {
           : aba === 'desempenho' ? <DesempenhoPage sinalIndice={sinal} />
           : aba === 'coleta' ? <ColetaPage />
           : aba === 'documentos' ? <DocumentosPage />
+          : aba === 'conceitos' ? <ConceitosPage />
           : null}
     </>
   )

@@ -81,6 +81,21 @@
 
 .ana-cabecalho__seletor { min-width: 22rem; }
 
+// "Gerar novo relatório", o primeiro item do seletor: cor de link, ícone e um divisor antes dos relatórios.
+.ana-cabecalho__seletor .cds--list-box__menu-item:first-child {
+  border-bottom: 1px solid $border-subtle-01;
+}
+
+.ana-seletor__gerar {
+  display: inline-flex;
+  gap: $spacing-03;
+  align-items: center;
+  color: $link-primary;
+  font-weight: 600;
+
+  svg { fill: currentColor; }
+}
+
 .ana-selo {
   display: flex;
   flex-wrap: wrap;

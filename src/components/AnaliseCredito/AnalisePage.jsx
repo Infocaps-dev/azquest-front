@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button, InlineNotification, Loading, Select, SelectItem, Tag } from '@carbon/react'
+import { Button, Dropdown, InlineNotification, Loading, Tag } from '@carbon/react'
 import { Add, ChartLineData, Document, DocumentPdf, Renew, TaskApproved } from '@carbon/icons-react'
 import {
   aplicarAjustes,
@@ -41,6 +41,14 @@ import './AnalisePage.scss'
 function rotuloRelatorio(r) {
   return `${r.empresa} · ${r.periodo} · versão ${r.versao} · ${dataHora(r.atualizado_em)}`
 }
+
+// Seletor de relatórios: o primeiro item gera um relatório novo (abre o diálogo de empresa e período) em vez de
+// selecionar; os demais são os relatórios disponíveis.
+const GERAR_NOVO = { relatorio_id: '__gerar__' }
+const textoDoItem = r => (!r ? '' : r === GERAR_NOVO ? 'Gerar novo relatório' : rotuloRelatorio(r))
+const itemDoSeletor = r => (r === GERAR_NOVO
+  ? <span className="ana-seletor__gerar"><Add size={16} /> Gerar novo relatório</span>
+  : <span>{rotuloRelatorio(r)}</span>)
 
 function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido, onVersaoPropria, onConversar }) {
   const [relatorios, setRelatorios] = useState([])
@@ -407,21 +415,25 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
           )}
         </div>
         <div className="ana-cabecalho__acoes">
-          <Select id="ana-relatorio" labelText="Relatório" hideLabel size="sm" value={relatorioId}
-            onChange={e => { setAviso(null); setRelatorioId(e.target.value) }} className="ana-cabecalho__seletor">
-            {relatorios.map(r => (
-              <SelectItem key={r.relatorio_id} value={r.relatorio_id} text={rotuloRelatorio(r)} />
-            ))}
-          </Select>
+          <Dropdown id="ana-relatorio" titleText="Relatório" hideLabel size="sm" label="Escolha um relatório"
+            className="ana-cabecalho__seletor" items={[GERAR_NOVO, ...relatorios]}
+            selectedItem={relatorios.find(r => r.relatorio_id === relatorioId) || null}
+            itemToString={textoDoItem} itemToElement={itemDoSeletor}
+            onChange={({ selectedItem }) => {
+              if (!selectedItem) return
+              if (selectedItem === GERAR_NOVO) {
+                setGerarAberto(true)
+                return
+              }
+              setAviso(null)
+              setRelatorioId(selectedItem.relatorio_id)
+            }} />
           <Button kind="tertiary" size="sm" renderIcon={Document} onClick={() => abrirRelatorio(null)}>
             Relatório completo
           </Button>
           <Button kind="tertiary" size="sm" renderIcon={DocumentPdf} disabled={pdf.gerando !== null}
             onClick={() => { setAviso(null); pdf.limparErro(); pdf.baixar(relatorioId, resumo?.versao) }}>
             {pdf.gerando === null ? 'Baixar PDF' : rotuloGerandoPdf(pdf.gerando)}
-          </Button>
-          <Button kind="tertiary" size="sm" renderIcon={Add} onClick={() => setGerarAberto(true)}>
-            Gerar relatório
           </Button>
           <Button kind="tertiary" size="sm" renderIcon={Renew} disabled={reprocessando || Boolean(gerando)}
             onClick={reprocessarRelatorio}>

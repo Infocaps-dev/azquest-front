@@ -371,7 +371,9 @@ function RespostaDoAgente({ texto, fontes, retida, ratings, escolha, graficos, o
     return (
       <>
         <p className="chat-msg__retida-aviso">
-          {escolha.tipo === 'empresa' ? 'De qual empresa você quer o dado?' : 'De qual emissão você quer o dado?'}
+          {/* A pergunta vem da ferramenta com as opções (28/10/2026: também gráfico, relatório e seção). */}
+          {escolha.pergunta
+            || (escolha.tipo === 'empresa' ? 'De qual empresa você quer o dado?' : 'De qual emissão você quer o dado?')}
         </p>
         <EscolhaDaResposta escolha={escolha} onEscolher={onEscolher} />
       </>

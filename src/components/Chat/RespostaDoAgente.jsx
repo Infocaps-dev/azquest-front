@@ -303,7 +303,8 @@ function FontesDaResposta({ fontes }) {
 
 // A linha "Fontes:" que o prompt pede no fim da resposta (28/10/2026): sai do texto e vai para o componente, no
 // padrão visual das fontes. As citações vêm separadas por ";".
-const LINHA_FONTES = /\n+[ \t]*[*_]*Fontes?[*_]*[ \t]*:[*_]*[ \t]*([^\n]+)\s*$/i
+// Também a "Fonte: ..." no fim da última frase, na mesma linha (o modelo a escreve assim): só sai se confirmada.
+const LINHA_FONTES = /(?:\n+|[ \t]+)\(?[ \t]*[*_]*Fontes?[*_]*[ \t]*:[*_]*[ \t]*([^\n]+?)\)?\s*$/i
 
 function separarFontes(texto) {
   const m = LINHA_FONTES.exec(texto)
@@ -338,6 +339,7 @@ function RespostaDoAgente({ texto, fontes, retida, ratings, onTrocarAba, onEnvia
   if (ERRO_DA_PLATAFORMA.test(texto)) texto = ERRO_TRADUZIDO
   // A linha só sai do texto quando todas as fontes dela estão entre as confirmadas pelos dados da ferramenta (as que a
   // analise-api manda): fonte que o modelo declarou e os dados não confirmam fica no texto, sem o destaque de fonte.
+  texto = texto.replace(/\n+[ \t]*[*_]*Fontes?[*_]*[ \t]*:[*_]*\s*$/i, '').trim() // "Fontes:" sem nada depois
   const separado = separarFontes(texto)
   const confirmada = f => (fontes || []).some(x => x.startsWith(f) || f.startsWith(x))
   if (separado.declaradas.length && separado.declaradas.every(confirmada)) texto = separado.texto

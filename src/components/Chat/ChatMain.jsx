@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Button, ClickableTile, InlineLoading, TextArea } from '@carbon/react'
 import { Link as IconeVinculo, Send, WarningAlt } from '@carbon/icons-react'
 import RespostaDoAgente from './RespostaDoAgente.jsx'
+import AtividadesDoTurno from './AtividadesDoTurno.jsx'
 import ProgressoRelatorio from '../Relatorio/ProgressoRelatorio.jsx'
 import useAndamentoRelatorio from '../../hooks/useAndamentoRelatorio'
 import { MODO_SIMULADO } from '../../services/chatApi'
@@ -115,6 +116,9 @@ function ChatMain({
                 <div className="chat-msg__corpo">
                   {m.papel !== 'usuario' && m.andamento && (
                     <RelatorioDoTurno mensagem={m} respondendo={enviando && i === mensagens.length - 1} />
+                  )}
+                  {m.papel !== 'usuario' && m.atividades?.length > 0 && (
+                    <AtividadesDoTurno atividades={m.atividades} respondendo={enviando && i === mensagens.length - 1} />
                   )}
                   {m.papel === 'usuario'
                     ? <p>{m.texto}</p>

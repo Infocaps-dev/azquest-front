@@ -344,6 +344,9 @@ export function useConversa() {
           } else if (evento.tipo === 'relatorio') {
             marcarNaResposta({ andamento: evento.andamento })
             setPasso(evento.andamento?.estado === 'concluida' ? 'Relatório pronto; redigindo a resposta' : 'Construindo o relatório')
+          } else if (evento.tipo === 'atividades') {
+            // Etapas reais das tools (pesquisa, estatístico, gráfico), gravadas por elas enquanto rodam (28/10/2026).
+            marcarNaResposta({ atividades: evento.atividades })
           } else if (evento.tipo === 'passo') {
             setPasso(evento.texto)
           } else if (evento.tipo === 'trecho') {
@@ -369,6 +372,7 @@ export function useConversa() {
             }
             if (evento.escolha) marcarNaResposta({ escolha: evento.escolha })
             if (evento.graficos?.length) marcarNaResposta({ graficos: evento.graficos })
+            if (evento.atividades?.length) marcarNaResposta({ atividades: evento.atividades })
             break
           }
         }

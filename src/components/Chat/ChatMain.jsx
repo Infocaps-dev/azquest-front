@@ -3,6 +3,7 @@ import { Button, ClickableTile, InlineLoading, TextArea } from '@carbon/react'
 import { Link as IconeVinculo, Send, WarningAlt } from '@carbon/icons-react'
 import RespostaDoAgente from './RespostaDoAgente.jsx'
 import AtividadesDoTurno from './AtividadesDoTurno.jsx'
+import FeedbackDaResposta from './FeedbackDaResposta.jsx'
 import ProgressoRelatorio from '../Relatorio/ProgressoRelatorio.jsx'
 import useAndamentoRelatorio from '../../hooks/useAndamentoRelatorio'
 import { MODO_SIMULADO } from '../../services/chatApi'
@@ -36,6 +37,7 @@ function ChatMain({
   erro = '',
   segundos = 0,
   vinculo = null,
+  threadId = null,
   onEscolherRelatorio,
   onEnviar,
   onTrocarAba,
@@ -126,6 +128,9 @@ function ChatMain({
                                         escolha={m.escolha} graficos={m.graficos}
                                         onEscolher={!enviando && i === mensagens.length - 1 ? onEnviar : null}
                                         onTrocarAba={onTrocarAba} onEnviar={onEnviar} />}
+                  {m.papel !== 'usuario' && !(enviando && i === mensagens.length - 1) && (m.texto || m.retida) && (
+                    <FeedbackDaResposta pedidoId={m.pedidoId || m.pedido_id} threadId={threadId} inicial={m.feedback} />
+                  )}
                 </div>
               </article>
             ))}

@@ -186,3 +186,27 @@ async function* conversaSimulada(mensagem, threadId) {
   yield { tipo: 'fim', texto, thread_id: thread, run_id: 'run-simulada', uso: null,
           ...(pedeRelatorio ? {} : { fontes: ['Balanco-DRE-FC-2026-06.xlsx, aba "Destaques", linha 16'] }) }
 }
+
+// ── Avaliação das respostas (28/10/2026) ───────────────────────────────
+//
+// Polegar para cima ou para baixo em cada resposta do agente; no negativo, um motivo e uma observação opcionais. Votar
+// de novo troca o voto. A pessoa vem da sessão; a conversa tem de ser dela.
+
+let motivosEmCache = null
+
+export function motivosDeFeedback() {
+  if (MODO_SIMULADO) return Promise.resolve([])
+  motivosEmCache = motivosEmCache || pedir('/api/chat/feedback/motivos').catch(erro => {
+    motivosEmCache = null
+    throw erro
+  })
+  return motivosEmCache
+}
+
+export function avaliarResposta({ pedidoId, threadId, avaliacao, motivo = null, comentario = null }) {
+  if (MODO_SIMULADO) return Promise.resolve({ avaliacao, motivo, comentario })
+  return pedir('/api/chat/feedback', {
+    method: 'POST',
+    body: JSON.stringify({ pedido_id: pedidoId, thread_id: threadId, avaliacao, motivo, comentario }),
+  })
+}

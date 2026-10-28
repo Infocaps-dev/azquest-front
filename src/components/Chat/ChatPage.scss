@@ -1163,3 +1163,34 @@ button.ctx-quotes__tab {
   margin-bottom: $spacing-05;
   color: $text-secondary;
 }
+
+// Avaliação de cada resposta (28/10/2026): discreta, abaixo da resposta; o modal do negativo segue o Modal do Carbon.
+.chat-feedback {
+  display: flex;
+  align-items: center;
+  gap: $spacing-02;
+  margin-top: $spacing-03;
+
+  &__pergunta {
+    @include type-style('label-01');
+    color: $text-secondary;
+    margin-right: $spacing-02;
+  }
+
+  &__erro {
+    @include type-style('label-01');
+    color: $text-error;
+  }
+
+  &__ajuda {
+    @include type-style('body-01');
+    margin-bottom: $spacing-05;
+  }
+
+  &__observacoes {
+    margin-top: $spacing-05;
+  }
+}
+
+.cds--modal .chat-feedback__ajuda { margin-bottom: $spacing-05; }
+.cds--modal .chat-feedback__observacoes { margin-top: $spacing-05; }

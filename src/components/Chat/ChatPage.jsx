@@ -40,6 +40,7 @@ function ChatPage({ onTrocarAba, onAbrirAnalise, pedidoDeVinculo }) {
         erro={erro}
         segundos={segundos}
         vinculo={vinculo}
+        threadId={threadId}
         onEscolherRelatorio={() => setEscolhendo(true)}
         onEnviar={enviar}
         onTrocarAba={onTrocarAba}

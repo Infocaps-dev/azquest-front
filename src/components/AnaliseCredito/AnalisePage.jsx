@@ -64,6 +64,8 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
   // Versões criadas pela edição no próprio relatório: a tela já está nelas, então não ganham o aviso de "chegou a
   // versão N" (nem o do App, que é suprimido por onVersaoPropria).
   const versoesProprias = useRef(new Set())
+  // Relatório gerado pelo diálogo cujo resumo ainda não tinha chegado: abre quando aparecer na lista.
+  const aguardado = useRef(null)
   const pdf = useBaixarPdf()
 
   // O serviço de PDF desliga quando fica parado: liga ao abrir a aba, para o "Baixar PDF" não esperar ele religar.
@@ -121,6 +123,15 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
     if (!sinalIndice) return
     listarResumos().then(indice => {
       setRelatorios(indice.relatorios || [])
+      // Sem relatório aberto (tela vazia) ou com um gerado pelo diálogo à espera: o que chegou abre na hora.
+      const lista = indice.relatorios || []
+      const esperado = aguardado.current && lista.find(r => r.relatorio_id === aguardado.current)
+      if (esperado || (!atual.current && lista.length)) {
+        aguardado.current = null
+        setErroCarga('')
+        setRelatorioId((esperado || lista[0]).relatorio_id)
+        return
+      }
       const linha = (indice.relatorios || []).find(r => r.relatorio_id === atual.current)
       if (linha && resumo && linha.versao > resumo.versao) {
         const propria = versoesProprias.current.has(`${linha.relatorio_id}-v${linha.versao}`)
@@ -331,15 +342,21 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
 
   // Relatório novo pelo diálogo: entra na tela assim que o resumo dele chega (o monitor monta em segundos).
   async function abrirQuandoResumir(novoId) {
-    for (let tentativa = 0; tentativa < 30; tentativa++) {
+    aguardado.current = novoId
+    for (let tentativa = 0; tentativa < 30 && aguardado.current === novoId; tentativa++) {
       const indice = await listarResumos().catch(() => null)
       if (indice?.relatorios?.some(r => r.relatorio_id === novoId)) {
+        aguardado.current = null
         setErroCarga('')
         setRelatorios(indice.relatorios)
         setRelatorioId(novoId)
         return
       }
       await new Promise(r => setTimeout(r, 2000))
+    }
+    // Resumo demorando: o aviso de relatório novo (sinalIndice) abre o relatório quando ele chegar.
+    if (aguardado.current === novoId && !atual.current) {
+      setErroCarga('Relatório gerado. O resumo ainda está sendo montado: ele abre aqui assim que ficar pronto.')
     }
   }
 

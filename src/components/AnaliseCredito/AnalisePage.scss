@@ -200,8 +200,13 @@
 }
 
 .ana-kpi {
+  position: relative;
   padding: 0;
   border-left: 3px solid $border-subtle-01;
+  transition: background-color 110ms;
+
+  &:hover { background: $layer-hover-01; }
+  &:has(.ana-kpi__gatilho--estatico):hover { background: $layer-01; }
 }
 
 .ana-kpi--ressalva { border-left-color: $support-warning; }
@@ -221,8 +226,10 @@
   color: inherit;
   text-decoration: none;
 
-  &:hover { background: $layer-hover-01; }
-  &:focus-visible { outline: 2px solid $focus; outline-offset: -2px; }
+  // A área de clique cobre o cartão inteiro (a fonte, embaixo, fica por cima dela).
+  &::after { position: absolute; inset: 0; content: ''; }
+  &:focus-visible { outline: none; }
+  &:focus-visible::after { outline: 2px solid $focus; outline-offset: -2px; }
 }
 
 // Sem trecho no relatório e sem o documento no acervo: o cartão só informa.
@@ -261,14 +268,20 @@
   svg { flex-shrink: 0; margin-top: 0.125rem; fill: $support-warning; }
 }
 
-// Fonte do cartão: embaixo do botão do cartão (abre o documento), com o mesmo recuo do conteúdo dele.
+// Fonte do cartão: embaixo do conteúdo, com o mesmo recuo; por cima da área de clique do cartão, e só a fonte
+// recebe o clique (o resto da faixa abre o relatório, como o cartão).
 .ana-kpi__rodape {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
   gap: $spacing-03;
   align-items: center;
   padding: 0 $spacing-05 $spacing-05;
   margin-top: calc(-1 * #{$spacing-03});
+  pointer-events: none;
+
+  .ana-fonte:not(.ana-fonte--estatica) { pointer-events: auto; }
 }
 
 // ── Fontes clicáveis e links ────────────────────────────────────────────

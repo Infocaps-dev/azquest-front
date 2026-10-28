@@ -361,6 +361,7 @@ export function useConversa() {
               escreverNaResposta(evento.texto)
             }
             falhaDeTool = evento.falha_de_tool === true
+            if (evento.fontes?.length) marcarNaResposta({ fontes: evento.fontes })
             break
           }
         }

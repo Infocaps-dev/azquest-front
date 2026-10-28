@@ -47,7 +47,8 @@ async function pedir(rota, opcoes = {}) {
 //   {tipo: 'inicio',  thread_id, run_id}
 //   {tipo: 'passo',   texto}     andamento, substituível
 //   {tipo: 'trecho',  texto}     pedaço da resposta, acumulável
-//   {tipo: 'fim',     texto, thread_id, run_id, uso}
+//   {tipo: 'fim',     texto, thread_id, run_id, uso, fontes?}
+//                     fontes: as fontes dos números da resposta (componente "Fontes", fora do texto do modelo)
 //   {tipo: 'erro',    detalhe}
 
 // `empresa`: a empresa de que a conversa trata (ver empresaDaConversa em useConversa); a analise-api a manda ao
@@ -182,5 +183,6 @@ async function* conversaSimulada(mensagem, threadId) {
     await espera(45)
   }
 
-  yield { tipo: 'fim', texto, thread_id: thread, run_id: 'run-simulada', uso: null }
+  yield { tipo: 'fim', texto, thread_id: thread, run_id: 'run-simulada', uso: null,
+          ...(pedeRelatorio ? {} : { fontes: ['Balanco-DRE-FC-2026-06.xlsx, aba "Destaques", linha 16'] }) }
 }

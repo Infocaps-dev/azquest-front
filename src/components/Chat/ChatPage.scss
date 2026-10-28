@@ -302,6 +302,26 @@ $side-width: 22rem;
   color: $accent;
 }
 
+.chat-msg__fontes {
+  margin-top: $spacing-04;
+  padding-top: $spacing-03;
+  border-top: 1px solid $border-subtle-01;
+  color: $text-secondary;
+}
+
+.chat-msg__fontes-titulo {
+  @include type-style('label-01');
+  margin-bottom: $spacing-02;
+}
+
+.chat-msg__fontes-lista {
+  @include type-style('helper-text-01');
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-01;
+  overflow-wrap: anywhere;
+}
+
 .chat-msg__relatorio {
   margin-top: $spacing-05;
   padding: $spacing-05;

@@ -287,7 +287,21 @@ function CartaoRelatorio({ url, onTrocarAba }) {
   )
 }
 
-function RespostaDoAgente({ texto, onTrocarAba, onEnviar }) {
+// As fontes dos números da resposta, tiradas do que as ferramentas devolveram (28/10/2026): ficam fora do texto do
+// modelo, que não recebe frase colada. Vêm no fim do turno e no histórico.
+function FontesDaResposta({ fontes }) {
+  if (!fontes?.length) return null
+  return (
+    <div className="chat-msg__fontes">
+      <p className="chat-msg__fontes-titulo">Fontes</p>
+      <ul className="chat-msg__fontes-lista">
+        {fontes.map(f => <li key={f}>{f}</li>)}
+      </ul>
+    </div>
+  )
+}
+
+function RespostaDoAgente({ texto, fontes, onTrocarAba, onEnviar }) {
   if (!texto) return null
   if (ERRO_DA_PLATAFORMA.test(texto)) texto = ERRO_TRADUZIDO
   const relatorio = [...texto.matchAll(LINK)].find(a => eRelatorio(a[2]))
@@ -303,6 +317,7 @@ function RespostaDoAgente({ texto, onTrocarAba, onEnviar }) {
       <EnvioDoChat.Provider value={onEnviar || null}>
         <Blocos texto={texto} />
       </EnvioDoChat.Provider>
+      <FontesDaResposta fontes={fontes} />
       {relatorio && <CartaoRelatorio url={relatorio[2]} onTrocarAba={onTrocarAba} />}
     </>
   )

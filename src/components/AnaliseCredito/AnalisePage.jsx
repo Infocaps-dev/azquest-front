@@ -574,6 +574,11 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
           subtitle={'Esta é a versão 1. Em alguns segundos o agente redige a interpretação a partir dos documentos e, '
             + 'se ela passar na conferência dos números, a versão 2 entra aqui sozinha.'} />
       )}
+      {estadoV2 === 'bloqueada' && (
+        <InlineNotification kind="info" lowContrast hideCloseButton className="ana-aviso"
+          title="Interpretação automática aguardando a atualização do sistema"
+          subtitle="Esta é a versão 1. A versão 2 entra aqui sozinha assim que a atualização terminar." />
+      )}
       {estadoV2 === 'sem_texto' && (
         <InlineNotification kind="info" lowContrast className="ana-aviso" onClose={() => setAcompanhada(null)}
           title="Interpretação automática não entrou"

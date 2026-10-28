@@ -302,3 +302,44 @@
   display: flex;
   gap: $spacing-03;
 }
+
+// Sugestões do agente fora do relatório: recolhidas por padrão, acima dos filtros.
+.rev-sugestoes {
+  flex-shrink: 0;
+  max-height: 14rem;
+  padding: $spacing-03 $spacing-04;
+  overflow: auto;
+  background: $layer-02;
+  border-left: 3px solid $support-warning;
+}
+
+.rev-sugestoes__titulo {
+  @include type-style('heading-compact-01');
+  cursor: pointer;
+}
+
+.rev-sugestoes__dica {
+  @include type-style('helper-text-01');
+  margin: $spacing-02 0 $spacing-03;
+  color: $text-secondary;
+}
+
+.rev-sugestoes__lista {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+
+  li {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 1fr) auto;
+    gap: $spacing-03;
+    align-items: baseline;
+  }
+}
+
+.rev-sugestoes__campo {
+  @include type-style('label-01');
+  color: $text-secondary;
+}
+
+.rev-sugestoes__texto { @include type-style('body-compact-01'); }

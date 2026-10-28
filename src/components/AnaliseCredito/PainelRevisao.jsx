@@ -227,6 +227,45 @@ function Detalhe({ item, decisao, rotulos, onDecidir, onVerNoRelatorio, onAnteri
   )
 }
 
+// Pontos que o agente propôs sem fonte (28/10/2026): não entram no relatório; o analista decide. Para incluir, ele usa o
+// lápis em "Pontos de atenção" (ou "Pontos fortes") no relatório completo: o texto entra assinado por ele.
+const CAMPO_SUGESTAO = { pontos_atencao: 'Ponto de atenção', pontos_fortes: 'Ponto forte' }
+
+function SugestoesDoAgente({ sugestoes = [] }) {
+  const [copiado, setCopiado] = useState(null)
+  if (!sugestoes.length) return null
+  async function copiar(texto, i) {
+    try {
+      await navigator.clipboard.writeText(texto)
+      setCopiado(i)
+    } catch {
+      setCopiado(null)
+    }
+  }
+  return (
+    <details className="rev-sugestoes">
+      <summary className="rev-sugestoes__titulo">
+        Sugestões do agente fora do relatório ({sugestoes.length})
+      </summary>
+      <p className="rev-sugestoes__dica">
+        Pontos que o agente propôs sem fonte nos documentos. Não entram no relatório sozinhos: para incluir um, use o
+        lápis em Pontos de atenção (ou Pontos fortes) no relatório completo e cole o texto; ele entra assinado por você.
+      </p>
+      <ul className="rev-sugestoes__lista">
+        {sugestoes.map((s, i) => (
+          <li key={`${s.em}-${i}`}>
+            <span className="rev-sugestoes__campo">{CAMPO_SUGESTAO[s.campo] || s.campo}</span>
+            <span className="rev-sugestoes__texto">{s.texto}</span>
+            <button type="button" className="ana-fonte" onClick={() => copiar(s.texto, i)}>
+              {copiado === i ? 'Copiado' : 'Copiar'}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </details>
+  )
+}
+
 function PainelRevisao({
   aberto, onFechar, resumo, revisao, categorias = [], filtroInicial, onDecidir, onDecidirLote, onVerNoRelatorio,
   onGerarVersao,
@@ -338,6 +377,7 @@ function PainelRevisao({
       <ModalBody className="rev-painel__corpo">
         <ProgressBar className="rev-painel__progresso" label={`${revisados} de ${total} itens revisados`}
           value={revisados} max={total || 1} size="small" hideLabel={false} />
+        <SugestoesDoAgente sugestoes={resumo?.sugestoes_agente} />
 
         <div className="rev-filtros">
           <ContentSwitcher size="sm" selectedIndex={STATUS.indexOf(status)}

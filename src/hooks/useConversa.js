@@ -367,6 +367,7 @@ export function useConversa() {
               recebeuAlgo = true
               marcarNaResposta({ retida: true, ratings: evento.ratings || [] })
             }
+            if (evento.escolha) marcarNaResposta({ escolha: evento.escolha })
             break
           }
         }

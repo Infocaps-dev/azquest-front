@@ -119,6 +119,8 @@ function ChatMain({
                   {m.papel === 'usuario'
                     ? <p>{m.texto}</p>
                     : <RespostaDoAgente texto={m.texto} fontes={m.fontes} retida={m.retida} ratings={m.ratings}
+                                        escolha={m.escolha}
+                                        onEscolher={!enviando && i === mensagens.length - 1 ? onEnviar : null}
                                         onTrocarAba={onTrocarAba} onEnviar={onEnviar} />}
                 </div>
               </article>

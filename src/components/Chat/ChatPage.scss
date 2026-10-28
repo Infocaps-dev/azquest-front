@@ -322,6 +322,13 @@ $side-width: 22rem;
   overflow-wrap: anywhere;
 }
 
+.chat-msg__escolha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03;
+  margin-top: $spacing-04;
+}
+
 .chat-msg__retida {
   padding: $spacing-05;
   border: 1px solid $border-subtle-01;

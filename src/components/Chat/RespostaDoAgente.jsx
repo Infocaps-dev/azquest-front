@@ -333,8 +333,34 @@ function CartaoRating({ ratings }) {
   )
 }
 
-function RespostaDoAgente({ texto, fontes, retida, ratings, onTrocarAba, onEnviar }) {
+// Escolha pendente (28/10/2026): a ferramenta devolveu as opções (qual empresa, qual emissão) e a tela as mostra como
+// botões; a pergunta é do agente. O clique envia a opção como mensagem; só a última resposta tem botões ativos.
+function EscolhaDaResposta({ escolha, onEscolher }) {
+  if (!escolha?.opcoes?.length) return null
+  return (
+    <div className="chat-msg__escolha">
+      {escolha.opcoes.map(o => (
+        <Button key={o.valor} kind="tertiary" size="sm" disabled={!onEscolher} onClick={() => onEscolher(o.valor)}>
+          {o.rotulo}
+        </Button>
+      ))}
+    </div>
+  )
+}
+
+function RespostaDoAgente({ texto, fontes, retida, ratings, escolha, onEscolher, onTrocarAba, onEnviar }) {
   if (retida && ratings?.length) return <CartaoRating ratings={ratings} />
+  // Retida porque o agente escolheu uma das opções sozinho e trouxe dado dela: a tela mostra só a escolha.
+  if (retida && escolha) {
+    return (
+      <>
+        <p className="chat-msg__retida-aviso">
+          {escolha.tipo === 'empresa' ? 'De qual empresa você quer o dado?' : 'De qual emissão você quer o dado?'}
+        </p>
+        <EscolhaDaResposta escolha={escolha} onEscolher={onEscolher} />
+      </>
+    )
+  }
   if (!texto) return null
   if (ERRO_DA_PLATAFORMA.test(texto)) texto = ERRO_TRADUZIDO
   // A linha só sai do texto quando todas as fontes dela estão entre as confirmadas pelos dados da ferramenta (as que a
@@ -357,6 +383,7 @@ function RespostaDoAgente({ texto, fontes, retida, ratings, onTrocarAba, onEnvia
         <Blocos texto={texto} />
       </EnvioDoChat.Provider>
       <FontesDaResposta fontes={fontes} />
+      <EscolhaDaResposta escolha={escolha} onEscolher={onEscolher} />
       {relatorio && <CartaoRelatorio url={relatorio[2]} onTrocarAba={onTrocarAba} />}
     </>
   )

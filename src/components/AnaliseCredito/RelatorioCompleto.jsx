@@ -30,17 +30,56 @@ import './RelatorioCompleto.scss'
 // citados. Fora da tela, o link abre a tela já no documento; aqui, a tela troca o destino por #azq-fonte=<n>, lê o
 // hash como no Editar e abre o documento por cima do relatório, com "Voltar". As fontes ficam fora do trecho editado.
 
+// Edição no relatório (28/10/2026, revisto com o Kimi): o trecho sob o mouse (ou com o foco) ganha um realce discreto
+// e um lápis na margem direita, fora do texto; nos títulos, o lápis fica dentro da barra e mostra "Pedir alteração na
+// seção" ao passar o mouse. O trecho com a janela de edição aberta fica marcado até ela fechar. O realce é feito com
+// sombra, sem pseudo-elemento (os itens de lista usam ::before no marcador) e sem deslocar o texto. Nada disso
+// imprime, e o PDF sai do HTML original, sem esta injeção.
 const ESTILO_EDICAO = `
-.azq-editavel { position: relative; }
-.azq-editar {
-  position: absolute; top: 0; right: 0; z-index: 5; display: none;
-  padding: 2px 10px; border-radius: 2px; background: #0f62fe; color: #fff !important;
-  font: 500 12px/18px 'IBM Plex Sans', Arial, sans-serif; text-decoration: none !important;
-  letter-spacing: .16px; text-transform: none; box-shadow: 0 1px 3px rgba(0,0,0,.25);
+.azq-editavel { position: relative; border-radius: 2px; transition: background-color .12s, box-shadow .12s; }
+.azq-editavel:not(.section-heading):not(.annex-heading):not(.sub-heading):hover,
+.azq-editavel:not(.section-heading):not(.annex-heading):not(.sub-heading):focus-within {
+  background: rgba(1,134,239,.05);
+  box-shadow: -8px 0 0 -6px #0186ef, 0 0 0 4px rgba(1,134,239,.05);
 }
-.azq-editar:hover { background: #0353e9; }
-.azq-editavel:hover > .azq-editar, .azq-editar:focus { display: inline-block; }
-.section-heading.azq-editavel > .azq-editar, .annex-heading.azq-editavel > .azq-editar { top: 50%; transform: translateY(-50%); right: 8px; }
+.azq-editavel.azq-editando:not(.section-heading):not(.annex-heading):not(.sub-heading) {
+  background: rgba(1,134,239,.09);
+  box-shadow: -8px 0 0 -6px #0186ef, 0 0 0 4px rgba(1,134,239,.09);
+}
+.azq-editar {
+  position: absolute; top: -5px; right: -31px; z-index: 5;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  width: 28px; height: 28px; padding: 0; border-radius: 4px;
+  color: #525252 !important; text-decoration: none !important;
+  font: 500 12px/16px 'IBM Plex Sans', -apple-system, 'Segoe UI', Arial, sans-serif;
+  letter-spacing: .16px; text-transform: none; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity .12s, background-color .12s, color .12s;
+}
+.azq-editar svg { width: 16px; height: 16px; flex: none; fill: currentColor; }
+.azq-editavel:hover > .azq-editar, .azq-editavel.azq-editando > .azq-editar, .azq-editar:focus-visible {
+  opacity: 1; pointer-events: auto;
+}
+.azq-editar:hover { background: rgba(1,134,239,.12); color: #0186ef !important; }
+.azq-editar.azq-editar--dentro { top: -2px; right: 2px; background: #fff; box-shadow: 0 1px 3px rgba(2,25,38,.25); }
+.azq-editar.azq-editar--dentro:hover { background: #e5f0fb; }
+.azq-editar:focus-visible { outline: 2px solid #0f62fe; outline-offset: 1px; }
+.azq-editar__texto { display: none; }
+.section-heading > .azq-editar, .annex-heading > .azq-editar, .sub-heading > .azq-editar {
+  top: 50%; right: 10px; width: auto; min-width: 28px; height: 24px; padding: 0 6px; transform: translateY(-50%);
+}
+.section-heading > .azq-editar, .annex-heading > .azq-editar { color: rgba(255,255,255,.85) !important; }
+.section-heading > .azq-editar:hover, .annex-heading > .azq-editar:hover,
+.section-heading > .azq-editar:focus-visible, .annex-heading > .azq-editar:focus-visible {
+  background: rgba(255,255,255,.16); color: #fff !important;
+}
+.sub-heading > .azq-editar { color: #0186ef !important; }
+.section-heading > .azq-editar:hover .azq-editar__texto, .annex-heading > .azq-editar:hover .azq-editar__texto,
+.sub-heading > .azq-editar:hover .azq-editar__texto, .azq-editar:focus-visible .azq-editar__texto { display: inline; }
+@media (prefers-reduced-motion: reduce) { .azq-editavel, .azq-editar { transition: none; } }
+@media print {
+  .azq-editar { display: none !important; }
+  .azq-editavel { background: none !important; box-shadow: none !important; }
+}
 `
 
 const PREFIXO_FONTE = 'azq-fonte='
@@ -77,6 +116,31 @@ function fontesDoTrecho(doc, id) {
 // editam por texto), e todo título de seção e subseção.
 const SEM_EDICAO = /^item-(?:tabela|grafico|imagem)-/
 
+// Lápis (ícone Edit do Carbon), criado no documento do relatório: o iframe não carrega nada de fora.
+function lapis(doc) {
+  const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('viewBox', '0 0 32 32')
+  svg.setAttribute('aria-hidden', 'true')
+  const caminho = doc.createElementNS('http://www.w3.org/2000/svg', 'path')
+  caminho.setAttribute('d', 'M2 26h28v2H2zM25.4 9c.8-.8.8-2 0-2.8l-3.6-3.6c-.8-.8-2-.8-2.8 0l-15 15V24h6.4l15-15zm-5-5L24 '
+    + '7.6l-3 3L17.4 7l3-3zM6 22v-3.6l10-10 3.6 3.6-10 10H6z')
+  svg.appendChild(caminho)
+  return svg
+}
+
+// Se o lápis cabe na margem à direita do trecho. Dentro de uma caixa (quadro do sumário, observações) não cabe: ele
+// passaria da borda e a caixa rolaria para o lado; aí fica dentro do canto do trecho.
+function cabeNaMargem(alvo) {
+  const janela = alvo.ownerDocument.defaultView
+  const direita = alvo.getBoundingClientRect().right + 31
+  for (let el = alvo.parentElement; el && el !== alvo.ownerDocument.body; el = el.parentElement) {
+    const estilo = janela.getComputedStyle(el)
+    const borda = parseFloat(estilo.borderRightWidth) || 0
+    if (estilo.overflowX !== 'visible' || borda > 0) return direita <= el.getBoundingClientRect().right - borda
+  }
+  return true
+}
+
 function porBotoes(doc) {
   if (!doc?.head || doc.getElementById('azq-edicao-estilo')) return
   const estilo = doc.createElement('style')
@@ -94,8 +158,15 @@ function porBotoes(doc) {
     const botao = doc.createElement('a')
     botao.className = 'azq-editar'
     botao.href = `#${PREFIXO_EDICAO}${id}`
-    botao.textContent = secao ? 'Editar seção' : 'Editar'
-    botao.title = secao ? 'Pedir uma alteração nesta seção' : 'Pedir uma alteração neste trecho'
+    botao.appendChild(lapis(doc))
+    const texto = doc.createElement('span')
+    texto.className = 'azq-editar__texto'
+    texto.textContent = secao ? 'Pedir alteração na seção' : 'Pedir alteração'
+    botao.appendChild(texto)
+    const inicio = textoVisivel(alvo).slice(0, 60)
+    botao.title = secao ? 'Pedir ao agente uma alteração nesta seção' : 'Pedir ao agente uma alteração neste trecho'
+    botao.setAttribute('aria-label', `${botao.title}${inicio ? `: ${inicio}` : ''}`)
+    if (!secao && !cabeNaMargem(alvo)) botao.classList.add('azq-editar--dentro')
     alvo.appendChild(botao)
   })
 }
@@ -204,6 +275,20 @@ function RelatorioCompleto({
     return () => clearInterval(relogio)
   }, [aberto, carregado, versaoTela, abrirEdicao])
 
+  useEffect(() => {
+    const doc = quadro.current?.contentWindow?.document
+    if (!carregado || !doc) return
+    doc.querySelectorAll('.azq-editando').forEach(e => e.classList.remove('azq-editando'))
+    if (edicao?.ancora) doc.getElementById(edicao.ancora)?.nextElementSibling?.classList.add('azq-editando')
+  }, [carregado, edicao])
+
+  function fecharEdicao() {
+    const ancora = edicao?.ancora
+    setEdicao(null)
+    const doc = quadro.current?.contentWindow?.document
+    doc?.getElementById(ancora)?.nextElementSibling?.querySelector?.('.azq-editar')?.focus()
+  }
+
   function versaoGerada(nova) {
     const ref = edicao
     setEdicao(null)
@@ -248,6 +333,12 @@ function RelatorioCompleto({
         )}
       </ModalHeader>
       <ModalBody className="rel-modal__corpo">
+        {versaoTela && (
+          <p className="rel-modal__dica">
+            Passe o mouse num trecho e use o lápis para pedir uma alteração ao agente. As linhas de fonte abrem o documento
+            citado.
+          </p>
+        )}
         {pdf.ligando && (
           <InlineNotification kind="info" lowContrast hideCloseButton className="rel-modal__aviso"
             title="Gerando o PDF" subtitle={AVISO_LIGANDO_PDF} />
@@ -291,7 +382,7 @@ function RelatorioCompleto({
               relatorioId={relatorioId}
               versao={versaoTela}
               referencia={edicao}
-              onFechar={() => setEdicao(null)}
+              onFechar={fecharEdicao}
               onVersaoNova={versaoGerada}
               onVersaoMudou={irParaMaisNova}
               onAbrirFonte={abrirFonte}

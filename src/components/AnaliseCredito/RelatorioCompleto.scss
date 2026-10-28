@@ -69,3 +69,10 @@
   inline-size: auto;
   min-block-size: 0;
 }
+
+// Como editar e abrir fontes: o relatório não mostra nada disso antes do mouse passar.
+.rel-modal__dica {
+  @include type-style('helper-text-01');
+  margin: $spacing-03 $spacing-05 0;
+  color: $text-secondary;
+}

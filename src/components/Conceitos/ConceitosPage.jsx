@@ -4,6 +4,7 @@ import { filaDeConceitos, decidirConceito } from '../../services/conceitosApi'
 import '../AnaliseCredito/AnalisePage.scss'
 import '../Desempenho/DesempenhoPage.scss'
 import './ConceitosPage.scss'
+import Carregando from '../Comum/Carregando.jsx'
 
 // Fila de confirmação de conceitos (28/10/2026). As planilhas de cada empresa chamam o mesmo indicador por nomes
 // diferentes ("Receita líquida", "Net revenue"); o classificador diz qual linha é cada indicador do catálogo, e o que
@@ -190,7 +191,7 @@ export default function ConceitosPage() {
       </main>
     )
   }
-  if (!fila) return <main className="ana-pagina"><InlineLoading description="Carregando" /></main>
+  if (!fila) return <main className="ana-pagina"><Carregando descricao="Carregando os conceitos" /></main>
   const total = fila.empresas.reduce((n, e) => n + e.itens.length, 0)
   return (
     <main className="ana-pagina">

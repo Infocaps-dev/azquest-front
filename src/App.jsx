@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Loading, Theme } from '@carbon/react'
+import { Theme } from '@carbon/react'
 import { AuthProvider, useAuth } from './auth/AuthContext.jsx'
 import AppHeader from './components/Chat/AppHeader.jsx'
 import ChatPage from './components/Chat/ChatPage.jsx'
@@ -12,6 +12,7 @@ import ConceitosPage from './components/Conceitos/ConceitosPage.jsx'
 import LoginPage from './components/Login/LoginPage.jsx'
 import { useNovosRelatorios } from './hooks/useNovosRelatorios'
 import { FonteDaUrl, fonteDaUrl } from './components/AnaliseCredito/FontesDoDocumento.jsx'
+import Carregando from './components/Comum/Carregando.jsx'
 
 function Gate() {
   const { user, checking } = useAuth()
@@ -41,9 +42,7 @@ function Gate() {
   }
   if (checking) {
     return (
-      <div className="login-loading">
-        <Loading withOverlay={false} description="Verificando sessão" />
-      </div>
+      <Carregando telaCheia descricao="Verificando a sessão" />
     )
   }
   if (!user) return <LoginPage />

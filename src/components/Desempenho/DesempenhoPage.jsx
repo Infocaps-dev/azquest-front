@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { InlineNotification, Loading, Select, SelectItem } from '@carbon/react'
+import { InlineNotification, Select, SelectItem } from '@carbon/react'
 import { listarResumos, obterResumo, obterRevisao } from '../../services/resumosApi'
 import { dataHora, duracao } from '../AnaliseCredito/vocabulario'
 import CoberturaPiloto from './CoberturaPiloto.jsx'
 import FontesDisponiveis from './FontesDisponiveis.jsx'
 import '../AnaliseCredito/AnalisePage.scss'
 import './DesempenhoPage.scss'
+import Carregando from '../Comum/Carregando.jsx'
 
 // Aba Desempenho: como o sistema se saiu, separado do conteúdo do relatório.
 //
@@ -73,7 +74,7 @@ function DesempenhoPage({ sinalIndice }) {
   if (carregando && !resumo) {
     return (
       <main className="ana-pagina ana-pagina--vazia">
-        <Loading withOverlay={false} description="Carregando o desempenho" />
+        <Carregando descricao="Carregando o desempenho" />
       </main>
     )
   }

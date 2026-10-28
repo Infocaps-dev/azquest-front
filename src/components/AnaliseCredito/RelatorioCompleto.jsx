@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ComposedModal, InlineLoading, InlineNotification, Loading, ModalBody, ModalHeader } from '@carbon/react'
+import { ComposedModal, InlineLoading, InlineNotification, ModalBody, ModalHeader } from '@carbon/react'
 import { Chat, DocumentPdf, Launch } from '@carbon/icons-react'
 import { enderecoHtml, enderecoRelatorio, versaoPublicada } from '../../services/resumosApi'
 import { AVISO_LIGANDO_PDF, rotuloGerandoPdf, useBaixarPdf } from '../../hooks/useBaixarPdf'
@@ -8,6 +8,7 @@ import { useVisualizadorDeFontes } from './FontesDoDocumento.jsx'
 import { PainelDocumento } from './VisualizadorDocumento.jsx'
 import { PREFIXO_EDICAO, referenciaDoTrecho, textoVisivel } from './edicaoTrecho'
 import './RelatorioCompleto.scss'
+import Carregando from '../Comum/Carregando.jsx'
 
 // Relatório completo: o HTML publicado pelo agente, o mesmo que o analista
 // baixa, e não uma remontagem a partir dos itens. Gráficos, tabelas e imagens
@@ -360,8 +361,8 @@ function RelatorioCompleto({
               ? 'O relatório tinha mudado: confira o trecho e peça a alteração de novo, se ainda for preciso.'
               : `Alteração aplicada${concluida.rotulo ? ` em ${concluida.rotulo}` : ''}. O trecho alterado está destacado.`} />
         )}
-        {!carregado && <Loading withOverlay={false} small description="Carregando o relatório" />}
         <div className="rel-modal__palco">
+          {aberto && !carregado && <Carregando sobreposto descricao="Abrindo o relatório" />}
           {aberto && (
             <iframe
               key={versaoTela || 'atual'}

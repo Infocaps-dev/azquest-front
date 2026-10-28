@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { GroupedBarChart, LineChart, SimpleBarChart } from '@carbon/charts-react'
 import '@carbon/charts-react/styles.css'
-import { Button, InlineLoading } from '@carbon/react'
+import { Button } from '@carbon/react'
 import { obterGrafico } from '../../services/resumosApi'
 import InserirNoRelatorio from './InserirNoRelatorio.jsx'
 import './GraficoInterativo.scss'
+import Carregando from '../Comum/Carregando.jsx'
 
 // Gráfico do modelo do EBITDA desenhado na conversa, interativo.
 //
@@ -148,7 +149,7 @@ function GraficoInterativo({ grafico, url, titulo, onEnviar }) {
       ? <figure className="chat-grafico"><img className="chat-grafico__imagem" src={url} alt={titulo} /></figure>
       : <p className="chat-grafico__subtitulo">Não foi possível carregar o gráfico “{titulo}”.</p>
   }
-  if (!spec) return <InlineLoading className="chat-grafico__carregando" description="Carregando o gráfico" />
+  if (!spec) return <Carregando compacto alturaMinima="18rem" descricao="Carregando o gráfico" />
 
   return (
     <figure className="chat-grafico" aria-label={spec.titulo}>

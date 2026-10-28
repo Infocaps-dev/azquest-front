@@ -92,6 +92,7 @@ $side-width: 22rem;
 }
 
 .chat-sidebar__item {
+  position: relative; // a barra fina de "abrindo" corre na base do item
   display: flex;
   width: 100%;
   flex-direction: column;
@@ -1209,14 +1210,5 @@ button.ctx-quotes__tab {
 .cds--modal .chat-feedback__ajuda { margin-bottom: $spacing-05; }
 .cds--modal .chat-feedback__observacoes { margin-top: $spacing-05; }
 
-// A conversa antiga sendo aberta (28/10/2026): o clique responde na hora.
-.chat-abrindo {
-  display: flex;
-  justify-content: center;
-  padding: $spacing-09 0;
-}
-
-.chat-sidebar__abrindo {
-  min-height: auto;
-  .cds--inline-loading__text { @include type-style('label-01'); }
-}
+// A conversa antiga sendo aberta (28/10/2026): o carregamento ocupa a área da conversa, no centro.
+.chat-abrindo { min-height: 100%; }

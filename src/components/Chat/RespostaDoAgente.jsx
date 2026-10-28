@@ -1,9 +1,10 @@
 import { createContext, lazy, Suspense, useContext } from 'react'
-import { Button, InlineLoading } from '@carbon/react'
+import { Button } from '@carbon/react'
 import { ArrowRight, Document, Launch } from '@carbon/icons-react'
 import { graficoDaUrl } from '../../services/resumosApi'
 import InserirNoRelatorio from './InserirNoRelatorio.jsx'
 import './GraficoInterativo.scss'
+import Carregando from '../Comum/Carregando.jsx'
 
 // O Carbon Charts (d3 junto) só é baixado quando uma resposta traz gráfico.
 const GraficoInterativo = lazy(() => import('./GraficoInterativo.jsx'))
@@ -137,7 +138,7 @@ function Imagem({ titulo, url }) {
   const grafico = graficoDaUrl(url)
   if (grafico) {
     return (
-      <Suspense fallback={<InlineLoading description="Carregando o gráfico" />}>
+      <Suspense fallback={<Carregando compacto alturaMinima="18rem" descricao="Carregando o gráfico" />}>
         <GraficoInterativo grafico={grafico} url={url} titulo={titulo} onEnviar={onEnviar} />
       </Suspense>
     )
@@ -356,7 +357,7 @@ function GraficosDaResposta({ graficos, texto, onEnviar }) {
   return (
     <EnvioDoChat.Provider value={onEnviar || null}>
       {lista.map(g => (
-        <Suspense key={`${g.pasta}/${g.nome}`} fallback={<InlineLoading description="Carregando o gráfico" />}>
+        <Suspense key={`${g.pasta}/${g.nome}`} fallback={<Carregando compacto alturaMinima="18rem" descricao="Carregando o gráfico" />}>
           <GraficoInterativo grafico={{ pasta: g.pasta, nome: g.nome }} titulo={g.titulo} onEnviar={onEnviar} />
         </Suspense>
       ))}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, ComposedModal, InlineLoading, InlineNotification, ModalBody, ModalHeader } from '@carbon/react'
+import { Button, ComposedModal, InlineNotification, ModalBody, ModalHeader } from '@carbon/react'
 import { ArrowLeft } from '@carbon/icons-react'
+import Carregando from '../Comum/Carregando.jsx'
 
 // Documento de uma referência aberto na própria tela, sem baixar o arquivo: o PDF na página citada; a planilha lida
 // no navegador, na aba citada, com as linhas citadas destacadas. Antes o "Abrir" de uma planilha baixava o .xlsx.
@@ -57,7 +58,7 @@ function Planilha({ link, linhas }) {
   useEffect(() => { destaque.current?.scrollIntoView({ block: 'center' }) }, [abaAtual, abas])
 
   if (erro) return <InlineNotification kind="error" lowContrast hideCloseButton title="Planilha" subtitle={erro} />
-  if (!abas) return <InlineLoading description="Lendo a planilha…" />
+  if (!abas) return <Carregando descricao="Lendo a planilha" />
 
   const aba = abas.find(a => a.sheet === abaAtual)
   const marcadas = [...citadas.entries()].find(([nome]) => semEspacos(nome) === semEspacos(abaAtual))?.[1] || new Set()
@@ -101,7 +102,7 @@ function Planilha({ link, linhas }) {
 // completo, onde uma segunda janela ficaria presa atrás da primeira.
 export function ConteudoDocumento({ documento }) {
   const { arquivo, link, paginas = [], linhas = [] } = documento
-  if (link === undefined) return <InlineLoading description="Procurando o documento no acervo…" />
+  if (link === undefined) return <Carregando descricao="Procurando o documento no acervo" />
   if (!link) {
     return (
       <InlineNotification kind="warning" lowContrast hideCloseButton title="Documento fora do acervo"

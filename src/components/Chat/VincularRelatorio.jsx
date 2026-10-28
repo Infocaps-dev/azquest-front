@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { InlineLoading, InlineNotification, Modal, Select, SelectItem } from '@carbon/react'
+import { InlineNotification, Modal, Select, SelectItem } from '@carbon/react'
 import { listarResumos } from '../../services/resumosApi'
 import { dataHora } from '../AnaliseCredito/vocabulario'
+import Carregando from '../Comum/Carregando.jsx'
 
 // Escolha de um relatório pronto para a conversa: dali em diante, os pedidos de alteração feitos no chat viram versões
 // novas dele (sem isso, só o relatório gerado na própria conversa podia ser alterado por ela).
@@ -35,7 +36,7 @@ function VincularRelatorio({ aberto, atual, onFechar, onEscolher }) {
         Os pedidos de alteração desta conversa (trocar um trecho, inserir um gráfico ou uma notícia) vão gerar versões
         novas do relatório escolhido. As perguntas continuam funcionando normalmente.
       </p>
-      {carregando && <InlineLoading description="Carregando os relatórios" />}
+      {carregando && <Carregando compacto descricao="Carregando os relatórios" />}
       {erro && <InlineNotification kind="warning" lowContrast hideCloseButton title={erro} />}
       {!carregando && !erro && (relatorios.length ? (
         <Select id="vincular-relatorio" labelText="Relatório" value={escolhido} onChange={e => setEscolhido(e.target.value)}>

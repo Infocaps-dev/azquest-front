@@ -1,9 +1,10 @@
 import { useContext, useState } from 'react'
-import { Button, InlineLoading, InlineNotification, Modal, Select, SelectItem } from '@carbon/react'
+import { Button, InlineNotification, Modal, Select, SelectItem } from '@carbon/react'
 import { DocumentAdd } from '@carbon/icons-react'
 import { itemDaConsulta, listarResumos } from '../../services/resumosApi'
 import { dataHora } from '../AnaliseCredito/vocabulario'
 import { RelatorioDaConversa } from './contextoChat'
+import Carregando from '../Comum/Carregando.jsx'
 
 // Botão "Inserir no relatório", embaixo de um gráfico do modelo do EBITDA ou ao lado de uma notícia na conversa.
 //
@@ -68,7 +69,7 @@ function InserirNoRelatorio({ grafico, link, onEnviar, compacto = false }) {
         primaryButtonText="Inserir" secondaryButtonText="Cancelar" size="sm"
         primaryButtonDisabled={carregando || !item || !relatorioId}
         onRequestClose={() => setAberto(false)} onRequestSubmit={inserir}>
-        {carregando && <InlineLoading description="Procurando o item salvo e os relatórios" />}
+        {carregando && <Carregando compacto descricao="Procurando o item salvo e os relatórios" />}
         {erro && <InlineNotification kind="warning" lowContrast hideCloseButton title={erro} />}
         {item && !carregando && (
           <>

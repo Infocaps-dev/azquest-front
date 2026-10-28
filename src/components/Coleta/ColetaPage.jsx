@@ -18,6 +18,7 @@ import { EVENTO_EMISSORES } from '../Emissores/atuacao'
 import SeletorPeriodo from '../Periodo/SeletorPeriodo.jsx'
 import { periodoValido, rotuloPeriodo } from '../Periodo/periodos'
 import './ColetaPage.scss'
+import Carregando from '../Comum/Carregando.jsx'
 
 // Aba Coleta: dispara o crawler de fontes públicas do emissor e acompanha cada estágio.
 //
@@ -252,7 +253,7 @@ function ColetaPage() {
           barram robôs não são contornados: ficam como pendência manual.
         </p>
 
-        {emissores === null && !erroServico && <InlineLoading description="Carregando emissores…" />}
+        {emissores === null && !erroServico && <Carregando compacto descricao="Carregando os emissores" />}
         {emissores && (
           <div className="col-form">
             <Select id="col-emissor" labelText="Emissor" value={emissor} disabled={emAndamento}
@@ -464,7 +465,7 @@ function ColetaPage() {
 
       <Modal open={Boolean(extracaoAberta)} passiveModal modalHeading={extracaoAberta?.nome || 'Extração'}
         modalLabel="Resultado do extrator" onRequestClose={() => setExtracaoAberta(null)}>
-        {extracaoAberta && !extracaoAberta.dados && !extracaoAberta.erro && <InlineLoading description="Lendo o JSON…" />}
+        {extracaoAberta && !extracaoAberta.dados && !extracaoAberta.erro && <Carregando compacto descricao="Lendo o resultado da extração" />}
         {extracaoAberta?.erro && <InlineNotification kind="error" lowContrast hideCloseButton title="Falha" subtitle={extracaoAberta.erro} />}
         {extracaoAberta?.dados && (
           <div className="col-extracao">

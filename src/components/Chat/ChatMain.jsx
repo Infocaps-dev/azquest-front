@@ -8,6 +8,7 @@ import ProgressoRelatorio from '../Relatorio/ProgressoRelatorio.jsx'
 import useAndamentoRelatorio from '../../hooks/useAndamentoRelatorio'
 import { MODO_SIMULADO } from '../../services/chatApi'
 import { RelatorioDaConversa } from './contextoChat'
+import Carregando from '../Comum/Carregando.jsx'
 
 // Relatório gerado no turno: as etapas vêm pelo stream enquanto o agente responde; depois, a tela acompanha a
 // versão 2 (interpretação redigida) pela operação do turno. O link fica na resposta do agente.
@@ -74,9 +75,7 @@ function ChatMain({
     <main className="chat-main">
       <div className="chat-main__body">
         {abrindo && (
-          <div className="chat-abrindo">
-            <InlineLoading description="Abrindo a conversa…" />
-          </div>
+          <Carregando descricao="Abrindo a conversa" className="chat-abrindo" />
         )}
         {!abrindo && !conversando && (
           <>

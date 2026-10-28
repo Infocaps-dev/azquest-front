@@ -32,6 +32,7 @@ import {
 } from '../../services/nomesDoAcervo'
 import SeletorPeriodo from '../Periodo/SeletorPeriodo.jsx'
 import { ordem, periodoValido as intervaloValido, rotuloPeriodo, trimestres } from '../Periodo/periodos'
+import Carregando from '../Comum/Carregando.jsx'
 
 // Anexar documentos à análise: o campo de upload e a confirmação do tipo.
 //
@@ -269,7 +270,7 @@ function AnexarDocumentos({ aoEnviar }) {
         antes de enviar.
       </p>
 
-      {emissores === null && <InlineLoading description="Carregando emissores…" />}
+      {emissores === null && <Carregando compacto descricao="Carregando os emissores" />}
       {/* Emissor e atuação lado a lado, como na Coleta automática (mesmo grid, col-form) */}
       <div className="col-form anexos-emissor-linha">
       {emissores !== null && (

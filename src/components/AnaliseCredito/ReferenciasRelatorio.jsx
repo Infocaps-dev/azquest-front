@@ -14,6 +14,22 @@ const posicao = tipo => {
   return i < 0 ? ORDEM_TIPO.length : i
 }
 
+// 'aba "DRE", linha 7', 'aba "DRE", linha 13', 'aba "Caixa"' -> 'aba "DRE": linhas 7, 13; aba "Caixa"': uma vez cada
+// aba, com as linhas em ordem, em vez de repetir o nome da aba em cada linha citada.
+function linhasPorAba(linhas) {
+  const porAba = new Map()
+  for (const texto of linhas) {
+    const m = /aba "([^"]+)"(?:, linha (\d+))?/.exec(texto)
+    if (!m) continue
+    if (!porAba.has(m[1])) porAba.set(m[1], [])
+    if (m[2]) porAba.get(m[1]).push(Number(m[2]))
+  }
+  return [...porAba].map(([aba, nums]) => {
+    const ordem = [...new Set(nums)].sort((a, b) => a - b)
+    return ordem.length ? `aba "${aba}": ${ordem.length === 1 ? 'linha' : 'linhas'} ${ordem.join(', ')}` : `aba "${aba}"`
+  }).join('; ')
+}
+
 // Uma entrada por arquivo: o que o resumo diz do documento mais as páginas e linhas das evidências.
 function referenciasDoResumo(resumo) {
   const porArquivo = new Map()
@@ -59,14 +75,16 @@ function ReferenciasRelatorio({ resumo }) {
           const link = linkDoArquivo(r.arquivo)
           const local = [
             r.paginas.length ? `${r.paginas.length === 1 ? 'p.' : 'pp.'} ${r.paginas.join(', ')}` : '',
-            r.linhas.join('; '),
+            linhasPorAba(r.linhas),
           ].filter(Boolean).join('; ')
           return (
             <li key={r.arquivo}>
-              <span className="ana-fontes__documento">{r.arquivo}</span>
-              <span className="ana-fontes__origem">
-                {[r.tipo, r.dataBase && `data-base ${r.dataBase}`, r.divergente && 'documento de outra entidade']
-                  .filter(Boolean).join(' · ')}
+              <span className="ana-fontes__identificacao">
+                <span className="ana-fontes__documento">{r.arquivo}</span>
+                <span className="ana-fontes__origem">
+                  {[r.tipo, r.dataBase && `data-base ${r.dataBase}`, r.divergente && 'documento de outra entidade']
+                    .filter(Boolean).join(' · ')}
+                </span>
               </span>
               <span className="ana-fontes__referencias">
                 {local || 'sem página citada'}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button, Dropdown, InlineNotification, Loading, Tag } from '@carbon/react'
+import { Button, Dropdown, InlineNotification, SkeletonPlaceholder, SkeletonText, Tag } from '@carbon/react'
 import { Add, ChartLineData, Document, DocumentPdf, Renew, TaskApproved } from '@carbon/icons-react'
 import {
   aplicarAjustes,
@@ -24,6 +24,7 @@ import RelatorioCompleto from './RelatorioCompleto.jsx'
 import SecoesRelatorio from './SecoesRelatorio.jsx'
 import SumarioTese from './SumarioTese.jsx'
 import { ProvedorDeFontes } from './FontesDoDocumento.jsx'
+import Carregando from '../Comum/Carregando.jsx'
 import { STATUS_VERSAO, dataHora } from './vocabulario'
 import './AnalisePage.scss'
 
@@ -40,6 +41,28 @@ import './AnalisePage.scss'
 
 function rotuloRelatorio(r) {
   return `${r.empresa} · ${r.periodo} · versão ${r.versao} · ${dataHora(r.atualizado_em)}`
+}
+
+// Primeira carga da aba: o formato da página (cabeçalho, números-chave, sumário e seções) em esqueleto, em vez de um
+// spinner solto. Trocar de relatório depois disso mostra o carregamento por cima da página atual.
+function EsqueletoAnalise() {
+  return (
+    <main className="ana-pagina" aria-busy="true" aria-label="Carregando a análise de crédito">
+      <header className="ana-cabecalho">
+        <div className="ana-esqueleto__identidade">
+          <SkeletonText heading width="16rem" />
+          <SkeletonText width="10rem" />
+        </div>
+      </header>
+      <section className="ana-numeros">
+        <div className="ana-numeros__grade">
+          {[0, 1, 2, 3].map(i => <SkeletonPlaceholder key={i} className="ana-esqueleto__kpi" />)}
+        </div>
+      </section>
+      <section className="ana-esqueleto__bloco"><SkeletonText paragraph lineCount={4} /></section>
+      <section className="ana-esqueleto__bloco"><SkeletonText paragraph lineCount={6} /></section>
+    </main>
+  )
 }
 
 // Seletor de relatórios: o primeiro item gera um relatório novo (abre o diálogo de empresa e período) em vez de
@@ -384,13 +407,7 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
     )
   }
 
-  if (carregando && !resumo) {
-    return (
-      <main className="ana-pagina ana-pagina--vazia">
-        <Loading withOverlay={false} description="Carregando a análise de crédito" />
-      </main>
-    )
-  }
+  if (carregando && !resumo) return <EsqueletoAnalise />
 
   const pendentes = revisao?.contagem?.pendente || 0
   const status = STATUS_VERSAO[revisao?.status] || STATUS_VERSAO.em_revisao
@@ -402,6 +419,7 @@ function AnalisePage({ onTrocarAba, relatorioAlvo, sinalIndice, onAlvoConsumido,
     // As fontes dos números-chave e das seções abrem o documento original (FontesDoDocumento.jsx).
     <ProvedorDeFontes empresa={resumo?.empresa}>
     <main className="ana-pagina">
+      {carregando && <Carregando pagina descricao="Abrindo o relatório" />}
       <header className="ana-cabecalho">
         <div className="ana-cabecalho__identidade">
           <h1 className="ana-cabecalho__emissor">{resumo?.empresa}</h1>

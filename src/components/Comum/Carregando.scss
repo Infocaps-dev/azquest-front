@@ -1,0 +1,98 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/theme' as *;
+@use '@carbon/react/scss/type' as *;
+
+// Ver Carregando.jsx: o padrão de carregamento de área do sistema.
+
+.carregando {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 16rem;
+  padding: $spacing-07 $spacing-05;
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+
+.carregando--visivel { opacity: 1; }
+.carregando--compacto { min-height: 8rem; padding: $spacing-05; }
+.carregando--tela-cheia { min-height: 100vh; }
+
+// Por cima do conteúdo da própria área (janela, painel), com fundo translúcido só nela.
+.carregando--sobreposto {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  min-height: 0;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+// A aba inteira trocando de conteúdo (outro relatório): cobre a área da aba, abaixo do cabeçalho fixo (3 rem), e o
+// spinner fica no meio do que está visível, qualquer que seja a rolagem.
+.carregando--pagina {
+  position: fixed;
+  inset: 3rem 0 0;
+}
+
+.carregando__conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+  align-items: center;
+  max-width: 28rem;
+  text-align: center;
+}
+
+// O Loading do Carbon só tem 88 px (grande) e 16 px (pequeno): aqui, 40 px.
+.carregando__spinner.cds--loading {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.carregando__texto {
+  @include type-style('body-compact-01');
+  color: $text-secondary;
+}
+
+.carregando__detalhe {
+  @include type-style('helper-text-01');
+  margin-top: calc(-1 * #{$spacing-02});
+  color: $text-helper;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carregando { transition: none; }
+}
+
+// Item de lista sendo aberto (conversa na barra lateral): o item fica marcado na hora e esta barra corre na base dele.
+// O item precisa de position: relative.
+.barra-indeterminada {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  overflow: hidden;
+  background: rgba(15, 98, 254, 0.15);
+
+  &::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -40%;
+    width: 40%;
+    background: $interactive;
+    content: '';
+    animation: barra-indeterminada 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+}
+
+@keyframes barra-indeterminada {
+  to { left: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barra-indeterminada::before { left: 0; width: 100%; opacity: 0.6; animation: none; }
+}

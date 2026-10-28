@@ -14,6 +14,25 @@
   background: $background;
 }
 
+// Esqueleto da primeira carga (EsqueletoAnalise): os blocos no tamanho dos de verdade.
+.ana-esqueleto__identidade {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+  width: 100%;
+}
+
+.ana-esqueleto__kpi.cds--skeleton__placeholder {
+  width: 100%;
+  height: 8.5rem;
+}
+
+.ana-esqueleto__bloco {
+  padding: $spacing-06;
+  margin-top: $spacing-06;
+  background: $layer-01;
+}
+
 .ana-pagina--vazia {
   display: flex;
   align-items: center;
@@ -572,9 +591,11 @@
   padding-left: $spacing-05;
   list-style: decimal;
 
+  // Três colunas: documento, páginas/linhas citadas (quebram dentro da própria coluna, alinhadas à direita) e "Ver",
+  // sempre no canto. Antes, com muitas abas e linhas citadas, o "Ver" caía sozinho na linha de baixo.
   li {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: fit-content(60%) minmax(0, 1fr) auto;
     gap: $spacing-02 $spacing-05;
     align-items: baseline;
     padding-bottom: $spacing-03;
@@ -582,7 +603,15 @@
   }
 }
 
-.ana-fontes__documento { @include type-style('body-compact-01'); }
+.ana-fontes__identificacao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-02 $spacing-05;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.ana-fontes__documento { @include type-style('body-compact-01'); overflow-wrap: anywhere; }
 
 .ana-fontes__origem,
 .ana-fontes__referencias {
@@ -590,10 +619,12 @@
   color: $text-secondary;
 }
 
-.ana-fontes__referencias { margin-left: auto; }
+.ana-fontes__referencias { text-align: right; }
 
 .ana-fontes__abrir {
   @include type-style('label-01');
+  grid-column: 3;
+  white-space: nowrap;
   display: inline-flex;
   gap: $spacing-02;
   align-items: center;

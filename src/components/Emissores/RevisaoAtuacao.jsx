@@ -1,5 +1,6 @@
-import { InlineLoading, InlineNotification, Select, SelectItem, Tag, TextArea } from '@carbon/react'
+import { InlineNotification, Select, SelectItem, Tag, TextArea } from '@carbon/react'
 import { SETORES } from './atuacao'
+import Carregando from '../Comum/Carregando.jsx'
 
 // Revisão da atuação pesquisada, antes de gravar no cadastro: a pessoa confere o resumo com as fontes, escolhe ou
 // corrige o setor e edita o que não proceder. Sem fonte encontrada, escreve à mão (nada é preenchido de memória).
@@ -14,7 +15,8 @@ function RevisaoAtuacao({ estado, resultado, erro, proposta, onChange }) {
   const mudar = (campo, valor) => onChange({ ...proposta, [campo]: valor })
 
   if (estado === 'pesquisando') {
-    return <InlineLoading description="Pesquisando a atuação na CVM, na B3 e no site oficial da empresa…" />
+    return <Carregando compacto descricao="Pesquisando a atuação"
+      detalhe="Na CVM, na B3 e no site oficial da empresa. Leva alguns segundos." />
   }
   const confianca = CONFIANCA[perfil?.confianca]
   return (

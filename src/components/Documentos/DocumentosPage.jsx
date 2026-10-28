@@ -9,6 +9,7 @@ import NovoEmissor from '../Emissores/NovoEmissor.jsx'
 import '../AnaliseCredito/AnalisePage.scss'
 import '../Desempenho/DesempenhoPage.scss'
 import './DocumentosPage.scss'
+import Carregando from '../Comum/Carregando.jsx'
 
 // Aba Documentos: o acervo de documentos de cada empresa, como um GED.
 //
@@ -240,7 +241,7 @@ function DocumentosPage() {
           </div>
         )}
 
-        {carregando && !acervo && modo === 'nome' && <InlineLoading description="Lendo os buckets…" />}
+        {carregando && !acervo && modo === 'nome' && <Carregando descricao="Lendo os documentos" />}
 
         {filtrado && modo === 'nome' && (
           <Tabs>

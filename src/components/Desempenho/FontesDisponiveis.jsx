@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { InlineNotification, Loading, Select, SelectItem, Tag } from '@carbon/react'
+import { InlineNotification, Select, SelectItem, Tag } from '@carbon/react'
 import { obterFontes } from '../../services/resumosApi'
 import NovoEmissor from '../Emissores/NovoEmissor.jsx'
+import Carregando from '../Comum/Carregando.jsx'
 
 // Fontes disponíveis: tudo o que o sistema sabe ler, não só o que o relatório selecionado usou.
 //
@@ -72,7 +73,7 @@ function FontesDisponiveis({ resumo, sinal }) {
   }, [sinal, empresa])
 
   if (erro) return <InlineNotification kind="error" lowContrast hideCloseButton title="Fontes indisponíveis" subtitle={erro} />
-  if (!fontes) return <Loading small withOverlay={false} description="Carregando as fontes" />
+  if (!fontes) return <Carregando compacto descricao="Carregando as fontes" />
 
   // As referências são do relatório selecionado: só valem para os documentos da empresa dele.
   const doRelatorio = resumo && resumo.empresa === fontes.empresa

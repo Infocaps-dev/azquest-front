@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button, InlineNotification, Loading, Select, SelectItem, Tag } from '@carbon/react'
+import { Button, InlineNotification, Select, SelectItem, Tag } from '@carbon/react'
 import { Renew, Warning } from '@carbon/icons-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useExecucao } from '../../hooks/useExecucao'
@@ -26,6 +26,7 @@ import QuadroComparativo from './QuadroComparativo.jsx'
 import VisualizadorFonte from './VisualizadorFonte.jsx'
 import { nivelDe } from './niveis'
 import './MonitoramentoPage.scss'
+import Carregando from '../Comum/Carregando.jsx'
 
 // Aba Monitoramento, seção 11 do Handoff_Monitoramento_1.5_Bob.md.
 //
@@ -319,7 +320,7 @@ function MonitoramentoPage() {
   if (carregando) {
     return (
       <main className="mon-pagina mon-pagina--vazia">
-        <Loading withOverlay={false} description="Carregando o ciclo de monitoramento" />
+        <Carregando descricao="Carregando o ciclo de monitoramento" />
       </main>
     )
   }

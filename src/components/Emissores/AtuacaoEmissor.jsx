@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Button, InlineLoading, InlineNotification, Link, Modal } from '@carbon/react'
+import { Button, InlineNotification, Link, Modal } from '@carbon/react'
 import { Renew } from '@carbon/icons-react'
 import { confirmarAtuacao, verAtuacao } from '../../services/coletaApi'
 import { avisarEmissoresAtualizados, perfilParaEnvio, propostaDe, propostaValida, usePesquisaAtuacao } from './atuacao'
 import RevisaoAtuacao from './RevisaoAtuacao.jsx'
 import './NovoEmissor.scss'
+import Carregando from '../Comum/Carregando.jsx'
 
 // Atuação de uma empresa já cadastrada: um resumo clicável que abre o perfil salvo completo (resumo, setor, listas,
 // fontes, versão) para consultar e editar direto; salvar grava uma versão nova, com as fontes da anterior. A nova
@@ -122,7 +123,7 @@ function AtuacaoEmissor({ emissor, podeEditar = true, onAtualizado }) {
             + `${salvo.editado ? ' (editada)' : ''}.`}
           {' '}A atuação é o contexto que os agentes usam sempre que falam desta empresa.
         </p>
-        {carregando && <InlineLoading description="Abrindo a atuação salva…" />}
+        {carregando && <Carregando compacto descricao="Abrindo a atuação salva" />}
         {!carregando && (salvo || emPesquisa) && (
           <RevisaoAtuacao estado={estadoRevisao} resultado={resultadoRevisao} erro={pesquisa.erro}
             proposta={proposta} onChange={setProposta} />

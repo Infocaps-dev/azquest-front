@@ -5,7 +5,6 @@
 // Aba Coleta: disparo do crawler e acompanhamento.
 
 .col-texto {
-  max-width: 60rem;
   @include type-style('body-compact-01');
   margin-bottom: $spacing-05;
   color: $text-secondary;

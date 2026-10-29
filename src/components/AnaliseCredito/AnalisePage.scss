@@ -14,6 +14,16 @@
   background: $background;
 }
 
+// Aviso solto na página (entre as seções) ou dentro de uma: na largura toda, como as seções; o Carbon limita a 50rem
+// e, entre seções, ficava colado na seguinte (29/10/2026, padronização das abas Documentos e Conceitos).
+.ana-pagina .cds--inline-notification {
+  max-width: none;
+}
+
+.ana-pagina > .cds--inline-notification {
+  margin: 0 0 $spacing-06;
+}
+
 // Esqueleto da primeira carga (EsqueletoAnalise): os blocos no tamanho dos de verdade.
 .ana-esqueleto__identidade {
   display: flex;

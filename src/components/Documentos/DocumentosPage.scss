@@ -4,12 +4,16 @@
 
 // Aba Documentos: o acervo por empresa e tipo, e o visualizador de PDF.
 
+// Busca na largura da seção, como os campos da aba Coleta (29/10/2026).
 .doc-barra {
   display: flex;
   gap: $spacing-04;
   align-items: flex-end;
-  max-width: 48rem;
   margin-bottom: $spacing-05;
+
+  .cds--search {
+    flex: 1;
+  }
 }
 
 .doc-painel {

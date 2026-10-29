@@ -7,7 +7,6 @@
 .conceitos {
   &__explicacao p {
     @include type-style('body-01');
-    max-width: 48rem;
     & + p { margin-top: $spacing-03; }
   }
   &__lista { list-style: none; padding: 0; margin: 0; }
@@ -21,7 +20,6 @@
     @include type-style('label-01');
     color: $text-secondary;
     margin: $spacing-02 0 $spacing-04;
-    max-width: 48rem;
   }
   &__opcoes { list-style: none; padding: 0; margin: 0; }
   &__opcao {

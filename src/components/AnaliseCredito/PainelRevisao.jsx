@@ -52,7 +52,7 @@ const APLICACAO = {
   erro: 'O ajuste não entrou no relatório',
 }
 
-function Detalhe({ item, decisao, rotulos, onDecidir, onVerNoRelatorio, onAnterior, onProximo, gerando }) {
+function Detalhe({ item, decisao, rotulos, onDecidir, onVerNoRelatorio, onAnterior, onProximo, gerando, somenteLeitura }) {
   const [modo, setModo] = useState(null) // null | 'ajustar' | 'rejeitar'
   const [texto, setTexto] = useState('')
   const [motivo, setMotivo] = useState('')
@@ -197,7 +197,10 @@ function Detalhe({ item, decisao, rotulos, onDecidir, onVerNoRelatorio, onAnteri
           Ver no relatório <ArrowRight size={14} />
         </button>
         <span className="rev-detalhe__botoes">
-          {modo ? (
+          {/* Versão publicada: o servidor recusa decisão nova (409); a revisão fica só para consulta. */}
+          {somenteLeitura ? (
+            <span className="rev-detalhe__leitura">Versão publicada: para mudar, gere uma versão nova.</span>
+          ) : modo ? (
             <>
               <Button kind="ghost" size="sm" disabled={enviando}
                 onClick={() => { setModo(null); setMotivo(''); setTexto(item.texto || ''); setErro('') }}>Cancelar</Button>
@@ -268,7 +271,7 @@ function SugestoesDoAgente({ sugestoes = [] }) {
 
 function PainelRevisao({
   aberto, onFechar, resumo, revisao, categorias = [], filtroInicial, onDecidir, onDecidirLote, onVerNoRelatorio,
-  onGerarVersao,
+  onGerarVersao, somenteLeitura = false,
 }) {
   const [status, setStatus] = useState('pendente')
   const [categoriasSel, setCategoriasSel] = useState([])
@@ -293,7 +296,8 @@ function PainelRevisao({
     setCategoriasSel(filtroInicial?.categoria ? [filtroInicial.categoria] : [])
     setBusca('')
     const alvo = filtroInicial?.itemId
-    setStatus(alvo && statusDe(alvo) !== 'pendente' ? 'todos' : 'pendente')
+    // "Ver revisão" (seção ou versão sem pendentes): todos os itens; o filtro de pendentes mostraria a lista vazia.
+    setStatus(filtroInicial?.todos || (alvo && statusDe(alvo) !== 'pendente') ? 'todos' : 'pendente')
     setSelecionado(alvo || null)
     setConfirmar(null)
   }, [aberto, filtroInicial]) // só ao abrir: decidir itens depois não reposiciona o filtro
@@ -407,7 +411,7 @@ function PainelRevisao({
             <button type="button" className="ana-link" onClick={() => setCategoriasSel([])}>Limpar</button>
           )}
           {/* Lote só com filtro: aprovar tudo de uma vez, sem ler, é o que a revisão existe para evitar. */}
-          {status === 'pendente' && filtrando && pendentesVisiveis.length > 0 && (
+          {!somenteLeitura && status === 'pendente' && filtrando && pendentesVisiveis.length > 0 && (
             <Button kind={confirmar === 'filtro' ? 'primary' : 'tertiary'} size="sm" renderIcon={Checkmark}
               className="rev-categorias__lote" onClick={() => aprovarLote('filtro', pendentesVisiveis)}>
               {confirmar === 'filtro'
@@ -448,7 +452,7 @@ function PainelRevisao({
                   <header className="rev-grupo__cabecalho">
                     <span className="rev-grupo__titulo">{g.titulo}</span>
                     <span className="rev-grupo__contagem">{g.itens.length}</span>
-                    {pend.length > 1 && (
+                    {!somenteLeitura && pend.length > 1 && (
                       <button type="button" className={`rev-grupo__lote${confirmar === chave ? ' rev-grupo__lote--confirmar' : ''}`}
                         onClick={() => aprovarLote(chave, pend)}>
                         {confirmar === chave ? `Confirmar ${pend.length}` : `Aprovar ${pend.length}`}
@@ -488,6 +492,7 @@ function PainelRevisao({
             onDecidir={decidir}
             onVerNoRelatorio={onVerNoRelatorio}
             gerando={Boolean(revisao?.ajustes?.pedido)}
+            somenteLeitura={somenteLeitura}
             onAnterior={posicao > 0 ? () => irPara(-1) : null}
             onProximo={posicao >= 0 && posicao < visiveis.length - 1 ? () => irPara(1) : null}
           />

@@ -77,11 +77,12 @@ function SecoesRelatorio({ itens = [], revisao, rotulos = {}, onRevisar, onVerNo
                   {semFonte > 0 && `, ${semFonte} sem fonte`}
                 </span>
                 <span className="ana-tema__acoes">
-                  {pendentes.length > 0 && (
-                    <Button kind="ghost" size="sm" renderIcon={TaskApproved} onClick={() => onRevisar?.(s.secao)}>
-                      Revisar
-                    </Button>
-                  )}
+                  {/* Sempre um botão (29/10/2026): sem ele, o cartão revisado ficava com outro rodapé. Revisada, a
+                      seção abre a revisão com todos os itens dela, não só os pendentes (que seriam nenhum). */}
+                  <Button kind="ghost" size="sm" renderIcon={TaskApproved}
+                    onClick={() => onRevisar?.(s.secao, pendentes.length === 0)}>
+                    {pendentes.length ? 'Revisar' : 'Ver revisão'}
+                  </Button>
                   <button type="button" className="ana-link" onClick={() => onVerNoRelatorio?.(ancoraDaSecao(s.secao))}>
                     Ver no relatório <ArrowRight size={14} />
                   </button>

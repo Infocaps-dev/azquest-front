@@ -543,7 +543,7 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
           )}
           {pendentes === 0 && revisao?.status !== 'publicada' && (
             <>
-              <Button kind="ghost" size="sm" onClick={() => abrirRevisao(null)}>Ver revisão</Button>
+              <Button kind="ghost" size="sm" onClick={() => abrirRevisao({ todos: true })}>Ver revisão</Button>
               {revisao?.status !== 'devolvida' && (
                 <Button kind="ghost" size="sm" onClick={devolverVersao} disabled={enviando}>Devolver para ajuste</Button>
               )}
@@ -551,6 +551,13 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
                 {enviando ? 'Enviando…' : 'Aprovar e publicar'}
               </Button>
             </>
+          )}
+          {/* Versão publicada (29/10/2026): o lugar do "Revisar" ficava vazio e a linha de botões, desalinhada. A
+              revisão abre só para leitura: mudar exige uma versão nova. */}
+          {pendentes === 0 && revisao?.status === 'publicada' && (
+            <Button kind="primary" size="sm" renderIcon={TaskApproved} onClick={() => abrirRevisao({ todos: true })}>
+              Ver revisão
+            </Button>
           )}
         </div>
       </header>
@@ -607,7 +614,7 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
         onAbrirItem={itemId => abrirRevisao(itemId ? { itemId } : null)} />
 
       <SecoesRelatorio itens={resumo?.itens} revisao={revisao} rotulos={rotulos}
-        onRevisar={secao => abrirRevisao({ secao })} onVerNoRelatorio={abrirRelatorio} />
+        onRevisar={(secao, todos) => abrirRevisao({ secao, todos })} onVerNoRelatorio={abrirRelatorio} />
 
       {/* Os documentos que este relatório usou, como bibliografia. O envio de documentos fica em Coleta › Coleta manual e
           o acervo inteiro de cada empresa, na aba Documentos. */}
@@ -619,6 +626,7 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
         onFechar={() => setPainel({ aberto: false, filtro: null })}
         resumo={resumo}
         revisao={revisao}
+        somenteLeitura={revisao?.status === 'publicada'}
         categorias={categorias}
         onDecidir={decidir}
         onDecidirLote={decidirVarios}

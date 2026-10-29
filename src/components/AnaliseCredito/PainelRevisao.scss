@@ -303,6 +303,11 @@
   gap: $spacing-03;
 }
 
+.rev-detalhe__leitura {
+  @include type-style('helper-text-01');
+  color: $text-secondary;
+}
+
 // Sugestões do agente fora do relatório: recolhidas por padrão, acima dos filtros.
 .rev-sugestoes {
   flex-shrink: 0;

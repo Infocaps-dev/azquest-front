@@ -382,11 +382,17 @@
 .ana-tema__cabecalho {
   display: flex;
   gap: $spacing-03;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+
+  // Título em duas linhas não espreme a etiqueta ("Revisa…", "4 pendent…").
+  .cds--tag { flex-shrink: 0; }
 }
 
 .ana-tema__titulo { @include type-style('heading-compact-01'); }
+
+// Seção sem texto com fonte: o aviso ocupa o lugar da lista, e o rodapé fica no fim do cartão, como nos outros.
+.ana-tema > .ana-vazio { flex: 1; }
 
 .ana-tema__lista {
   display: flex;
@@ -418,12 +424,12 @@
   &:focus-visible { outline: 2px solid $focus; outline-offset: 2px; }
 }
 
+// Rodapé igual em todos os cartões (29/10/2026): a contagem numa linha e, abaixo, o botão da revisão à esquerda e
+// "Ver no relatório" à direita. Antes ele quebrava de um jeito em cada cartão, conforme a largura do que tinha dentro.
 .ana-tema__rodape {
   display: flex;
-  flex-wrap: wrap;
-  gap: $spacing-04;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: $spacing-02;
   padding-top: $spacing-03;
   border-top: 1px solid $border-subtle-01;
 }
@@ -443,6 +449,7 @@
   display: flex;
   gap: $spacing-04;
   align-items: center;
+  justify-content: space-between;
 }
 
 // ── Cobertura ───────────────────────────────────────────────────────────

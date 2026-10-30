@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react'
 import { Tile } from '@carbon/react'
 import { WarningAlt } from '@carbon/icons-react'
 import { formatar, rotuloEvidencia } from './vocabulario'
@@ -17,13 +18,43 @@ import { FonteClicavel } from './FontesDoDocumento.jsx'
 // disponível é da Ecovias Ponte, não do consolidado, e quem lê a nota precisa
 // ler isso junto.
 
+// Cartões por assunto (29/10/2026): indicadores e ratings. A largura disponível decide o arranjo: se todos cabem numa
+// linha, os grupos ficam lado a lado e os cartões com a mesma largura; senão, uma linha por grupo, dividida por igual
+// (5 indicadores, 1/5 cada) e, sem espaço nem para isso, em linhas equilibradas (5 com espaço para 4: 3 + 2, nunca
+// 4 + 1 com um cartão sozinho esticado).
+const LARGURA_MINIMA = 208 // 13rem: abaixo disso o valor do cartão ("23.480 R$ mi") não cabe numa linha
+const ESPACO = 16 // $spacing-05, o mesmo do CSS
+const GRUPOS = [
+  { id: 'indicadores', rotulo: 'Indicadores', pertence: n => !String(n.id || '').startsWith('rating_') },
+  { id: 'ratings', rotulo: 'Ratings', pertence: n => String(n.id || '').startsWith('rating_') },
+]
+
 function NumerosChave({ numeros = [], onAbrir }) {
+  const ref = useRef(null)
+  const [largura, setLargura] = useState(0)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return undefined
+    setLargura(el.getBoundingClientRect().width) // antes da primeira pintura: sem o arranjo "piscar"
+    const observador = new ResizeObserver(([e]) => setLargura(e.contentRect.width))
+    observador.observe(el)
+    return () => observador.disconnect()
+  }, [numeros.length])
   if (!numeros.length) return null
+  const grupos = GRUPOS.map(g => ({ ...g, lista: numeros.filter(g.pertence) })).filter(g => g.lista.length)
+  const cabem = Math.max(1, Math.floor((largura + ESPACO) / (LARGURA_MINIMA + ESPACO)))
+  const juntos = numeros.length <= cabem
+  // Linhas equilibradas: o número de cartões por linha que divide o grupo no menor número de linhas, por igual.
+  const porLinha = n => (juntos ? n : Math.ceil(n / Math.ceil(n / cabem)))
 
   return (
-    <section className="ana-numeros" aria-label="Números-chave">
-      <div className="ana-numeros__grade">
-        {numeros.map(numero => (
+    <section ref={ref} className={`ana-numeros${juntos ? ' ana-numeros--juntos' : ''}`} aria-label="Números-chave">
+      {grupos.map(grupo => (
+      <div key={grupo.id} className="ana-numeros__grupo" role="group" aria-label={grupo.rotulo}
+        style={juntos ? { flexGrow: grupo.lista.length } : undefined}>
+      <h3 className="ana-numeros__rotulo">{grupo.rotulo}</h3>
+      <div className="ana-numeros__linha" style={{ '--por-linha': porLinha(grupo.lista.length) }}>
+        {grupo.lista.map(numero => (
           <Tile
             key={numero.id}
             className={[
@@ -63,6 +94,8 @@ function NumerosChave({ numeros = [], onAbrir }) {
           </Tile>
         ))}
       </div>
+      </div>
+      ))}
     </section>
   )
 }

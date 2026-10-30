@@ -277,6 +277,35 @@
   gap: $spacing-05;
 }
 
+// Arranjo dos cartões (NumerosChave.jsx decide pela largura): uma linha por grupo, ou os grupos lado a lado quando
+// todos cabem numa linha; --por-linha divide cada linha por igual.
+.ana-numeros__grupo + .ana-numeros__grupo { margin-top: $spacing-05; }
+
+.ana-numeros--juntos {
+  display: flex;
+  gap: $spacing-05;
+
+  > .ana-numeros__grupo { flex-basis: 0; min-width: 0; }
+  > .ana-numeros__grupo + .ana-numeros__grupo { margin-top: 0; }
+}
+
+.ana-numeros__rotulo {
+  @include type-style('label-01');
+  margin-bottom: $spacing-03;
+  color: $text-secondary;
+}
+
+.ana-numeros__linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-05;
+
+  > .ana-kpi {
+    flex: 1 1 calc((100% - (var(--por-linha, 1) - 1) * #{$spacing-05}) / var(--por-linha, 1));
+    min-width: 0;
+  }
+}
+
 .ana-kpi {
   position: relative;
   padding: 0;
@@ -324,6 +353,7 @@
 
 .ana-kpi__valor {
   @include type-style('productive-heading-04');
+  white-space: nowrap; // "5.706 R$ mi" numa linha só
 }
 
 .ana-kpi__periodo,

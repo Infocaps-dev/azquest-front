@@ -18,3 +18,42 @@
   font-weight: 600;
   line-height: 1;
 }
+
+// Anel de foco só na navegação pelo teclado (29/10/2026). O Carbon desenha o foco em :focus, e todo clique de mouse
+// deixava uma borda azul: a caixa inteira na aba do menu, a borda e a sombra nos botões (o terciário ficava azul
+// preenchido), o "x" e os botões dos modais, o seletor de modo, o acordeão. Com :focus-visible o navegador só mostra o
+// foco quando ele serve (Tab, setas): quem usa o teclado continua vendo onde está; o clique não deixa marca.
+:focus:not(:focus-visible) {
+  outline: none !important;
+}
+
+.cds--btn:focus:not(:focus-visible) {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.cds--btn--tertiary:focus:not(:focus-visible):not(:hover) {
+  border-color: var(--cds-button-tertiary, #0f62fe);
+  background-color: transparent;
+  color: var(--cds-button-tertiary, #0f62fe);
+}
+
+.cds--btn--danger--tertiary:focus:not(:focus-visible):not(:hover) {
+  border-color: var(--cds-button-danger-secondary, #da1e28);
+  background-color: transparent;
+  color: var(--cds-button-danger-secondary, #da1e28);
+}
+
+// Aba do menu: o Carbon troca a linha de baixo da aba atual por uma caixa azul no foco; no clique fica só a linha.
+a.cds--header__menu-item:focus:not(:focus-visible),
+a.cds--header__menu-item[aria-current='page']:focus:not(:focus-visible),
+a.cds--header__name:focus:not(:focus-visible),
+.cds--header__action:focus:not(:focus-visible) {
+  border: 2px solid transparent;
+}
+
+.cds--content-switcher-btn:focus:not(:focus-visible)::before,
+.cds--content-switcher-btn:focus:not(:focus-visible)::after,
+.cds--accordion__heading:focus:not(:focus-visible) {
+  box-shadow: none;
+}

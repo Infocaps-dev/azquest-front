@@ -44,10 +44,18 @@
 .atuacao-emissor {
   margin: $spacing-03 0 $spacing-05;
   max-width: 48rem;
+
+  // O rótulo em cima do resumo, como o "Emissor" ao lado: na mesma linha, "Atuação" colava no link
+  // ("AtuaçãoRodovias · ...", 30/10/2026).
+  > .cds--label {
+    display: block;
+    margin-bottom: $spacing-02;
+  }
 }
 
 .atuacao-emissor__texto {
   @include type-style('body-compact-01');
+  display: block;
   margin: $spacing-02 0;
 }
 

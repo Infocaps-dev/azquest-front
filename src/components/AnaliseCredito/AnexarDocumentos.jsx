@@ -6,7 +6,6 @@ import {
   InlineNotification,
   Select,
   SelectItem,
-  Tag,
   TextInput,
 } from '@carbon/react'
 import {
@@ -71,8 +70,6 @@ import RotuloFixo from '../Comum/RotuloFixo.jsx'
 // Ecorodovias seria extraído para o acervo dela. Com mais de um emissor, nada
 // vem escolhido; com documentos esperando confirmação, o emissor não muda (os
 // recebimentos já estão no bucket dele).
-
-const CORES_DA_CONFIANCA = { alta: 'green', media: 'teal', baixa: 'gray' }
 
 // O tipo do nome: release/ guarda o release (RR-), a apresentação de resultados (AR-) e a institucional (AP-).
 function tipoDoNome(documento) {
@@ -344,9 +341,6 @@ function AnexarDocumentos({ aoEnviar }) {
               <li key={documento.chave_recebida} className="ana-anexos__item">
                 <div className="ana-anexos__cabecalho">
                   <span className="ana-anexos__arquivo">{documento.arquivo}</span>
-                  <Tag type={CORES_DA_CONFIANCA[documento.confianca]} size="sm">
-                    confiança {documento.confianca}
-                  </Tag>
                 </div>
 
                 <p className="ana-anexos__motivo">{documento.motivo}</p>

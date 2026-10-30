@@ -33,19 +33,19 @@ import Carregando from '../Comum/Carregando.jsx'
 
 // Edição no relatório (28/10/2026, revisto com o Kimi): o trecho sob o mouse (ou com o foco) ganha um realce discreto
 // e um lápis na margem direita, fora do texto; nos títulos, o lápis fica dentro da barra e mostra "Pedir alteração na
-// seção" ao passar o mouse. O trecho com a janela de edição aberta fica marcado até ela fechar. O realce é feito com
-// sombra, sem pseudo-elemento (os itens de lista usam ::before no marcador) e sem deslocar o texto. Nada disso
-// imprime, e o PDF sai do HTML original, sem esta injeção.
+// seção" ao passar o mouse. O trecho com a janela de edição aberta fica marcado até ela fechar. O realce é um fundo
+// claro com halo, sem fio na lateral (30/10/2026), sem pseudo-elemento (os itens de lista usam ::before no marcador)
+// e sem deslocar o texto. Nada disso imprime, e o PDF sai do HTML original, sem esta injeção.
 const ESTILO_EDICAO = `
 .azq-editavel { position: relative; border-radius: 2px; transition: background-color .12s, box-shadow .12s; }
 .azq-editavel:not(.section-heading):not(.annex-heading):not(.sub-heading):hover,
 .azq-editavel:not(.section-heading):not(.annex-heading):not(.sub-heading):focus-within {
   background: rgba(1,134,239,.05);
-  box-shadow: -8px 0 0 -6px #0186ef, 0 0 0 4px rgba(1,134,239,.05);
+  box-shadow: 0 0 0 4px rgba(1,134,239,.05);
 }
 .azq-editavel.azq-editando:not(.section-heading):not(.annex-heading):not(.sub-heading) {
   background: rgba(1,134,239,.09);
-  box-shadow: -8px 0 0 -6px #0186ef, 0 0 0 4px rgba(1,134,239,.09);
+  box-shadow: 0 0 0 4px rgba(1,134,239,.09);
 }
 .azq-editar {
   position: absolute; top: -5px; right: -31px; z-index: 5;
@@ -57,7 +57,8 @@ const ESTILO_EDICAO = `
   opacity: 0; pointer-events: none; transition: opacity .12s, background-color .12s, color .12s;
 }
 .azq-editar svg { width: 16px; height: 16px; flex: none; fill: currentColor; }
-.azq-editavel:hover > .azq-editar, .azq-editavel.azq-editando > .azq-editar, .azq-editar:focus-visible {
+.azq-editavel:hover > .azq-editar, .azq-editavel.azq-editando > .azq-editar, .azq-editavel.azq-saindo > .azq-editar,
+.azq-editar:focus-visible {
   opacity: 1; pointer-events: auto;
 }
 .azq-editar:hover { background: rgba(1,134,239,.12); color: #0186ef !important; }
@@ -169,6 +170,15 @@ function porBotoes(doc) {
     botao.setAttribute('aria-label', `${botao.title}${inicio ? `: ${inicio}` : ''}`)
     if (!secao && !cabeNaMargem(alvo)) botao.classList.add('azq-editar--dentro')
     alvo.appendChild(botao)
+    // O lápis fica no alto, na margem: quem sai do meio de uma imagem alta em direção a ele passa fora do trecho
+    // antes de chegar, e ele sumia (30/10/2026). Ao sair, ele continua visível e clicável por meio segundo.
+    let saida = null
+    alvo.addEventListener('mouseleave', () => {
+      alvo.classList.add('azq-saindo')
+      clearTimeout(saida)
+      saida = setTimeout(() => alvo.classList.remove('azq-saindo'), 500)
+    })
+    alvo.addEventListener('mouseenter', () => { clearTimeout(saida); alvo.classList.remove('azq-saindo') })
   })
 }
 

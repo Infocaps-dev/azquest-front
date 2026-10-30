@@ -24,6 +24,13 @@
   margin: 0 0 $spacing-06;
 }
 
+// Conteúdo do acordeão aberto na largura toda: o Carbon recua 25% à direita a partir de 640px, e a lista de arquivos
+// da aba Documentos parava a três quartos da seção (29/10/2026).
+.ana-pagina .cds--accordion__content,
+.mon-pagina .cds--accordion__content {
+  padding-inline-end: $spacing-05;
+}
+
 // Esqueleto da primeira carga (EsqueletoAnalise): os blocos no tamanho dos de verdade.
 .ana-esqueleto__identidade {
   display: flex;

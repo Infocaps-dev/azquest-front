@@ -129,12 +129,10 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
         if (!ativo) return
         setRelatorios(indice.relatorios || [])
         if (relatorioDaUrl) return // o do endereço carrega sozinho (mesmo fora da lista: link antigo vira "não encontrado")
-        if (indice.relatorios?.length) {
-          ir(indice.relatorios[0].relatorio_id, { replace: true }) // /relatorios: o mais recente
-        } else {
-          setErroCarga('Nenhum relatório gerado ainda. Gere um aqui ou peça ao agente no chat.')
-          setCarregando(false)
-        }
+        // /relatorios sem relatório no endereço (29/10/2026): a tela abre sem nenhum, para o analista escolher qual ver;
+        // antes ela abria sozinha o mais recente.
+        if (!indice.relatorios?.length) setErroCarga('Nenhum relatório gerado ainda. Gere um aqui ou peça ao agente no chat.')
+        setCarregando(false)
       })
       .catch(e => {
         if (ativo) {
@@ -482,6 +480,41 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
         <InlineNotification kind="info" lowContrast hideCloseButton
           title="Análise de Crédito indisponível" subtitle={erroCarga} />
         <Button kind="primary" size="md" renderIcon={Add} onClick={() => setGerarAberto(true)}>Gerar relatório</Button>
+        {dialogoGerar}
+      </main>
+    )
+  }
+
+  // Nenhum relatório escolhido: a lista dos mais recentes para abrir um, ou gerar outro.
+  if (!relatorioId && !carregando) {
+    return (
+      <main className="ana-pagina">
+        <header className="ana-cabecalho">
+          <div className="ana-cabecalho__identidade">
+            <h1 className="ana-cabecalho__emissor">Análise de crédito</h1>
+            <span className="ana-cabecalho__referencia">escolha um relatório para revisar</span>
+          </div>
+          <div className="ana-cabecalho__acoes">
+            {seletor}
+            <Button kind="primary" size="sm" renderIcon={Add} onClick={() => setGerarAberto(true)}>Gerar relatório</Button>
+          </div>
+        </header>
+        <section className="des-secao" aria-label="Relatórios recentes">
+          <h2 className="ana-secao__titulo">Relatórios recentes</h2>
+          <ul className="ana-escolha">
+            {relatorios.slice(0, 12).map(r => (
+              <li key={r.relatorio_id}>
+                <button type="button" className="ana-escolha__item" onClick={() => ir(r.relatorio_id)}>
+                  <span className="ana-escolha__empresa">{r.empresa}</span>
+                  <span className="ana-escolha__detalhe">
+                    {r.referencia || r.periodo} · versão {r.versao}
+                    {r.atualizado_em ? ` · ${dataHora(r.atualizado_em)}` : ''}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
         {dialogoGerar}
       </main>
     )

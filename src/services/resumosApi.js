@@ -9,12 +9,25 @@
 // relatorio-creditos/monitor_resumo/LEIAME.md.
 
 const BASE = '/resumos'
+// Leitura com prazo (29/10/2026): o serviço desliga quando fica parado e, ao religar, um pedido podia ficar pendurado e
+// a tela da análise carregando sem fim. Passado o prazo, a tela mostra o motivo e o analista tenta de novo.
+const PRAZO_LEITURA_MS = 45000
 
 async function pedir(rota, opcoes = {}) {
-  const resposta = await fetch(`${BASE}${rota}`, {
-    ...opcoes,
-    headers: { Accept: 'application/json', ...(opcoes.body ? { 'Content-Type': 'application/json' } : {}) },
-  })
+  const leitura = !opcoes.method || opcoes.method === 'GET'
+  let resposta
+  try {
+    resposta = await fetch(`${BASE}${rota}`, {
+      ...opcoes,
+      ...(leitura && !opcoes.signal ? { signal: AbortSignal.timeout(PRAZO_LEITURA_MS) } : {}),
+      headers: { Accept: 'application/json', ...(opcoes.body ? { 'Content-Type': 'application/json' } : {}) },
+    })
+  } catch (e) {
+    if (e.name === 'TimeoutError') {
+      throw new Error('O serviço dos relatórios demorou a responder (ele pode estar ligando). Tente de novo em instantes.')
+    }
+    throw e
+  }
   if (!resposta.ok) {
     const corpo = await resposta.json().catch(() => ({}))
     const erro = new Error(corpo.detail || `Falha em ${rota} (HTTP ${resposta.status})`)

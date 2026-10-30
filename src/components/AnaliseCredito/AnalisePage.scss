@@ -110,6 +110,33 @@
 
 .ana-cabecalho__seletor { min-width: 22rem; }
 
+// Tela sem relatório escolhido (29/10/2026): os mais recentes, um clique abre.
+.ana-escolha {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: $spacing-04;
+  list-style: none;
+}
+
+.ana-escolha__item {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-02;
+  width: 100%;
+  padding: $spacing-05;
+  border: 1px solid $border-subtle-01;
+  background: $layer-02;
+  color: $text-primary;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover,
+  &:focus-visible { background: $layer-hover-02; }
+}
+
+.ana-escolha__empresa { @include type-style('heading-compact-02'); }
+.ana-escolha__detalhe { @include type-style('body-compact-01'); color: $text-secondary; }
+
 // "Gerar novo relatório", o primeiro item do seletor: cor de link, ícone e um divisor antes dos relatórios.
 .ana-cabecalho__seletor .cds--list-box__menu-item:first-child {
   border-bottom: 1px solid $border-subtle-01;

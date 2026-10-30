@@ -9,12 +9,12 @@
 // e rating mantêm o nome do arquivo: o código do documento sai dele (série da emissão, agência).
 
 const PERIODO_DO_TIPO = {
-  itr: 'trimestre', dfp: 'ano', release: 'trimestre', apresentacao: 'trimestre', ri: 'mes',
+  itr: 'trimestre', dfp: 'ano', release: 'trimestre', apresentacao: 'trimestre', institucional: 'mes', ri: 'mes',
   escritura: 'livre', af: 'ano', rating: 'mes',
 }
 
 // Tipos cujo nome é montado aqui, e por isso pedem o período.
-const PADRONIZADOS = new Set(['itr', 'dfp', 'release', 'apresentacao', 'ri'])
+const PADRONIZADOS = new Set(['itr', 'dfp', 'release', 'apresentacao', 'institucional', 'ri'])
 
 const FORMATOS = {
   trimestre: { re: /^[1-4]T\d{2}$/, exemplo: '3T26' },
@@ -57,7 +57,8 @@ function anoCurto(ano) {
 // ("2025"; no 4T, o do próprio ano); planilha de RI o mês do fim do trimestre ("2026-06"). '' nos demais tipos.
 export function periodoDoTrimestre(tipo, trimestre) {
   const m = /^([1-4])T(\d{2})$/.exec(trimestre || '')
-  if (!m || !PADRONIZADOS.has(tipo)) return ''
+  // A institucional sai todo mês: o mês do fim do trimestre seria um chute; fica para quem envia dizer o mês.
+  if (!m || !PADRONIZADOS.has(tipo) || tipo === 'institucional') return ''
   const tri = Number(m[1])
   const ano = 2000 + Number(m[2])
   const formato = PERIODO_DO_TIPO[tipo]
@@ -85,7 +86,9 @@ export function periodoDoNome(nome, tipo) {
     || /([1-4])\s*[ºo°]?\s*tri\w*\s*(?:de\s*)?((?:20)?\d{2})(?![0-9])/i.exec(base)
   if (formato === 'trimestre') return trimestre ? `${trimestre[1]}T${anoCurto(trimestre[2])}` : ''
   if (formato === 'mes') {
+    // "2026-08" ou, no nome do site de RI, a data inteira ("20260813_ecorodovias_apresentacao_mercado").
     const m = /((?:19|20)\d{2})[\s_.-](0[1-9]|1[0-2])(?![0-9])/.exec(base)
+      || /(?:^|[^0-9])((?:19|20)\d{2})(0[1-9]|1[0-2])(?:[0-3]\d)?(?![0-9])/.exec(base)
     return m ? `${m[1]}-${m[2]}` : ''
   }
   if (formato === 'ano') {
@@ -97,8 +100,12 @@ export function periodoDoNome(nome, tipo) {
   return ''
 }
 
-// Release ou apresentação: a pasta é a mesma (release/), o prefixo do nome não (RR- ou AR-).
+// Release, apresentação de resultados ou apresentação institucional: a pasta é a mesma (release/), o prefixo do
+// nome não (RR-, AR- ou AP-). A institucional ("Apresentação da Companhia", que o site de RI publica todo mês) tem o
+// mês no nome, não o trimestre; tratada como AR- ela sobrescreveria a apresentação de resultados (30/10/2026).
 export function subtipoDoNome(nome) {
+  if (/^ap[\s_-]\d{4}|apresenta[cç][aã]o[\s_-]*(?:da[\s_-]*companhia|institucional|(?:de[\s_-]*)?mercado)|apresentacao_mercado/i
+    .test(nome)) return 'institucional'
   return /^ar[\s_-]|apresenta/i.test(nome) ? 'apresentacao' : 'release'
 }
 
@@ -115,5 +122,6 @@ export function nomePadronizado({ arquivo, tipo, periodo, emissor }) {
   if (tipo === 'dfp') return `DFP-${p}-${empresa}.${extensao}`
   if (tipo === 'release') return `RR-${p}-${empresa}.${extensao}`
   if (tipo === 'apresentacao') return `AR-${p}-${empresa}.${extensao}`
+  if (tipo === 'institucional') return `AP-${p}-${empresa}.${extensao}`
   return `Balanco-DRE-FC-${p}.${extensao}`
 }

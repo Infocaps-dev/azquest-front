@@ -74,7 +74,7 @@ import RotuloFixo from '../Comum/RotuloFixo.jsx'
 
 const CORES_DA_CONFIANCA = { alta: 'green', media: 'teal', baixa: 'gray' }
 
-// O tipo do nome: release/ guarda o release (RR-) e a apresentação (AR-).
+// O tipo do nome: release/ guarda o release (RR-), a apresentação de resultados (AR-) e a institucional (AP-).
 function tipoDoNome(documento) {
   return documento.tipo === 'release' ? documento.subtipo : documento.tipo
 }
@@ -388,7 +388,8 @@ function AnexarDocumentos({ aoEnviar }) {
                       onChange={e => alterar(documento.chave_recebida, { subtipo: e.target.value })}
                     >
                       <SelectItem value="release" text="Release (RR)" />
-                      <SelectItem value="apresentacao" text="Apresentação (AR)" />
+                      <SelectItem value="apresentacao" text="Apresentação de resultados (AR)" />
+                      <SelectItem value="institucional" text="Apresentação institucional (AP)" />
                     </Select>
                   )}
                   {pedePeriodo(tipoNome) && (

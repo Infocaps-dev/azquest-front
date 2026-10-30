@@ -36,6 +36,14 @@ async function pedir(rota, opcoes = {}) {
   return resposta.json()
 }
 
+/**
+ * O catálogo dos documentos extraídos da empresa (30/10/2026): tipo, período, evidência e alertas lidos do
+ * conteúdo, nunca do nome do arquivo. `empresa` é a pasta da empresa (ex.: motiva).
+ */
+export function lerCatalogo(empresa) {
+  return pedir(`/api/documentos/catalogo?empresa=${encodeURIComponent(empresa)}`)
+}
+
 /** As pastas que o extrator conhece. Alimenta o seletor de correção. */
 export async function listarTiposDeDocumento() {
   return pedir('/api/documentos/tipos')

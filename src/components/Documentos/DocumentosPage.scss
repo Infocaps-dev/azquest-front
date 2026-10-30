@@ -192,6 +192,30 @@
   }
 }
 
+.doc-item__alerta {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-02;
+  color: $support-warning;
+  @include type-style('label-01');
+
+  svg {
+    fill: $support-warning;
+  }
+}
+
+.doc-catalogo {
+  display: grid;
+  gap: $spacing-03;
+  margin-bottom: $spacing-05;
+  @include type-style('body-compact-01');
+}
+
+.doc-catalogo__evidencia {
+  color: $text-secondary;
+  overflow-wrap: anywhere;
+}
+
 .doc-trecho__onde {
   @include type-style('label-01');
   color: $text-secondary;

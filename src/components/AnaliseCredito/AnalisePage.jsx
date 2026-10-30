@@ -280,15 +280,16 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
   }
 
   // Relatório completo: endereço próprio (/completo), para o link levar direto a ele e o "voltar" do navegador fechá-lo.
-  // Fechar volta no histórico quando foi aberto aqui; aberto por link, troca o endereço pelo do relatório.
+  // Fechar troca o endereço pelo do relatório. Voltar no histórico não serve (30/10/2026): o clique dentro do relatório
+  // (linha de fonte, imagem ampliada) também entra no histórico do navegador, o "voltar" desfazia só esse clique e o
+  // endereço seguia em /completo; o modal sumia da vista, a tela o tinha por aberto e a rolagem da página ficava travada.
   const abrirRelatorio = useCallback(ancora => {
     setAncoraCompleto(ancora || null)
-    navigate(caminhoDoRelatorio(atual.current, { completo: true }), { state: { completoPelaTela: true } })
+    navigate(caminhoDoRelatorio(atual.current, { completo: true }))
   }, [navigate])
   function fecharRelatorioCompleto() {
     setAncoraCompleto(null)
-    if (location.state?.completoPelaTela) navigate(-1)
-    else navigate(caminhoDoRelatorio(relatorioId), { replace: true })
+    navigate(caminhoDoRelatorio(relatorioId), { replace: true })
   }
 
   // Versão nova feita pelo botão "Editar" do relatório completo. O relatório já está na tela nessa versão; o resumo

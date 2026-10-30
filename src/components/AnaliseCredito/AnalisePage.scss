@@ -232,6 +232,8 @@
   &:focus-visible { outline: 2px solid $focus; outline-offset: 2px; }
 }
 .ana-sumario__observacao .ana-sumario__texto { @include type-style('body-01'); white-space: pre-line; }
+// Quadro do campo (imagem herdada, proposta do período): uma linha que leva a ele no relatório.
+.ana-sumario__observacao .ana-sumario__quadro { @include type-style('label-01'); display: block; margin: $spacing-02 0; }
 
 .ana-rotulo {
   @include type-style('label-01');

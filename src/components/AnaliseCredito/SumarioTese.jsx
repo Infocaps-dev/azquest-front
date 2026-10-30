@@ -60,6 +60,7 @@ function SumarioTese({ resumo, onAbrirRelatorio, onAbrirItem }) {
                     <button type="button" className="ana-link" onClick={() => onAbrirRelatorio?.(campo.ancora)}>
                       {campo.texto}
                     </button>
+                    {campo.proposta && <Tag type="teal" size="sm">Preenchido pelo sistema</Tag>}
                     {campo.origem === 'casa' && <Tag type="blue" size="sm">Informado pela casa</Tag>}
                     {campo.origem === 'sem fonte' && <Tag type="red" size="sm">Sem fonte</Tag>}
                   </>
@@ -74,13 +75,23 @@ function SumarioTese({ resumo, onAbrirRelatorio, onAbrirItem }) {
         })}
       </dl>
 
-      {resumo.observacoes && (
+      {(resumo.observacoes || resumo.observacoes_quadros?.length > 0) && (
         <div className="ana-sumario__observacao">
           <span className="ana-rotulo ana-rotulo--analista">Observações</span>
-          <button type="button" className="ana-sumario__texto"
-            onClick={() => onAbrirRelatorio?.(resumo.observacoes_ancora)}>
-            {resumo.observacoes}
-          </button>
+          {/* Imagem ou tabela do campo: uma linha que abre o relatório nela, não a marcação de onde ela vai. */}
+          {(resumo.observacoes_quadros || []).map((q, i) => (
+            <button key={i} type="button" className="ana-link ana-sumario__quadro"
+              onClick={() => onAbrirRelatorio?.(resumo.observacoes_ancora)}>
+              No relatório: {q.titulo || 'quadro'}
+              {q.herdado && q.proposta ? ' (relatório anterior e versão do período)' : q.herdado ? ' (relatório anterior)' : ''}
+            </button>
+          ))}
+          {resumo.observacoes && (
+            <button type="button" className="ana-sumario__texto"
+              onClick={() => onAbrirRelatorio?.(resumo.observacoes_ancora)}>
+              {resumo.observacoes}
+            </button>
+          )}
         </div>
       )}
 

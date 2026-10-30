@@ -81,3 +81,19 @@ a.cds--header__name:focus:not(:focus-visible),
 .cds--accordion__heading:focus:not(:focus-visible) {
   box-shadow: none;
 }
+
+// Botão que troca de texto com a mesma largura (Comum/RotuloFixo.jsx, 30/10/2026): todos os textos na mesma
+// célula, só o atual visível; o botão fica com a largura do mais longo.
+.rotulo-fixo {
+  display: inline-grid;
+  font-variant-numeric: tabular-nums;
+
+  > span {
+    grid-area: 1 / 1;
+    white-space: nowrap;
+  }
+}
+
+.rotulo-fixo__reserva {
+  visibility: hidden;
+}

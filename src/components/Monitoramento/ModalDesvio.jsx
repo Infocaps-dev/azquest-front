@@ -10,6 +10,7 @@ import {
 } from '@carbon/react'
 import { executarCiclo } from '../../services/monitorApi'
 import { nivelDe, nomeDaEtapa } from './niveis'
+import RotuloFixo from '../Comum/RotuloFixo.jsx'
 
 // Aviso de desvio no fluxo.
 //
@@ -97,7 +98,7 @@ function ModalDesvio({ emissor, periodo, comparacao, etapaApontada, destino, abe
           Agora não
         </Button>
         <Button kind="primary" onClick={seguir} disabled={enviando}>
-          {enviando ? 'Seguindo…' : `Seguir para ${nomeDestino}`}
+          <RotuloFixo atual={enviando ? 'Seguindo…' : `Seguir para ${nomeDestino}`} opcoes={['Seguindo…', `Seguir para ${nomeDestino}`]} />
         </Button>
       </ModalFooter>
     </ComposedModal>

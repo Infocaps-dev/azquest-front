@@ -14,6 +14,7 @@ import { useAuth } from '../../auth/AuthContext.jsx'
 import { isMock } from '../../auth/authService'
 import azLogo from '../../assets/azquest-logo.png'
 import ctiLogo from '../../assets/cti-logo.png'
+import RotuloFixo from '../Comum/RotuloFixo.jsx'
 
 function LoginModal({ open, onClose, error }) {
   const { login } = useAuth()
@@ -88,7 +89,7 @@ function LoginModal({ open, onClose, error }) {
 
           <div className="login-modal__actions">
             <Button kind="primary" type="submit" renderIcon={Login} disabled={loading || !email || !password}>
-              {loading ? 'Entrando...' : 'Entrar'}
+              <RotuloFixo atual={loading ? 'Entrando...' : 'Entrar'} opcoes={['Entrar', 'Entrando...']} />
             </Button>
             <Link href="#" onClick={handleForgot}>
               Esqueci minha senha

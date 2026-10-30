@@ -12,6 +12,7 @@ import {
 import { Checkmark, Close, Edit } from '@carbon/icons-react'
 import { nivelDe, nomeDaEtapa } from './niveis'
 import { registrarRevisao } from '../../services/monitorApi'
+import RotuloFixo from '../Comum/RotuloFixo.jsx'
 
 // Aprovação do analista, item 6 da seção 11. Aparece quando o fluxo chega em
 // B6, agora como modal.
@@ -143,7 +144,7 @@ function PainelAprovacao({ alerta, usuario, aberto, onFechar, onDecidido }) {
         )}
         <Button kind="primary" renderIcon={Checkmark} disabled={enviando}
           onClick={() => decidir(editando ? 'editado' : 'aprovado')}>
-          {editando ? 'Salvar e aprovar' : 'Aprovar'}
+          <RotuloFixo atual={editando ? 'Salvar e aprovar' : 'Aprovar'} opcoes={['Aprovar', 'Salvar e aprovar']} />
         </Button>
       </ModalFooter>
     </ComposedModal>

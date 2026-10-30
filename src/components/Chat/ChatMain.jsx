@@ -9,6 +9,7 @@ import useAndamentoRelatorio from '../../hooks/useAndamentoRelatorio'
 import { MODO_SIMULADO } from '../../services/chatApi'
 import { RelatorioDaConversa } from './contextoChat'
 import Carregando from '../Comum/Carregando.jsx'
+import RotuloFixo from '../Comum/RotuloFixo.jsx'
 
 // Relatório gerado no turno: as etapas vêm pelo stream enquanto o agente responde; depois, a tela acompanha a
 // versão 2 (interpretação redigida) pela operação do turno. O link fica na resposta do agente.
@@ -182,7 +183,7 @@ function ChatMain({
             <span>Nenhum relatório ligado a esta conversa.</span>
           )}
           <Button kind="ghost" size="sm" renderIcon={IconeVinculo} onClick={onEscolherRelatorio} disabled={enviando}>
-            {vinculo ? 'Trocar' : 'Usar um relatório pronto'}
+            <RotuloFixo atual={vinculo ? 'Trocar' : 'Usar um relatório pronto'} opcoes={['Trocar', 'Usar um relatório pronto']} />
           </Button>
         </div>
         <div className="chat-composer__row">
@@ -204,7 +205,7 @@ function ChatMain({
             onClick={enviar}
             disabled={enviando || !texto.trim()}
           >
-            {enviando ? 'Enviando' : 'Enviar'}
+            <RotuloFixo atual={enviando ? 'Enviando' : 'Enviar'} opcoes={['Enviar', 'Enviando']} />
           </Button>
         </div>
         <p className="chat-composer__hint">

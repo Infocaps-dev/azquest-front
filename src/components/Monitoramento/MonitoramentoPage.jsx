@@ -27,6 +27,7 @@ import VisualizadorFonte from './VisualizadorFonte.jsx'
 import { nivelDe } from './niveis'
 import './MonitoramentoPage.scss'
 import Carregando from '../Comum/Carregando.jsx'
+import RotuloFixo from '../Comum/RotuloFixo.jsx'
 
 // Aba Monitoramento, seção 11 do Handoff_Monitoramento_1.5_Bob.md.
 //
@@ -390,8 +391,9 @@ function MonitoramentoPage() {
             disabled={rodando || cicloEmAndamento || !periodoAlvo}
             onClick={rodarCiclo}
           >
-            {rodando ? 'Rodando…'
+            <RotuloFixo atual={rodando ? 'Rodando…'
               : periodoAlvo && periodoAlvo !== execucao?.periodo ? `Rodar ciclo do ${periodoAlvo}` : 'Rodar ciclo do início'}
+              opcoes={['Rodando…', 'Rodar ciclo do início', ...(periodoAlvo ? [`Rodar ciclo do ${periodoAlvo}`] : [])]} />
           </Button>
         </div>
       </header>

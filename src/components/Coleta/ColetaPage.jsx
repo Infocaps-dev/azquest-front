@@ -19,6 +19,7 @@ import SeletorPeriodo from '../Periodo/SeletorPeriodo.jsx'
 import { periodoValido, rotuloPeriodo } from '../Periodo/periodos'
 import './ColetaPage.scss'
 import Carregando from '../Comum/Carregando.jsx'
+import RotuloFixo from '../Comum/RotuloFixo.jsx'
 
 // Aba Coleta: dispara o crawler de fontes públicas do emissor e acompanha cada estágio.
 //
@@ -293,7 +294,7 @@ function ColetaPage() {
               <Button renderIcon={CloudDownload} onClick={iniciar}
                 disabled={!podeDisparar || disparando || emAndamento || !emissor || !fontes.length
                   || !periodoValido(periodo)}>
-                {emAndamento ? 'Coleta em andamento' : 'Iniciar coleta'}
+                <RotuloFixo atual={emAndamento ? 'Coleta em andamento' : 'Iniciar coleta'} opcoes={['Iniciar coleta', 'Coleta em andamento']} />
               </Button>
               {!podeDisparar && <p className="col-detalhe">Seu perfil só acompanha as coletas.</p>}
             </div>

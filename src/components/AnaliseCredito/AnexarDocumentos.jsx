@@ -33,6 +33,7 @@ import {
 import SeletorPeriodo from '../Periodo/SeletorPeriodo.jsx'
 import { ordem, periodoValido as intervaloValido, rotuloPeriodo, trimestres } from '../Periodo/periodos'
 import Carregando from '../Comum/Carregando.jsx'
+import RotuloFixo from '../Comum/RotuloFixo.jsx'
 
 // Anexar documentos à análise: o campo de upload e a confirmação do tipo.
 //
@@ -427,9 +428,8 @@ function AnexarDocumentos({ aoEnviar }) {
             disabled={enviando || pendentes > 0 || !intervaloValido(lote)}
             size="md"
           >
-            {enviando
-              ? 'Enviando…'
-              : `Enviar ${documentos.length} documento(s) para extração`}
+            <RotuloFixo atual={enviando ? 'Enviando…' : `Enviar ${documentos.length} documento(s) para extração`}
+                opcoes={['Enviando…', `Enviar ${documentos.length} documento(s) para extração`]} />
           </Button>
           {pendentes > 0 && (
             <p className="ana-anexos__pendencia">

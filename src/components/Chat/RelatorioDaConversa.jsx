@@ -4,6 +4,7 @@ import { ArrowRight, DocumentPdf, Launch, Maximize, Unlink } from '@carbon/icons
 import { acordarPdf, enderecoHtml, enderecoRelatorio } from '../../services/resumosApi'
 import { AVISO_LIGANDO_PDF, rotuloGerandoPdf, useBaixarPdf } from '../../hooks/useBaixarPdf'
 import RelatorioCompleto from '../AnaliseCredito/RelatorioCompleto.jsx'
+import RotuloFixo from '../Comum/RotuloFixo.jsx'
 
 // Relatório desta conversa, no alto do painel da direita: a miniatura da versão atual, que troca sozinha quando o
 // agente grava uma versão nova (a pessoa pede a alteração no chat e confere ali mesmo). "Ampliar" abre o relatório
@@ -85,7 +86,7 @@ function RelatorioDaConversa({ vinculo, enviando, onAtualizar, onTrocar, onDesvi
         </Button>
         <Button kind="ghost" size="sm" renderIcon={DocumentPdf} disabled={pdf.gerando !== null}
           onClick={() => pdf.baixar(id, versao)}>
-          {pdf.gerando === null ? 'PDF' : rotuloGerandoPdf(pdf.gerando)}
+          <RotuloFixo atual={pdf.gerando === null ? 'PDF' : rotuloGerandoPdf(pdf.gerando)} opcoes={['PDF', 'Gerando PDF… 888 s']} />
         </Button>
         <Button kind="ghost" size="sm" renderIcon={ArrowRight} onClick={() => onAbrirAnalise?.(id)}>
           Análise de Crédito

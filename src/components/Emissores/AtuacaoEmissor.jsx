@@ -6,6 +6,7 @@ import { avisarEmissoresAtualizados, perfilParaEnvio, propostaDe, propostaValida
 import RevisaoAtuacao from './RevisaoAtuacao.jsx'
 import './NovoEmissor.scss'
 import Carregando from '../Comum/Carregando.jsx'
+import RotuloFixo from '../Comum/RotuloFixo.jsx'
 
 // Atuação de uma empresa já cadastrada: um resumo clicável que abre o perfil salvo completo (resumo, setor, listas,
 // fontes, versão) para consultar e editar direto; salvar grava uma versão nova, com as fontes da anterior. A nova
@@ -130,7 +131,8 @@ function AtuacaoEmissor({ emissor, podeEditar = true, onAtualizado }) {
         )}
         {podeEditar && !carregando && pesquisa.estado !== 'pesquisando' && (
           <Button kind="ghost" size="sm" renderIcon={Renew} onClick={pesquisar}>
-            {emPesquisa ? 'Pesquisar de novo' : 'Pesquisar de novo na web (substitui a proposta)'}
+            <RotuloFixo atual={emPesquisa ? 'Pesquisar de novo' : 'Pesquisar de novo na web (substitui a proposta)'}
+              opcoes={['Pesquisar de novo', 'Pesquisar de novo na web (substitui a proposta)']} />
           </Button>
         )}
         {erro && <InlineNotification kind="error" lowContrast hideCloseButton title="Não gravado." subtitle={erro} />}

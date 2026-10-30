@@ -6,6 +6,7 @@ import { obterGrafico } from '../../services/resumosApi'
 import InserirNoRelatorio from './InserirNoRelatorio.jsx'
 import './GraficoInterativo.scss'
 import Carregando from '../Comum/Carregando.jsx'
+import RotuloFixo from '../Comum/RotuloFixo.jsx'
 
 // Gráfico do modelo do EBITDA desenhado na conversa, interativo.
 //
@@ -94,7 +95,8 @@ function PainelLinha({ painel, unidade }) {
       })} />
       {painel.janela_svg && (
         <Button kind="ghost" size="sm" onClick={() => setInteira(v => !v)}>
-          {inteira ? `Ver só os últimos ${painel.janela_svg} trimestres` : `Ver a série inteira (desde ${todas[0]})`}
+          <RotuloFixo atual={inteira ? `Ver só os últimos ${painel.janela_svg} trimestres` : `Ver a série inteira (desde ${todas[0]})`}
+            opcoes={[`Ver só os últimos ${painel.janela_svg} trimestres`, `Ver a série inteira (desde ${todas[0]})`]} />
         </Button>
       )}
     </>

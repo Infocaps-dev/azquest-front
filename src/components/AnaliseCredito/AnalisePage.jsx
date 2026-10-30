@@ -28,6 +28,7 @@ import { ProvedorDeFontes } from './FontesDoDocumento.jsx'
 import Carregando from '../Comum/Carregando.jsx'
 import { caminhoDoRelatorio, definirTitulo, relatorioDoCaminho } from '../../rotas'
 import { STATUS_VERSAO, dataHora } from './vocabulario'
+import RotuloFixo from '../Comum/RotuloFixo.jsx'
 import './AnalisePage.scss'
 
 // Aba Análise de Crédito: o relatório gerado pelo agente, resumido e revisável.
@@ -595,11 +596,11 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
           </Button>
           <Button kind="tertiary" size="sm" renderIcon={DocumentPdf} disabled={pdf.gerando !== null}
             onClick={() => { setAviso(null); pdf.limparErro(); pdf.baixar(relatorioId, resumo?.versao) }}>
-            {pdf.gerando === null ? 'Baixar PDF' : rotuloGerandoPdf(pdf.gerando)}
+            <RotuloFixo atual=<RotuloFixo atual={pdf.gerando === null ? 'Baixar PDF' : rotuloGerandoPdf(pdf.gerando)} opcoes={['Baixar PDF', 'Gerando PDF… 888 s']} /> opcoes={['Baixar PDF', 'Gerando PDF… 888 s']} />
           </Button>
           <Button kind="tertiary" size="sm" renderIcon={Renew} disabled={reprocessando || Boolean(gerando)}
             onClick={reprocessarRelatorio}>
-            {reprocessando ? 'Gerando o relatório…' : 'Reprocessar'}
+            <RotuloFixo atual=<RotuloFixo atual={reprocessando ? 'Gerando o relatório…' : 'Reprocessar'} opcoes={['Reprocessar', 'Gerando o relatório…']} /> opcoes={['Reprocessar', 'Gerando o relatório…']} />
           </Button>
           {gerando && !gerando.atrasado && <Tag type="blue" size="md">Gerando a versão {resumo.versao + 1}…</Tag>}
           {gerando?.atrasado && (
@@ -624,7 +625,7 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
                 <Button kind="ghost" size="sm" onClick={devolverVersao} disabled={enviando}>Devolver para ajuste</Button>
               )}
               <Button kind="primary" size="sm" onClick={publicarVersao} disabled={enviando || bloqueios.length > 0}>
-                {enviando ? 'Enviando…' : 'Aprovar e publicar'}
+                <RotuloFixo atual=<RotuloFixo atual={enviando ? 'Enviando…' : 'Aprovar e publicar'} opcoes={['Aprovar e publicar', 'Enviando…']} /> opcoes={['Aprovar e publicar', 'Enviando…']} />
               </Button>
             </>
           )}

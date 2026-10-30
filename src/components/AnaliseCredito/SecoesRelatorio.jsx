@@ -2,6 +2,7 @@ import { Button, Tag, Tile } from '@carbon/react'
 import { ArrowRight, TaskApproved } from '@carbon/icons-react'
 import { ancoraDaSecao, corDaCategoria, evidenciaDe, rotuloEvidencia } from './vocabulario'
 import { FonteClicavel } from './FontesDoDocumento.jsx'
+import RotuloFixo from '../Comum/RotuloFixo.jsx'
 
 // Seções do relatório: um cartão por seção com conteúdo, na ordem do relatório.
 //
@@ -81,7 +82,7 @@ function SecoesRelatorio({ itens = [], revisao, rotulos = {}, onRevisar, onVerNo
                       seção abre a revisão com todos os itens dela, não só os pendentes (que seriam nenhum). */}
                   <Button kind="ghost" size="sm" renderIcon={TaskApproved}
                     onClick={() => onRevisar?.(s.secao, pendentes.length === 0)}>
-                    {pendentes.length ? 'Revisar' : 'Ver revisão'}
+                    <RotuloFixo atual={pendentes.length ? 'Revisar' : 'Ver revisão'} opcoes={['Revisar', 'Ver revisão']} />
                   </Button>
                   <button type="button" className="ana-link" onClick={() => onVerNoRelatorio?.(ancoraDaSecao(s.secao))}>
                     Ver no relatório <ArrowRight size={14} />

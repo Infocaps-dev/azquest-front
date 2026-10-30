@@ -24,6 +24,7 @@ import {
   rotuloEvidencia,
 } from './vocabulario'
 import { FonteClicavel, ProvedorDeFontes } from './FontesDoDocumento.jsx'
+import RotuloFixo from '../Comum/RotuloFixo.jsx'
 import './PainelRevisao.scss'
 
 // Painel de revisão: os ~50 itens do relatório numa tela só.
@@ -414,9 +415,10 @@ function PainelRevisao({
           {!somenteLeitura && status === 'pendente' && filtrando && pendentesVisiveis.length > 0 && (
             <Button kind={confirmar === 'filtro' ? 'primary' : 'tertiary'} size="sm" renderIcon={Checkmark}
               className="rev-categorias__lote" onClick={() => aprovarLote('filtro', pendentesVisiveis)}>
-              {confirmar === 'filtro'
+              <RotuloFixo atual={confirmar === 'filtro'
                 ? `Confirmar: aprovar ${pendentesVisiveis.length}`
                 : `Aprovar os ${pendentesVisiveis.length} do filtro`}
+                opcoes={[`Aprovar os ${pendentesVisiveis.length} do filtro`, `Confirmar: aprovar ${pendentesVisiveis.length}`]} />
             </Button>
           )}
         </div>

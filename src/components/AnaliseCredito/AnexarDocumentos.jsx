@@ -8,6 +8,7 @@ import {
   SelectItem,
   TextInput,
 } from '@carbon/react'
+import AndamentoExtracao from './AndamentoExtracao.jsx'
 import {
   confirmarDocumentos,
   descartarDocumentos,
@@ -451,14 +452,23 @@ function AnexarDocumentos({ aoEnviar }) {
           lowContrast
           title={`${resultado.gravados.length} documento(s) enviado(s)`}
           subtitle={
-            `A extração começa automaticamente e leva alguns minutos; depois `
-            + 'o documento passa a valer nas consultas do chat e nos relatórios. Pastas: '
+            'Acompanhe abaixo a extração de cada um; ao concluir, o documento passa a valer nas consultas do chat '
+            + 'e nos relatórios. Pastas: '
             + [...new Set(resultado.gravados.map(g => g.tipo))].join(', ') + '.'
             + (resultado.gravados.some(g => g.substituiu_existente)
               ? ' Atenção: um ou mais substituíram um arquivo de mesmo nome.'
               : '')
           }
           onCloseButtonClick={() => setResultado(null)}
+        />
+      )}
+
+      {resultado?.gravados?.length > 0 && resultado.enviado_em && (
+        <AndamentoExtracao
+          key={resultado.enviado_em}
+          emissor={resultado.emissor || emissor}
+          desde={resultado.enviado_em}
+          documentos={resultado.gravados.map(g => ({ arquivo: g.arquivo, chave: g.chave }))}
         />
       )}
     </section>

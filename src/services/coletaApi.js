@@ -75,6 +75,15 @@ export const dispararColeta = ({ emissor, fontes, upload, periodo, periodoAte })
 export const resumoExtracao = (emissor, chave) =>
   pedir(`/api/extracoes?emissor=${encodeURIComponent(emissor)}&chave=${encodeURIComponent(chave)}`)
 
+// Andamento real da extração dos documentos enviados (chaves como "release/AP-2026-08-ECORODOVIAS.pdf"), desde a
+// hora do envio: a etapa atual e a hora de cada etapa que o extrator gravou.
+export const andamentoExtracao = (emissor, chaves, desde) => {
+  const parametros = new URLSearchParams({ emissor })
+  if (desde) parametros.set('desde', desde)
+  chaves.forEach(c => parametros.append('chaves', c))
+  return pedir(`/api/extracoes/andamento?${parametros}`)
+}
+
 export const urlArquivoExtracao = (emissor, chave) =>
   `${BASE}/api/extracoes/arquivo?emissor=${encodeURIComponent(emissor)}&chave=${encodeURIComponent(chave)}`
 

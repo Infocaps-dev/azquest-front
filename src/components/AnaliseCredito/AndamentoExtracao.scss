@@ -1,0 +1,78 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/theme' as *;
+@use '@carbon/react/scss/type' as *;
+
+// Andamento real da extração depois do envio manual (30/10/2026): uma linha por documento, as etapas lado a lado.
+.andamento {
+  margin-top: $spacing-05;
+}
+
+.andamento__titulo {
+  @include type-style('heading-compact-01');
+  margin-bottom: $spacing-03;
+}
+
+.andamento__lista {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+}
+
+.andamento__doc {
+  padding: $spacing-04;
+  background: $layer-01;
+  border: 1px solid $border-subtle-01;
+}
+
+.andamento__arquivo {
+  @include type-style('body-compact-01');
+  font-weight: 600;
+  margin-bottom: $spacing-03;
+  overflow-wrap: anywhere;
+}
+
+.andamento__etapas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03 $spacing-06;
+}
+
+.andamento__etapa {
+  @include type-style('label-01');
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-02;
+  color: $text-secondary;
+
+  svg { flex: none; }
+
+  &--feita svg { fill: $support-success; }
+  &--corrente { color: $text-primary; font-weight: 600; }
+  &--corrente svg { fill: $interactive; }
+  &--pendente { color: $text-placeholder; }
+  &--erro { color: $text-error; }
+  &--erro svg { fill: $support-error; }
+}
+
+.andamento__hora,
+.andamento__detalhe {
+  color: $text-secondary;
+  font-weight: 400;
+}
+
+.andamento__detalhe::before {
+  content: '· ';
+}
+
+.andamento__aviso {
+  @include type-style('label-01');
+  display: flex;
+  align-items: center;
+  gap: $spacing-02;
+  margin-top: $spacing-03;
+  color: $text-primary;
+
+  svg { fill: $support-warning; flex: none; }
+
+  &--erro { color: $text-error; }
+}

@@ -53,7 +53,8 @@ const APLICACAO = {
   erro: 'O ajuste não entrou no relatório',
 }
 
-function Detalhe({ item, decisao, rotulos, onDecidir, onVerNoRelatorio, onAnterior, onProximo, gerando, somenteLeitura }) {
+function Detalhe({ item, decisao, rotulos, onDecidir, onVerNoRelatorio, onAnterior, onProximo, gerando, somenteLeitura,
+  inconsistencia, onInconsistencia }) {
   const [modo, setModo] = useState(null) // null | 'ajustar' | 'rejeitar'
   const [texto, setTexto] = useState('')
   const [motivo, setMotivo] = useState('')
@@ -193,6 +194,11 @@ function Detalhe({ item, decisao, rotulos, onDecidir, onVerNoRelatorio, onAnteri
       )}
       {erro && <InlineNotification kind="error" lowContrast hideCloseButton title={erro} />}
 
+      {item.origem === 'herdado' && (
+        <Inconsistencia key={item.id} item={item} situacao={inconsistencia} onAcao={onInconsistencia}
+          somenteLeitura={somenteLeitura} gerando={gerando} />
+      )}
+
       <div className="rev-detalhe__acoes">
         <button type="button" className="ana-link" onClick={() => onVerNoRelatorio?.(item.ancora)}>
           Ver no relatório <ArrowRight size={14} />
@@ -227,6 +233,75 @@ function Detalhe({ item, decisao, rotulos, onDecidir, onVerNoRelatorio, onAnteri
           )}
         </span>
       </div>
+    </div>
+  )
+}
+
+// Inconsistência num quadro herdado do relatório anterior (30/10/2026): o erro conhecido (a linha de FCFF que cai de
+// 1 em 1) é registrado uma vez; o quadro sai com alerta no relatório e a publicação fica bloqueada até alguém com o
+// papel de publicar assumir para este relatório (justificativa obrigatória; o alerta continua no PDF) ou o quadro ser
+// corrigido num relatório anterior novo. Quem pode o quê, o servidor decide (403 volta como erro aqui).
+const ACOES_INCONSISTENCIA = {
+  registrar: { botao: 'Registrar inconsistência', rotulo: 'O que está errado no quadro',
+    ajuda: 'Ex.: a linha de FCFF cai de 1 em 1, como fórmula arrastada.' },
+  assumir: { botao: 'Assumir para o comitê', rotulo: 'Justificativa',
+    ajuda: 'Vale só para este relatório. O alerta continua no PDF, com o seu nome e esta justificativa.' },
+  corrigida: { botao: 'Confirmar que foi corrigida', rotulo: 'O que foi corrigido no relatório anterior novo', ajuda: '' },
+}
+
+function Inconsistencia({ item, situacao, onAcao, somenteLeitura, gerando }) {
+  const [acao, setAcao] = useState(null)
+  const [texto, setTexto] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  const [erro, setErro] = useState('')
+  const estado = situacao?.estado || 'nenhuma'
+  const possivel = { nenhuma: 'registrar', corrigida: 'registrar', aberta: 'assumir', reavaliar: 'corrigida' }[estado]
+
+  async function enviar() {
+    setEnviando(true)
+    setErro('')
+    try {
+      await onAcao?.(item.id, acao, texto)
+      setAcao(null)
+      setTexto('')
+    } catch (e) {
+      setErro(e.message)
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  return (
+    <div className="rev-inconsistencia">
+      {estado === 'aberta' || estado === 'reavaliar' ? (
+        <InlineNotification kind="warning" lowContrast hideCloseButton title="Inconsistência no modelo"
+          subtitle={`${situacao.descricao} Registrada por ${situacao.registrado_por} em ${dataHora(situacao.registrado_em)}. `
+            + (estado === 'reavaliar' ? 'O relatório anterior mudou: confirme se o quadro foi corrigido. ' : '')
+            + 'Bloqueia a publicação.'} />
+      ) : estado === 'assumida' ? (
+        <InlineNotification kind="info" lowContrast hideCloseButton title="Inconsistência assumida para o comitê"
+          subtitle={`${situacao.descricao} Assumida por ${situacao.decisao?.por} em ${dataHora(situacao.decisao?.em)}: `
+            + `${situacao.decisao?.justificativa}`} />
+      ) : null}
+      {acao ? (
+        <>
+          <TextArea id={`rev-inconsistencia-${item.id}`} labelText={ACOES_INCONSISTENCIA[acao].rotulo} rows={2}
+            helperText={ACOES_INCONSISTENCIA[acao].ajuda} value={texto} onChange={e => setTexto(e.target.value)} />
+          <span className="rev-inconsistencia__botoes">
+            <Button kind="ghost" size="sm" disabled={enviando} onClick={() => { setAcao(null); setTexto(''); setErro('') }}>
+              Cancelar
+            </Button>
+            <Button kind="primary" size="sm" disabled={enviando || texto.trim().length < 10} onClick={enviar}>
+              {ACOES_INCONSISTENCIA[acao].botao}
+            </Button>
+          </span>
+        </>
+      ) : (!somenteLeitura && possivel && (
+        <Button kind="ghost" size="sm" disabled={gerando} onClick={() => setAcao(possivel)}>
+          {ACOES_INCONSISTENCIA[possivel].botao}
+        </Button>
+      ))}
+      {erro && <InlineNotification kind="error" lowContrast hideCloseButton title={erro} />}
     </div>
   )
 }
@@ -272,7 +347,7 @@ function SugestoesDoAgente({ sugestoes = [] }) {
 
 function PainelRevisao({
   aberto, onFechar, resumo, revisao, categorias = [], filtroInicial, onDecidir, onDecidirLote, onVerNoRelatorio,
-  onGerarVersao, somenteLeitura = false,
+  onGerarVersao, somenteLeitura = false, onInconsistencia,
 }) {
   const [status, setStatus] = useState('pendente')
   const [categoriasSel, setCategoriasSel] = useState([])
@@ -495,6 +570,8 @@ function PainelRevisao({
             onVerNoRelatorio={onVerNoRelatorio}
             gerando={Boolean(revisao?.ajustes?.pedido)}
             somenteLeitura={somenteLeitura}
+            inconsistencia={atual ? revisao?.inconsistencias?.find(i => i.item_id === atual.id) : null}
+            onInconsistencia={onInconsistencia}
             onAnterior={posicao > 0 ? () => irPara(-1) : null}
             onProximo={posicao >= 0 && posicao < visiveis.length - 1 ? () => irPara(1) : null}
           />

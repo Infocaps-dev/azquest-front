@@ -137,7 +137,8 @@ export function pedidoDeAjustes(resumo, revisao, usuario, agora) {
 }
 
 // Estado da revisão para a versão atual do resumo: decisão por item, contagens e o que bloqueia a publicação.
-export function estadoDaRevisao(resumo, revisao, agora = Date.now()) {
+// `extras`: bloqueios calculados fora daqui (inconsistências nos quadros herdados, server/inconsistencias.js).
+export function estadoDaRevisao(resumo, revisao, agora = Date.now(), extras = []) {
   const itens = {}
   const contagem = { pendente: 0, aprovado: 0, ajustado: 0, rejeitado: 0 }
   const pendentesPorCategoria = {}
@@ -168,6 +169,8 @@ export function estadoDaRevisao(resumo, revisao, agora = Date.now()) {
   if (pendente) bloqueios.push('versão nova com os ajustes em geração')
   if (decisaoValida?.status === 'devolvida') bloqueios.push('versão devolvida para ajuste: corrija e gere uma versão nova')
   if (decisaoValida?.status === 'publicando') bloqueios.push('publicação em andamento')
+  bloqueios.push(...extras)
+  bloqueios.push(...extras)
   return {
     relatorio_id: resumo.relatorio_id,
     versao: resumo.versao,

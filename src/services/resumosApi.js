@@ -141,6 +141,15 @@ export async function decidirItem(id, itemId, { decisao, motivo, textoAjustado, 
   })
 }
 
+// Inconsistência num quadro herdado do relatório anterior (30/10/2026): acao registrar | assumir | corrigida, com o
+// texto (descrição, justificativa ou o que foi corrigido). Devolve o estado da revisão, já com os bloqueios.
+export function decidirInconsistencia(id, { itemId, acao, texto, versao }) {
+  return pedir(`/api/resumos/${encodeURIComponent(id)}/inconsistencias`, {
+    method: 'POST',
+    body: JSON.stringify({ versao, item_id: itemId, acao, texto }),
+  })
+}
+
 // Vários itens de uma vez (seção, categoria, filtro). Ajuste é sempre um a um.
 export function decidirLote(id, itens, { decisao, motivo, versao }) {
   return pedir(`/api/resumos/${encodeURIComponent(id)}/revisao/lote`, {

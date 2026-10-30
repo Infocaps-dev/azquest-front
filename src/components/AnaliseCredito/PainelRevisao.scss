@@ -348,3 +348,19 @@
 }
 
 .rev-sugestoes__texto { @include type-style('body-compact-01'); }
+
+// Inconsistência num quadro herdado (30/10/2026): alerta, ação e o texto dela.
+.rev-inconsistencia {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+  margin: $spacing-04 0;
+
+  .cds--inline-notification { max-width: none; margin: 0; }
+}
+
+.rev-inconsistencia__botoes {
+  display: flex;
+  gap: $spacing-03;
+  justify-content: flex-end;
+}

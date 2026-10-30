@@ -32,6 +32,7 @@ import {
   TIPOS_AJUSTAVEIS, decidir, estadoDaRevisao, pedidoAtrasado, pedidoDeAjustes, publicando, recuperarPedidoAtrasado,
   revisaoVazia, validarDecisao,
 } from './revisao.js'
+import { aplicarAcao, bloqueiosDeInconsistencia, inconsistenciasDoRelatorio } from './inconsistencias.js'
 
 const BUCKET = process.env.COS_BUCKET || 'ecovias-itr-docs'
 const AUTH_BFF_URL = (process.env.AUTH_BFF_URL
@@ -243,11 +244,68 @@ function bloquearDuranteGeracaoOuPublicacao(revisao, resumo) {
   if (publicando(revisao, resumo)) throw new ErroHttp(409, 'A publicação desta versão está em andamento.')
 }
 
+// Estado da revisão com os bloqueios das inconsistências nos quadros herdados, lidas do registro na hora (30/10/2026):
+// toda resposta que devolve o estado usa este, para a tela nunca mostrar a publicação liberada por um instante.
+async function estadoCompleto(resumo, revisao) {
+  const inconsistencias = await inconsistenciasDoRelatorio(resumo, lerJson)
+  return {
+    ...estadoDaRevisao(resumo, revisao, Date.now(), bloqueiosDeInconsistencia(inconsistencias, resumo)),
+    inconsistencias: inconsistencias.map(({ item_id, referencia, estado, bloqueia, entrada, por, em, justificativa }) => (
+      { item_id, referencia, estado, bloqueia, descricao: entrada?.descricao || null,
+        registrado_por: entrada?.registrado_por || null, registrado_em: entrada?.em || null,
+        decisao: por ? { por, em, justificativa } : null })),
+  }
+}
+
 // Decisão de cada item na versão atual, contagens por status e por categoria, e o que bloqueia a publicação.
 app.get('/api/resumos/:id/revisao', emRota(async (req, res) => {
   validarIds(req)
   const resumo = await lerResumo(req.params.id)
-  res.json(estadoDaRevisao(resumo, (await lerJson(`revisoes/${req.params.id}.json`)) ?? revisaoVazia(req.params.id)))
+  res.json(await estadoCompleto(resumo, (await lerJson(`revisoes/${req.params.id}.json`)) ?? revisaoVazia(req.params.id)))
+}))
+
+// Inconsistência num quadro herdado: {versao, item_id, acao: registrar|assumir|corrigida, texto}. Grava o registro da
+// empresa (gravação condicional) e pede a versão nova, que a montagem faz com o alerta atualizado.
+app.post('/api/resumos/:id/inconsistencias', emRota(async (req, res) => {
+  validarIds(req)
+  const resumo = await lerResumo(req.params.id)
+  exigirVersao(req, resumo)
+  const usuario = req.usuario?.email || req.usuario?.name || 'desconhecido'
+  const herdado = (await inconsistenciasDoRelatorio(resumo, lerJson)).find(i => i.item_id === req.body?.item_id)
+  if (!herdado) throw new ErroHttp(422, 'Este item não é um quadro herdado do relatório anterior.')
+  const chave = `${herdado.pasta}/inconsistencias.json`
+  const podeDecidir = !PAPEIS_PUBLICACAO.length || PAPEIS_PUBLICACAO.includes(req.usuario?.role)
+  let gravado = false
+  for (let tentativa = 0; tentativa < 10 && !gravado; tentativa++) {
+    if (tentativa) await new Promise(r => setTimeout(r, 20 + Math.random() * 60 * tentativa))
+    const { dados, etag } = await lerJsonComEtag(chave)
+    const registro = dados ?? { itens: {}, historico: [] }
+    try {
+      aplicarAcao(registro, { acao: req.body?.acao, referencia: herdado.referencia, texto: req.body?.texto, usuario,
+        agora: agoraIso(), relatorioId: resumo.relatorio_id, docxAtual: herdado.docx_atual, podeDecidir })
+    } catch (e) {
+      throw new ErroHttp(e.status || 400, e.message)
+    }
+    try {
+      await gravarJson(chave, registro, etag ? { seIgual: etag } : { soSeNovo: true })
+      gravado = true
+    } catch (e) {
+      if (!(e instanceof Conflito)) throw e
+    }
+  }
+  if (!gravado) throw new ErroHttp(409, 'O registro foi alterado por outra pessoa várias vezes seguidas. Tente de novo.')
+  // Versão nova com o alerta: o mesmo caminho dos ajustes (job), sem mudar texto.
+  const agora = agoraIso()
+  const pedidoId = `${agora.replace(/[^0-9]/g, '')}-${Math.random().toString(36).slice(2, 8)}`
+  const { revisao } = await atualizarRevisao(req.params.id, revisao => {
+    revisao.ajuste_pendente = { pedido_id: pedidoId, em: agora, versao_base: resumo.versao, itens: 0 }
+    revisao.historico.push({ em: agora, usuario, acao: `inconsistência: ${req.body.acao}`, itens: [herdado.item_id] })
+  })
+  await gravarJson(`ajustes/${req.params.id}/${pedidoId}.json`, {
+    pedido_id: pedidoId, relatorio_id: resumo.relatorio_id, versao_base: resumo.versao, usuario, em: agora,
+    tipo: 'reemitir', itens: [],
+  }, { soSeNovo: true })
+  res.status(202).json(await estadoCompleto(resumo, revisao))
 }))
 
 // Decide um item: {versao, decisao: aprovado|ajustado|rejeitado, motivo, texto_ajustado}.
@@ -270,7 +328,7 @@ app.patch('/api/resumos/:id/itens/:item', emRota(async (req, res) => {
     }
     decidir(revisao, resumo, [req.params.item], req.body, req.usuario, agoraIso())
   })
-  res.json(estadoDaRevisao(resumo, revisao))
+  res.json(await estadoCompleto(resumo, revisao))
 }))
 
 // Decide vários itens de uma vez (uma seção, uma categoria): {versao, itens: [ids], decisao, motivo}. Ajuste é um a um.
@@ -289,7 +347,7 @@ app.post('/api/resumos/:id/revisao/lote', emRota(async (req, res) => {
     bloquearDuranteGeracaoOuPublicacao(revisao, resumo)
     return decidir(revisao, resumo, itens, { decisao, motivo }, req.usuario, agoraIso())
   })
-  res.json({ ...estadoDaRevisao(resumo, revisao), ignorados: resultado })
+  res.json({ ...(await estadoCompleto(resumo, revisao)), ignorados: resultado })
 }))
 
 // Gera a versão nova com todos os ajustes aguardando: grava o pedido em ajustes/<id>/<pedido>.json, que dispara o
@@ -310,7 +368,7 @@ app.post('/api/resumos/:id/ajustes/aplicar', emRota(async (req, res) => {
     return novo
   })
   await gravarJson(`ajustes/${req.params.id}/${pedido.pedido_id}.json`, pedido, { soSeNovo: true })
-  res.status(202).json(estadoDaRevisao(resumo, revisao))
+  res.status(202).json(await estadoCompleto(resumo, revisao))
 }))
 
 // Devolve a versão para ajuste: {versao, justificativa}. A versão nova do relatório reabre a revisão sozinha.
@@ -332,7 +390,7 @@ app.post('/api/resumos/:id/devolver', emRota(async (req, res) => {
     revisao.decisao = { status: 'devolvida', versao: resumo.versao, justificativa, usuario, em: agora }
     revisao.historico.push({ em: agora, usuario, acao: 'devolvida', justificativa })
   })
-  res.json(estadoDaRevisao(resumo, revisao))
+  res.json(await estadoCompleto(resumo, revisao))
 }))
 
 // Pasta do baseline do emissor no bucket: baselines/ecorodovias/.
@@ -369,10 +427,13 @@ app.post('/api/resumos/:id/publicar', emRota(async (req, res) => {
   const pasta = pastaDoBaseline(emissor)
   if (!pasta) throw new ErroHttp(422, 'O relatório não tem o nome do emissor: não há onde guardar o baseline.')
   const usuario = req.usuario?.email || req.usuario?.name
+  // Inconsistências nos quadros herdados, lidas agora (não da última tela): aberta, a reavaliar ou decisão mais nova
+  // que a versão bloqueiam.
+  const extras = bloqueiosDeInconsistencia(await inconsistenciasDoRelatorio(resumo, lerJson), resumo)
 
   const { revisao: reservada } = await atualizarRevisao(req.params.id, revisao => {
     if (publicando(revisao, resumo)) throw new ErroHttp(409, 'A publicação desta versão já está em andamento.')
-    const estado = estadoDaRevisao(resumo, revisao)
+    const estado = estadoDaRevisao(resumo, revisao, Date.now(), extras)
     if (estado.status === 'publicada') throw new ErroHttp(409, 'Esta versão já foi publicada.')
     if (estado.bloqueios_para_publicar.length) {
       throw new ErroHttp(409, `Publicação bloqueada: ${estado.bloqueios_para_publicar.join('; ')}.`)
@@ -422,7 +483,7 @@ app.post('/api/resumos/:id/publicar', emRota(async (req, res) => {
     revisao.decisao = { status: 'publicada', versao: resumo.versao, usuario, em: agora, baseline: envio }
     revisao.historico.push({ em: agora, usuario, acao: 'publicada', versao: resumo.versao })
   })
-  res.json({ ...estadoDaRevisao(resumo, revisao), baseline: envio })
+  res.json({ ...(await estadoCompleto(resumo, revisao)), baseline: envio })
 }))
 
 // Baseline vigente do emissor (o da última versão publicada), na cópia que a publicação guarda no bucket. É a fonte

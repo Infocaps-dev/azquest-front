@@ -4,6 +4,7 @@ import { Add, Catalog, ChartLineData, Document, DocumentPdf, Renew, TaskApproved
 import { useLocation, useNavigate } from 'react-router'
 import {
   aplicarAjustes,
+  decidirInconsistencia,
   decidirItem,
   decidirLote,
   acordarPdf,
@@ -319,6 +320,15 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
   async function decidir(itemId, decisao) {
     try {
       setRevisao(await decidirItem(relatorioId, itemId, { ...decisao, versao: resumo.versao }))
+    } catch (e) {
+      if (e.versaoAtual) await carregar(atual.current).catch(() => {})
+      throw e
+    }
+  }
+
+  async function inconsistencia(itemId, acao, texto) {
+    try {
+      setRevisao(await decidirInconsistencia(relatorioId, { itemId, acao, texto, versao: resumo.versao }))
     } catch (e) {
       if (e.versaoAtual) await carregar(atual.current).catch(() => {})
       throw e
@@ -704,6 +714,7 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
         resumo={resumo}
         revisao={revisao}
         somenteLeitura={revisao?.status === 'publicada'}
+        onInconsistencia={inconsistencia}
         categorias={categorias}
         onDecidir={decidir}
         onDecidirLote={decidirVarios}

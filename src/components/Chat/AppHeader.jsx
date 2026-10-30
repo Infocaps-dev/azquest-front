@@ -6,7 +6,7 @@ import {
   HeaderName,
   HeaderNavigation,
 } from '@carbon/react'
-import { Analytics, Catalog, ChartLineData, CloudDownload, Document, FolderOpen, Home, Logout } from '@carbon/icons-react'
+import { Analytics, ChartLineData, CloudDownload, Document, FolderOpen, Home, Logout } from '@carbon/icons-react'
 import logo from '../../assets/azquest-logo.png'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { CAMINHO_DA_ABA, cliqueComum } from '../../rotas'
@@ -14,7 +14,7 @@ import { CAMINHO_DA_ABA, cliqueComum } from '../../rotas'
 // Cada aba é um link para o endereço dela (rotas.js): o clique comum troca de tela sem recarregar; Ctrl+clique ou o
 // botão do meio abrem a aba noutra janela do navegador, como num site.
 // `caminhos`: aonde a aba leva quando já tem algo aberto nela (a conversa do chat, o relatório da Análise).
-function AppHeader({ aba = 'inicio', onTrocarAba, caminhos = {} }) {
+function AppHeader({ aba = 'inicio', onTrocarAba, caminhos = {}, conceitosPendentes = 0 }) {
   const { user, logout } = useAuth()
   const caminho = destino => caminhos[destino] || CAMINHO_DA_ABA[destino]
   function ir(evento, destino) {
@@ -40,12 +40,18 @@ function AppHeader({ aba = 'inicio', onTrocarAba, caminhos = {} }) {
         </HeaderMenuItem>
         <HeaderMenuItem
           href={caminho('analise')}
-          isCurrentPage={aba === 'analise'}
-          aria-current={aba === 'analise' ? 'page' : undefined}
+          isCurrentPage={aba === 'analise' || aba === 'conceitos'}
+          aria-current={aba === 'analise' || aba === 'conceitos' ? 'page' : undefined}
           onClick={e => ir(e, 'analise')}
         >
           <span className="chat-header__nav-item">
             <Document size={16} /> Análise de Crédito
+            {/* Os Conceitos ficam dentro da Análise (29/10/2026): o número de perguntas pendentes, como notificação. */}
+            {conceitosPendentes > 0 && (
+              <span className="contador-notificacao" title={`${conceitosPendentes} conceito(s) para revisar`}>
+                {conceitosPendentes}
+              </span>
+            )}
           </span>
         </HeaderMenuItem>
         <HeaderMenuItem
@@ -86,16 +92,6 @@ function AppHeader({ aba = 'inicio', onTrocarAba, caminhos = {} }) {
         >
           <span className="chat-header__nav-item">
             <FolderOpen size={16} /> Documentos
-          </span>
-        </HeaderMenuItem>
-        <HeaderMenuItem
-          href={caminho('conceitos')}
-          isCurrentPage={aba === 'conceitos'}
-          aria-current={aba === 'conceitos' ? 'page' : undefined}
-          onClick={e => ir(e, 'conceitos')}
-        >
-          <span className="chat-header__nav-item">
-            <Catalog size={16} /> Conceitos
           </span>
         </HeaderMenuItem>
       </HeaderNavigation>

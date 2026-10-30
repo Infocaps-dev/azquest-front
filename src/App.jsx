@@ -12,6 +12,7 @@ import DocumentosPage from './components/Documentos/DocumentosPage.jsx'
 import ConceitosPage from './components/Conceitos/ConceitosPage.jsx'
 import LoginPage from './components/Login/LoginPage.jsx'
 import { useNovosRelatorios } from './hooks/useNovosRelatorios'
+import { useConceitosPendentes } from './hooks/useConceitosPendentes'
 import { CAMPOS_DA_FONTE, FonteDaUrl, fonteDaUrl } from './components/AnaliseCredito/FontesDoDocumento.jsx'
 import Carregando from './components/Comum/Carregando.jsx'
 import { CAMINHO_DA_ABA, TITULO_DA_ABA, abaDoCaminho, caminhoDaConversa, caminhoDoRelatorio, definirTitulo } from './rotas'
@@ -39,6 +40,7 @@ function Gate() {
   const aba = abaDoCaminho(location.pathname)
   // Relatório novo (gerado pelo chat, pelo botão ou versão nova de ajuste): o sinal atualiza as listas das abas.
   const { sinal, ignorar } = useNovosRelatorios(Boolean(user))
+  const [conceitosPendentes, atualizarConceitos] = useConceitosPendentes(Boolean(user))
   // A conversa aberta no chat: a aba Início volta para ela, não para uma conversa nova.
   const [conversaAtual, setConversaAtual] = useState(null)
   // O relatório aberto na Análise: a aba volta para ele (a tela da Análise desmonta nas outras abas).
@@ -81,7 +83,7 @@ function Gate() {
 
   return (
     <>
-      <AppHeader aba={aba} onTrocarAba={trocarAba} caminhos={caminhos} />
+      <AppHeader aba={aba} onTrocarAba={trocarAba} caminhos={caminhos} conceitosPendentes={conceitosPendentes} />
       {fonteAberta && <FonteDaUrl fonte={fonteAberta} onFechar={fecharFonte} />}
       {/* O chat fica montado nas outras abas: a conversa aberta, a lista de conversas e uma resposta em andamento
           sobrevivem à troca de aba, em vez de recarregar tudo na volta (e de abortar a geração de um relatório). */}
@@ -92,12 +94,13 @@ function Gate() {
       {aba === 'monitoramento' ? <MonitoramentoPage />
         : aba === 'analise' ? (
           <AnalisePage onTrocarAba={trocarAba} sinalIndice={sinal} onConversar={conversarSobre}
-            onVersaoPropria={ignorar} onRelatorioAtual={setRelatorioAtual} />
+            onVersaoPropria={ignorar} onRelatorioAtual={setRelatorioAtual}
+            conceitosPendentes={conceitosPendentes} onAbrirConceitos={() => navigate(CAMINHO_DA_ABA.conceitos)} />
         )
           : aba === 'desempenho' ? <DesempenhoPage sinalIndice={sinal} />
           : aba === 'coleta' ? <ColetaPage />
           : aba === 'documentos' ? <DocumentosPage />
-          : aba === 'conceitos' ? <ConceitosPage />
+          : aba === 'conceitos' ? <ConceitosPage onMudou={atualizarConceitos} onVoltar={() => trocarAba('analise')} />
           : aba === 'inicio' ? null
           : <NaoEncontrada />}
     </>

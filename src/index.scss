@@ -1,3 +1,20 @@
 @use '@carbon/react' with (
   $font-path: '@ibm/plex'
 );
+
+// Número de pendências como notificação (29/10/2026): na aba Análise de Crédito e no botão Conceitos.
+.contador-notificacao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  margin-inline-start: 0.375rem;
+  padding: 0 0.375rem;
+  border-radius: 0.625rem;
+  background: #da1e28;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, Dropdown, InlineNotification, SkeletonPlaceholder, SkeletonText, Tag } from '@carbon/react'
-import { Add, ChartLineData, Document, DocumentPdf, Renew, TaskApproved } from '@carbon/icons-react'
+import { Add, Catalog, ChartLineData, Document, DocumentPdf, Renew, TaskApproved } from '@carbon/icons-react'
 import { useLocation, useNavigate } from 'react-router'
 import {
   aplicarAjustes,
@@ -79,7 +79,8 @@ const itemDoSeletor = r => (r === GERAR_NOVO
 // aberto por cima. A URL manda: escolher outro relatório navega (fica no histórico); as trocas que a tela faz sozinha
 // (abrir o mais recente em /relatorios, abrir o recém-gerado) substituem o endereço. Id que não existe mostra "não
 // encontrado" com a lista, em vez de abrir outro relatório no lugar.
-function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, onRelatorioAtual }) {
+function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, onRelatorioAtual, conceitosPendentes = 0,
+  onAbrirConceitos }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { id: relatorioDaUrl, completo } = relatorioDoCaminho(location.pathname)
@@ -445,6 +446,18 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
       onFechar={() => setGerarAberto(false)} onPronto={abrirQuandoResumir} />
   )
 
+  // Conceitos (qual linha das planilhas é cada indicador) dentro da Análise, com o número pendente (29/10/2026).
+  const botaoConceitos = (
+    <Button kind="ghost" size="sm" renderIcon={Catalog} onClick={onAbrirConceitos}>
+      Conceitos
+      {conceitosPendentes > 0 && (
+        <span className="contador-notificacao" title={`${conceitosPendentes} conceito(s) para revisar`}>
+          {conceitosPendentes}
+        </span>
+      )}
+    </Button>
+  )
+
   const seletor = (
     <Dropdown id="ana-relatorio" titleText="Relatório" hideLabel size="sm" label="Escolha um relatório"
       className="ana-cabecalho__seletor" items={[GERAR_NOVO, ...relatorios]}
@@ -495,6 +508,7 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
             <span className="ana-cabecalho__referencia">escolha um relatório para revisar</span>
           </div>
           <div className="ana-cabecalho__acoes">
+            {botaoConceitos}
             {seletor}
             <Button kind="primary" size="sm" renderIcon={Add} onClick={() => setGerarAberto(true)}>Gerar relatório</Button>
           </div>
@@ -546,6 +560,7 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
           )}
         </div>
         <div className="ana-cabecalho__acoes">
+          {botaoConceitos}
           {seletor}
           <Button kind="tertiary" size="sm" renderIcon={Document} onClick={() => abrirRelatorio(null)}>
             Relatório completo

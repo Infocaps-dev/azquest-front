@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button, InlineLoading, InlineNotification, Select, SelectItem } from '@carbon/react'
+import { ArrowLeft } from '@carbon/icons-react'
 import { filaDeConceitos, decidirConceito } from '../../services/conceitosApi'
 import '../AnaliseCredito/AnalisePage.scss'
 import '../Desempenho/DesempenhoPage.scss'
@@ -153,7 +154,7 @@ function Pendente({ item, catalogo, escopos, podeDecidir, decidir }) {
   )
 }
 
-export default function ConceitosPage() {
+export default function ConceitosPage({ onMudou, onVoltar }) {
   const [fila, setFila] = useState(null)
   const [erro, setErro] = useState('')
   const [aviso, setAviso] = useState('')
@@ -182,6 +183,7 @@ export default function ConceitosPage() {
       setAviso(e.status === 409 ? 'Outra pessoa respondeu enquanto a tela estava aberta: a lista foi recarregada.' : e.message)
     }
     await carregar()
+    onMudou?.() // o número da notificação na aba Análise de Crédito
   }
 
   if (erro) {
@@ -200,6 +202,8 @@ export default function ConceitosPage() {
           <h1 className="ana-cabecalho__emissor">Conceitos</h1>
           <span className="ana-cabecalho__referencia">qual linha das planilhas é cada indicador, por empresa</span>
         </div>
+        {/* Os Conceitos ficam dentro da Análise de Crédito (29/10/2026): a volta para ela. */}
+        <Button kind="ghost" size="sm" renderIcon={ArrowLeft} onClick={onVoltar}>Voltar para a análise de crédito</Button>
       </header>
       <section className="des-secao conceitos__explicacao" aria-label="Para que serve">
         <p>

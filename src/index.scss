@@ -2,21 +2,45 @@
   $font-path: '@ibm/plex'
 );
 
-// Número de pendências como notificação (29/10/2026): na aba Análise de Crédito e no botão Conceitos.
+// Número de pendências como notificação (29/10/2026): na aba Análise de Crédito e no botão Conceitos. Sobreposto ao
+// canto (position: absolute), fora do fluxo: aparecer ou sumir não muda a largura da aba nem do botão, e nada ao lado
+// se mexe.
 .contador-notificacao {
+  position: absolute;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.25rem;
-  height: 1.25rem;
-  margin-inline-start: 0.375rem;
-  padding: 0 0.375rem;
-  border-radius: 0.625rem;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.3125rem;
+  border-radius: 0.5625rem;
   background: #da1e28;
+  box-shadow: 0 0 0 2px #ffffff;
   color: #ffffff;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   line-height: 1;
+  pointer-events: none;
+  z-index: 2; // por cima da aba vizinha, que pinta o fundo depois
+}
+
+.chat-header__nav-item {
+  position: relative;
+
+  .contador-notificacao {
+    top: -0.5rem;
+    right: -1.625rem;
+  }
+}
+
+.cds--btn.com-contador {
+  position: relative;
+  overflow: visible;
+
+  .contador-notificacao {
+    top: -0.5rem;
+    right: -0.5rem;
+  }
 }
 
 // Anel de foco só na navegação pelo teclado (29/10/2026). O Carbon desenha o foco em :focus, e todo clique de mouse

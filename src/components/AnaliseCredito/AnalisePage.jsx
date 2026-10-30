@@ -448,7 +448,7 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
 
   // Conceitos (qual linha das planilhas é cada indicador) dentro da Análise, com o número pendente (29/10/2026).
   const botaoConceitos = (
-    <Button kind="ghost" size="sm" renderIcon={Catalog} onClick={onAbrirConceitos}>
+    <Button kind="ghost" size="sm" renderIcon={Catalog} onClick={onAbrirConceitos} className="com-contador">
       Conceitos
       {conceitosPendentes > 0 && (
         <span className="contador-notificacao" title={`${conceitosPendentes} conceito(s) para revisar`}>

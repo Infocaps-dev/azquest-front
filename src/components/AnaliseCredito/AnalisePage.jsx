@@ -114,6 +114,9 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
   const versoesProprias = useRef(new Set())
   // Relatório gerado pelo diálogo cujo resumo ainda não tinha chegado: abre quando aparecer na lista.
   const aguardado = useRef(null)
+  // Relatório recém-gerado pelo diálogo (30/10/2026): a tela fica carregando até o resumo dele chegar, em vez de voltar
+  // para o relatório que estava aberto e trocar de repente. {id, descricao}; escolher outro relatório cancela.
+  const [abrindoNovo, setAbrindoNovo] = useState(null)
   const pdf = useBaixarPdf()
 
   // O serviço de PDF desliga quando fica parado: liga ao abrir a aba, para o "Baixar PDF" não esperar ele religar.
@@ -188,13 +191,14 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
     if (!sinalIndice) return
     listarResumos().then(indice => {
       setRelatorios(indice.relatorios || [])
-      // Sem relatório aberto (tela vazia) ou com um gerado pelo diálogo à espera: o que chegou abre na hora.
+      // Relatório gerado pelo diálogo à espera: o que chegou abre na hora. Sem relatório aberto (tela de escolha), nada
+      // abre sozinho: o analista escolhe (29/10/2026).
       const lista = indice.relatorios || []
       const esperado = aguardado.current && lista.find(r => r.relatorio_id === aguardado.current)
-      if (esperado || (!atual.current && lista.length)) {
+      if (esperado) {
         aguardado.current = null
         setErroCarga('')
-        ir((esperado || lista[0]).relatorio_id, { replace: true })
+        ir(esperado.relatorio_id, { replace: true })
         return
       }
       const linha = (indice.relatorios || []).find(r => r.relatorio_id === atual.current)
@@ -422,6 +426,7 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
   // formulário quando a tela trocava para o relatório, com o "Gerar" de novo à mão) e a versão 2 é acompanhada aqui.
   async function abrirQuandoResumir(novoId, operacao) {
     setGerarAberto(false)
+    setAbrindoNovo({ id: novoId, descricao: 'Relatório gerado. Abrindo o relatório novo…' })
     if (operacao) setAcompanhada({ operacao, relatorioId: novoId })
     aguardado.current = novoId
     for (let tentativa = 0; tentativa < 30 && aguardado.current === novoId; tentativa++) {
@@ -435,10 +440,22 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
       }
       await new Promise(r => setTimeout(r, 2000))
     }
-    // Resumo demorando: o aviso de relatório novo (sinalIndice) abre o relatório quando ele chegar.
-    if (aguardado.current === novoId && !atual.current) {
-      setErroCarga('Relatório gerado. O resumo ainda está sendo montado: ele abre aqui assim que ficar pronto.')
+    // Resumo demorando: a tela continua carregando e o aviso de relatório novo (sinalIndice) abre o relatório quando
+    // ele chegar.
+    if (aguardado.current === novoId) {
+      setAbrindoNovo(atual => (atual?.id === novoId
+        ? { id: novoId, descricao: 'Relatório gerado. O resumo ainda está sendo montado: ele abre aqui assim que ficar pronto.' }
+        : atual))
     }
+  }
+
+  // Carregando até o resumo do novo estar na tela (escolher outro relatório limpa abrindoNovo).
+  const esperandoNovo = Boolean(abrindoNovo) && resumo?.relatorio_id !== abrindoNovo.id && !naoEncontrado
+
+  function escolherRelatorio(id) {
+    aguardado.current = null // escolher outro cancela a espera pelo recém-gerado
+    setAbrindoNovo(null)
+    ir(id)
   }
 
   const dialogoGerar = (
@@ -470,9 +487,20 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
           return
         }
         setAviso(null)
-        if (selectedItem.relatorio_id !== relatorioId) ir(selectedItem.relatorio_id)
+        if (selectedItem.relatorio_id !== relatorioId) escolherRelatorio(selectedItem.relatorio_id)
       }} />
   )
+
+  // Relatório recém-gerado a caminho: só o carregamento, sem o relatório anterior na tela.
+  if (esperandoNovo) {
+    return (
+      <>
+        <EsqueletoAnalise />
+        <Carregando pagina descricao={abrindoNovo.descricao} />
+        {dialogoGerar}
+      </>
+    )
+  }
 
   // Endereço de um relatório que não existe (apagado, link antigo): o aviso e a lista, sem abrir outro no lugar.
   if (naoEncontrado && !carregando) {
@@ -518,7 +546,7 @@ function AnalisePage({ onTrocarAba, sinalIndice, onVersaoPropria, onConversar, o
           <ul className="ana-escolha">
             {relatorios.slice(0, 12).map(r => (
               <li key={r.relatorio_id}>
-                <button type="button" className="ana-escolha__item" onClick={() => ir(r.relatorio_id)}>
+                <button type="button" className="ana-escolha__item" onClick={() => escolherRelatorio(r.relatorio_id)}>
                   <span className="ana-escolha__empresa">{r.empresa}</span>
                   <span className="ana-escolha__detalhe">
                     {r.referencia || r.periodo} · versão {r.versao}

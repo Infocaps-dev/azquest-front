@@ -14,6 +14,7 @@ const ETAPAS = [
   ['iniciado', 'Extrator iniciou'],
   ['baixado', 'Arquivo lido'],
   ['extraindo', 'Extraindo o conteúdo'],
+  ['lendo_imagens', 'Lendo o texto das figuras'],
   ['gravando_imagens', 'Gravando imagens'],
   ['concluido', 'Concluído'],
 ]
@@ -37,6 +38,10 @@ function detalhe(etapa, doc, agora) {
   if (etapa === 'extraindo' && doc.etapa === 'extraindo' && doc.marcos?.extraindo) {
     return `há ${duracao(segundos(doc.marcos.extraindo, agora))}`
   }
+  if (etapa === 'lendo_imagens' && doc.etapa === 'lendo_imagens' && doc.marcos?.lendo_imagens) {
+    return [doc.imagens != null && `${doc.imagens} figuras`,
+      `há ${duracao(segundos(doc.marcos.lendo_imagens, agora))}`].filter(Boolean).join(' · ')
+  }
   if (etapa === 'gravando_imagens' && doc.imagens != null) return `${doc.imagens} imagens`
   if (etapa === 'concluido' && doc.estado === 'concluido') {
     return [doc.itens != null && `${doc.itens.toLocaleString('pt-BR')} trechos e tabelas`,
@@ -51,7 +56,8 @@ function Documento({ arquivo, doc, desde, agora }) {
   const atual = naFila ? 'na_fila' : doc.etapa
   const marcos = { na_fila: desde, ...(doc?.marcos || {}) }
   // A imagem só existe em documento com figura: sem a etapa gravada, ela não é mostrada como pendente no fim.
-  const etapas = ETAPAS.filter(([e]) => e !== 'gravando_imagens' || marcos.gravando_imagens || atual === e)
+  const DE_FIGURA = ['lendo_imagens', 'gravando_imagens']
+  const etapas = ETAPAS.filter(([e]) => !DE_FIGURA.includes(e) || marcos[e] || atual === e)
   const indiceAtual = etapas.findIndex(([e]) => e === atual)
 
   return (
